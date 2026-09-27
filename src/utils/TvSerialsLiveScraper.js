@@ -30,7 +30,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_singapennae',
@@ -49,7 +49,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_vanathai_pola',
@@ -68,7 +68,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_marumagal',
@@ -87,7 +87,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_moondru_mudichu',
@@ -106,7 +106,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_annam',
@@ -125,7 +125,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_lakshmi',
@@ -144,7 +144,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_thulasi',
@@ -163,7 +163,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_iru_malargal',
@@ -182,7 +182,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_siragugal',
@@ -201,7 +201,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_sundari',
@@ -220,7 +220,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_sevvanthi',
@@ -239,7 +239,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_ilakkiya',
@@ -258,7 +258,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_iniya',
@@ -277,7 +277,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_ethirneechal',
@@ -296,7 +296,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_anbe_vaa',
@@ -315,7 +315,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_poove_unakkaga',
@@ -334,7 +334,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_pandavar_illam',
@@ -353,7 +353,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_abhiyum_naanum',
@@ -372,7 +372,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_roja',
@@ -391,7 +391,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_poonkodi',
@@ -410,7 +410,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_mr_manaivi',
@@ -429,7 +429,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_malar',
@@ -448,7 +448,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_priyamaana_thozhi',
@@ -467,7 +467,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_deivamagal',
@@ -486,7 +486,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_thirumathi_selvam',
@@ -505,7 +505,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_kolangal',
@@ -524,7 +524,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_metti_oli',
@@ -543,7 +543,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'sun_chithi_2',
@@ -562,7 +562,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
 
   // ==========================================
@@ -585,7 +585,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_baakiyalakshmi',
@@ -604,7 +604,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_pandian_stores_2',
@@ -623,7 +623,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_mahanathi',
@@ -642,7 +642,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_aaha_kalyanam',
@@ -661,7 +661,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_modhalum_kaadhalum',
@@ -680,7 +680,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_malli',
@@ -699,7 +699,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_chinna_marumagal',
@@ -718,7 +718,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_thendrale_mella_pesu',
@@ -737,7 +737,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_ayyanar_thunai',
@@ -756,7 +756,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_azhagae_azhagu',
@@ -775,7 +775,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_thaai_maaman',
@@ -794,7 +794,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_sakthivel',
@@ -813,7 +813,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_ponni',
@@ -832,7 +832,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_chellamma',
@@ -851,7 +851,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_muthazhagu',
@@ -870,7 +870,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_raja_rani_2',
@@ -889,7 +889,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_bharathi_kannamma',
@@ -908,7 +908,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_eeramana_rojave',
@@ -927,7 +927,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_kanne_kalaimaane',
@@ -946,7 +946,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_suttum_vizhi_sudare',
@@ -965,7 +965,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_kanmani_anbudan',
@@ -984,7 +984,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_nee_naan_kaadhal',
@@ -1003,7 +1003,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_thangamagal',
@@ -1022,7 +1022,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_veetu_ku_vandha_mahalakshmi',
@@ -1041,7 +1041,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_kaatrukkenna_veli',
@@ -1060,7 +1060,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_saravanan_meenatchi',
@@ -1079,7 +1079,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_pagal_nilavu',
@@ -1098,7 +1098,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'vijay_office',
@@ -1117,7 +1117,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
 
   // ==========================================
@@ -1140,7 +1140,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_sandhya_raagam',
@@ -1159,7 +1159,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_ayali',
@@ -1178,7 +1178,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_thirumangalyam',
@@ -1197,7 +1197,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_samanthi',
@@ -1216,7 +1216,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_vaagai_sooda_vaa',
@@ -1235,7 +1235,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_vasudha',
@@ -1254,7 +1254,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_parijatham',
@@ -1273,7 +1273,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_salangai_oli',
@@ -1292,7 +1292,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_puthu_vasantham',
@@ -1311,7 +1311,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_idhayam',
@@ -1330,7 +1330,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_varisu',
@@ -1349,7 +1349,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_veera',
@@ -1368,7 +1368,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_meenakshi_ponnunga',
@@ -1387,7 +1387,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_anna',
@@ -1406,7 +1406,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_maari',
@@ -1425,7 +1425,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_seetha_raman',
@@ -1444,7 +1444,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_peranbu',
@@ -1463,7 +1463,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_deivam_thandha_poove',
@@ -1482,7 +1482,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_sembaruthi',
@@ -1501,7 +1501,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_chinna_siru_kiliye',
@@ -1520,7 +1520,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_aval_varuvala',
@@ -1539,7 +1539,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_ninaithale_inikkum',
@@ -1558,7 +1558,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_gokulathil_seethai',
@@ -1577,7 +1577,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_yaaradi_nee_mohini',
@@ -1596,7 +1596,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_sathya',
@@ -1615,7 +1615,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_rettai_roja',
@@ -1634,7 +1634,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'zee_poove_poochudava',
@@ -1653,7 +1653,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   }
 ];
 
@@ -1674,7 +1674,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_super_singer',
@@ -1691,7 +1691,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_cooku_with_comali',
@@ -1708,7 +1708,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_start_music',
@@ -1725,7 +1725,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_kpy',
@@ -1742,7 +1742,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_oo_solriya',
@@ -1759,7 +1759,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_top_cooku',
@@ -1776,7 +1776,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_sun_singer',
@@ -1793,7 +1793,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_super_samayal',
@@ -1810,7 +1810,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_saregamapa',
@@ -1827,7 +1827,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_dance_jodi_dance',
@@ -1844,7 +1844,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_super_mom',
@@ -1861,7 +1861,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_junior_super_stars',
@@ -1878,7 +1878,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_mr_mrs_chinnathirai',
@@ -1895,7 +1895,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_super_singer_junior',
@@ -1912,7 +1912,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_kpy_champions',
@@ -1929,7 +1929,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_rani_maharani',
@@ -1946,7 +1946,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_asatha_povathu_yaaru',
@@ -1963,7 +1963,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_survivor_tamil',
@@ -1980,7 +1980,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'reality_genes',
@@ -1997,7 +1997,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   }
 ];
 
@@ -2018,7 +2018,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_tamizha_tamizha',
@@ -2035,7 +2035,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_vanakkam_tamizha',
@@ -2052,7 +2052,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_sunday_kondattam',
@@ -2069,7 +2069,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_cine_mini',
@@ -2086,7 +2086,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_natchathira_kondattam',
@@ -2103,7 +2103,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_oru_varthai',
@@ -2120,7 +2120,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_super_kudumbam',
@@ -2137,7 +2137,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_tamizha_tamizha_s3',
@@ -2154,7 +2154,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_koffee_dd',
@@ -2171,7 +2171,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_cinema_kaaram',
@@ -2188,7 +2188,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_olimayamana_ethirkalam',
@@ -2205,7 +2205,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'prog_solvathellam_unmai',
@@ -2222,7 +2222,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   }
 ];
 
@@ -2243,7 +2243,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'event_sun_viruthugal',
@@ -2260,7 +2260,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'event_zee_viruthugal',
@@ -2277,7 +2277,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'event_audio_launch',
@@ -2294,7 +2294,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'event_vikatan_awards',
@@ -2311,7 +2311,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'event_galatta_awards',
@@ -2328,7 +2328,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     bgColor: '#2a122e',
     borderColor: '#c084fc',
     tamilColor: '#c084fc',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'event_behindwoods_gold',
@@ -2345,7 +2345,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: 'event_siima_awards',
@@ -2362,7 +2362,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
-    streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   }
 ];
 
@@ -2537,10 +2537,12 @@ export async function scrapeEpisodeStreamWithMetadata(metadataQuery, serialObj, 
   }
 
   // 4. Fallback default stream
+  const fallbackUrl = serialObj?.streamUrl || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+  const isTestStream = fallbackUrl.includes('mux.dev') || fallbackUrl.includes('commondatastorage');
   return {
-    streamUrl: serialObj?.streamUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    headers: { Referer: serverId === 'tamilgun' ? 'https://arivumani.net/' : 'https://tamildhool.tech/' },
-    referer: serverId === 'tamilgun' ? 'https://arivumani.net/' : 'https://tamildhool.tech/',
+    streamUrl: fallbackUrl,
+    headers: isTestStream ? {} : { Referer: serverId === 'tamilgun' ? 'https://arivumani.net/' : 'https://tamildhool.tech/' },
+    referer: isTestStream ? '' : (serverId === 'tamilgun' ? 'https://arivumani.net/' : 'https://tamildhool.tech/'),
     matchedTitle: serverId === 'tamilgun' ? `${title} ${queryDate}` : `${title} | ${queryDate} |`,
     server: serverId === 'tamilgun' ? 'Server 2' : 'Server 1',
     status: 'fallback'
