@@ -36,6 +36,7 @@ $sharedFiles = @(
     "src\utils\TvSerialsMetadataCache.js",
     "src\utils\TvSerialsLiveScraper.js",
     "src\components\TvSerialsScreen.js",
+    "src\components\BottomTabBar.js",
     "manifest.json",
     "version.json",
     "version_manager.js",

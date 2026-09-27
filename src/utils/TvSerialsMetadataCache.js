@@ -21,8 +21,8 @@ import {
 export const SERVERS = [
   {
     id: 'tamildhool',
-    name: 'Tamildhool',
-    displayName: 'Server 1 (Tamildhool)',
+    name: 'Server 1',
+    displayName: 'Server 1',
     shortName: 'Server 1',
     domain: 'tamildhool.tech',
     protocol: 'JSON Scrape',
@@ -33,8 +33,8 @@ export const SERVERS = [
   },
   {
     id: 'tamilgun',
-    name: 'Tamilgun (arivumani.net)',
-    displayName: 'Server 2 (Tamilgun)',
+    name: 'Server 2',
+    displayName: 'Server 2',
     shortName: 'Server 2',
     domain: 'arivumani.net',
     protocol: 'PlayAllu AES Decrypt',
@@ -86,9 +86,9 @@ export const TAMILGUN_SERIALS_CACHE = COMPREHENSIVE_ALL_SERIALS.map(s => ({
   ...s,
   id: `tg_${s.serialCode}`,
   server: 'tamilgun',
-  networkTag: `ARIVUMANI • ${s.channel.toUpperCase()}`,
+  networkTag: `${s.channel.toUpperCase()} • SERVER 2`,
   borderColor: '#10b981',
-  tag: 'Server 2 Mirror'
+  tag: s.tag === 'Prime Show' ? 'Prime Show' : 'Server 2'
 }));
 
 // Popular Reality Shows

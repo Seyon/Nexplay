@@ -29,8 +29,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/Kayal.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_singapennae',
@@ -48,8 +47,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/Singappenn.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_vanathai_pola',
@@ -67,8 +65,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/vanathai.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_marumagal',
@@ -86,8 +83,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/marumagal.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_moondru_mudichu',
@@ -105,8 +101,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/Moondru.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_annam',
@@ -124,8 +119,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/annam.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_lakshmi',
@@ -143,8 +137,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/Lakshmi.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_thulasi',
@@ -162,8 +155,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2026/05/thu.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_iru_malargal',
@@ -181,8 +173,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2026/01/im2.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_siragugal',
@@ -200,8 +191,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2026/07/sir.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_sundari',
@@ -219,8 +209,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sundari.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_sevvanthi',
@@ -238,8 +227,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sevvanthi.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_ilakkiya',
@@ -257,8 +245,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ilakkiya.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_iniya',
@@ -276,8 +263,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/iniya.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_ethirneechal',
@@ -295,8 +281,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/Ethir.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_anbe_vaa',
@@ -314,8 +299,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/anbevaa.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_poove_unakkaga',
@@ -333,8 +317,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/pu.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_pandavar_illam',
@@ -352,8 +335,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/pi.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_abhiyum_naanum',
@@ -371,8 +353,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/an.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_roja',
@@ -390,8 +371,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/roja.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_poonkodi',
@@ -409,8 +389,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/pk.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_mr_manaivi',
@@ -428,8 +407,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/mm.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_malar',
@@ -447,8 +425,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/malar.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_priyamaana_thozhi',
@@ -466,8 +443,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/pt.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_deivamagal',
@@ -485,8 +461,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/dm.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_thirumathi_selvam',
@@ -504,8 +479,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ts.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_kolangal',
@@ -523,8 +497,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/kolangal.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_metti_oli',
@@ -542,8 +515,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/mo.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'sun_chithi_2',
@@ -561,8 +533,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/chithi2.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
 
   // ==========================================
@@ -584,8 +555,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sirshu.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_baakiyalakshmi',
@@ -603,8 +573,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/baakiya.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_pandian_stores_2',
@@ -622,8 +591,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/pandian.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_mahanathi',
@@ -641,8 +609,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/mahanadhi.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_aaha_kalyanam',
@@ -660,8 +627,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/aaha.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_modhalum_kaadhalum',
@@ -679,8 +645,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/modhalum.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_malli',
@@ -698,8 +663,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/malli-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_chinna_marumagal',
@@ -717,8 +681,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/chinna.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_thendrale_mella_pesu',
@@ -736,8 +699,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/TMP.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_ayyanar_thunai',
@@ -755,8 +717,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ayy.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_azhagae_azhagu',
@@ -774,8 +735,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/aa.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_thaai_maaman',
@@ -793,8 +753,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/tm.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_sakthivel',
@@ -812,8 +771,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sakthivel.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_ponni',
@@ -831,8 +789,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ponni.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_chellamma',
@@ -850,8 +807,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/chellamma.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_muthazhagu',
@@ -869,8 +825,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/muthazhagu.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_raja_rani_2',
@@ -888,8 +843,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/raja-rani-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_bharathi_kannamma',
@@ -907,8 +861,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/bk.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_eeramana_rojave',
@@ -926,8 +879,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/er2.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_kanne_kalaimaane',
@@ -945,8 +897,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/kanne.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_suttum_vizhi_sudare',
@@ -964,8 +915,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2026/01/svs.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_kanmani_anbudan',
@@ -983,8 +933,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ka.webp',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_nee_naan_kaadhal',
@@ -1002,8 +951,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/neenaan.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_thangamagal',
@@ -1021,8 +969,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/thangamagal.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_veetu_ku_vandha_mahalakshmi',
@@ -1040,8 +987,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/vm.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_kaatrukkenna_veli',
@@ -1059,8 +1005,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/kv.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_saravanan_meenatchi',
@@ -1078,8 +1023,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sm.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_pagal_nilavu',
@@ -1097,8 +1041,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/pn.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'vijay_office',
@@ -1116,8 +1059,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/office.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
 
   // ==========================================
@@ -1139,8 +1081,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/kd1.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_sandhya_raagam',
@@ -1158,8 +1099,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sr1.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_ayali',
@@ -1177,8 +1117,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ayali1.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_thirumangalyam',
@@ -1196,8 +1135,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/tm.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_samanthi',
@@ -1215,8 +1153,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/samanthi.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_vaagai_sooda_vaa',
@@ -1234,8 +1171,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2026/01/vaa.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_vasudha',
@@ -1253,8 +1189,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2026/09/vaasu.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_parijatham',
@@ -1272,8 +1207,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/09/pj2.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_salangai_oli',
@@ -1291,8 +1225,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/08/so.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_puthu_vasantham',
@@ -1310,8 +1243,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/Puthu.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_idhayam',
@@ -1329,8 +1261,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/id1.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_varisu',
@@ -1348,8 +1279,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/vari.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_veera',
@@ -1367,8 +1297,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/veera.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_meenakshi_ponnunga',
@@ -1386,8 +1315,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/mp.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_anna',
@@ -1405,8 +1333,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/11/anku.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_maari',
@@ -1424,8 +1351,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/maari.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_seetha_raman',
@@ -1443,8 +1369,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sr.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_peranbu',
@@ -1462,8 +1387,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/peranbu.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_deivam_thandha_poove',
@@ -1481,8 +1405,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/dtp.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_sembaruthi',
@@ -1500,8 +1423,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sembaruthi.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_chinna_siru_kiliye',
@@ -1519,8 +1441,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/csk.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_aval_varuvala',
@@ -1538,8 +1459,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/av.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_ninaithale_inikkum',
@@ -1557,8 +1477,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ni.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_gokulathil_seethai',
@@ -1576,8 +1495,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/gs.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_yaaradi_nee_mohini',
@@ -1595,8 +1513,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ynm.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_sathya',
@@ -1614,8 +1531,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sathya.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_rettai_roja',
@@ -1633,8 +1549,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/rettai.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'zee_poove_poochudava',
@@ -1652,29 +1567,29 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/ppc.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   }
 ];
 
 // Exhaustive Database of All Reality Shows with Posters
 export const COMPREHENSIVE_ALL_REALITY = [
   {
-    id: 'reality_bigg_boss',
-    serialCode: 'bigg_boss',
-    title: 'Bigg Boss Tamil',
-    tamilTitle: 'பிக் பாஸ் தமிழ்',
+    id: 'reality_bigg_boss_10',
+    serialCode: 'bigg_boss_10',
+    title: 'Bigg Boss 10',
+    tamilTitle: 'பிக் பாஸ் 10',
     channel: 'Star Vijay',
     channelCode: 'vijay',
-    genre: '24/7 Reality',
+    networkTag: 'VIJAY TV • PRIME',
+    genre: 'Mega Reality',
     timeSlot: '09:30 PM (Daily)',
-    episodesCount: '105 episodes logged',
-    tag: 'Mega Reality',
-    image: 'https://arivumani.net/wp-content/uploads/2026/09/bigg-boss-live--295x197.jpg',
+    episodes: 'Season 10 Live',
+    episodesCount: 'Daily Prime Episodes',
+    tag: 'Prime Show',
+    image: 'https://www.tamildhool.tech/wp-content/uploads/2026/09/bbtamil.jpg',
     bgColor: '#1e1b4b',
-    borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    borderColor: '#ef4444',
+    tamilColor: '#ef4444'
   },
   {
     id: 'reality_super_singer',
@@ -1690,8 +1605,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/super-singer-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'reality_cooku_with_comali',
@@ -1707,8 +1621,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/cooku-with-comali-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'reality_start_music',
@@ -1724,8 +1637,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sm.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'reality_kpy',
@@ -1741,8 +1653,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/kpy-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'reality_oo_solriya',
@@ -1758,8 +1669,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/oo-solriya-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'reality_top_cooku',
@@ -1775,8 +1685,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/top-cooku-230x150.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'reality_sun_singer',
@@ -1792,8 +1701,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sunsinger.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'reality_super_samayal',
@@ -1809,8 +1717,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/supersamayal.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'reality_saregamapa',
@@ -1826,8 +1733,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/saregamapa-230x150.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'reality_dance_jodi_dance',
@@ -1843,8 +1749,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2026/06/djd.webp',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'reality_super_mom',
@@ -1860,8 +1765,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/supermom.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'reality_junior_super_stars',
@@ -1877,8 +1781,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/jss.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'reality_mr_mrs_chinnathirai',
@@ -1894,8 +1797,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/mmc.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'reality_super_singer_junior',
@@ -1911,8 +1813,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2026/05/ssj11.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'reality_kpy_champions',
@@ -1928,8 +1829,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/kpyc.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'reality_rani_maharani',
@@ -1945,8 +1845,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/rm.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'reality_asatha_povathu_yaaru',
@@ -1962,8 +1861,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/apy.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'reality_survivor_tamil',
@@ -1979,8 +1877,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/survivor.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'reality_genes',
@@ -1996,8 +1893,7 @@ export const COMPREHENSIVE_ALL_REALITY = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/genes.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   }
 ];
 
@@ -2017,8 +1913,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/nn.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'prog_tamizha_tamizha',
@@ -2034,8 +1929,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/tt.webp',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'prog_vanakkam_tamizha',
@@ -2051,8 +1945,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/vt.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'prog_sunday_kondattam',
@@ -2068,8 +1961,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/sk.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'prog_cine_mini',
@@ -2085,8 +1977,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/cm.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'prog_natchathira_kondattam',
@@ -2102,8 +1993,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/snk.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'prog_oru_varthai',
@@ -2119,8 +2009,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/oru-varthai-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'prog_super_kudumbam',
@@ -2136,8 +2025,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/skudumbam.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'prog_tamizha_tamizha_s3',
@@ -2153,8 +2041,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/tt.webp',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'prog_koffee_dd',
@@ -2170,8 +2057,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/neeya-naana-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'prog_cinema_kaaram',
@@ -2187,8 +2073,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/cine-mini-230x150.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'prog_olimayamana_ethirkalam',
@@ -2204,8 +2089,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/oe.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'prog_solvathellam_unmai',
@@ -2221,8 +2105,7 @@ export const COMPREHENSIVE_ALL_PROGRAMMES = [
     image: 'https://www.tamildhool.tech/wp-content/uploads/2025/07/su.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   }
 ];
 
@@ -2242,8 +2125,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/vijay-television-awards-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   },
   {
     id: 'event_sun_viruthugal',
@@ -2259,8 +2141,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/sun-kudumba-viruthugal-230x150.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'event_zee_viruthugal',
@@ -2276,8 +2157,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/zee-kudumba-viruthugal-230x150.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'event_audio_launch',
@@ -2293,8 +2173,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/audio-launch-230x150.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'event_vikatan_awards',
@@ -2310,8 +2189,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/vikatan-awards-230x150.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'event_galatta_awards',
@@ -2327,8 +2205,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/galatta-awards-230x150.jpg',
     bgColor: '#2a122e',
     borderColor: '#c084fc',
-    tamilColor: '#c084fc',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#c084fc'
   },
   {
     id: 'event_behindwoods_gold',
@@ -2344,8 +2221,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/vikatan-awards-230x150.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
-    tamilColor: '#38bdf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#38bdf8'
   },
   {
     id: 'event_siima_awards',
@@ -2361,8 +2237,7 @@ export const COMPREHENSIVE_ALL_EVENTS = [
     image: 'https://arivumani.net/wp-content/uploads/2025/11/vijay-television-awards-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
-    tamilColor: '#818cf8',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    tamilColor: '#818cf8'
   }
 ];
 
