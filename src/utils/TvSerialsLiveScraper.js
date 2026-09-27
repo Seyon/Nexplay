@@ -2451,19 +2451,38 @@ export async function scrapeLiveCatalogFromServers() {
 
 /**
  * Scrape episode stream from active server using metadata query
- * Format: "Kayal | 26-09-2026 | Sun Tv Serial"
+ * Format Server 1: "Kayal | 26-09-2026 |"
+ * Format Server 2: "Kayal 22-09-2026"
  */
 export async function scrapeEpisodeStreamWithMetadata(metadataQuery, serialObj, dateStr, serverId = 'tamildhool') {
-  const parts = (metadataQuery || '').split('|').map(s => s.trim());
-  const title = parts[0] || serialObj?.title || 'Kayal';
-  const queryDate = parts[1] || dateStr || '26-09-2026';
-  const channel = (parts[2] || serialObj?.channel || 'Sun TV').replace(/Serial|Show|Programme/gi, '').trim();
+  let title = serialObj?.title || 'Kayal';
+  let queryDate = dateStr || '26-09-2026';
+  let channel = (serialObj?.channel || 'Sun TV').replace(/Serial|Show|Programme/gi, '').trim();
+
+  if (metadataQuery) {
+    if (metadataQuery.includes('|')) {
+      // Server 1 updated format: "Kayal | 26-09-2026 |"
+      const parts = metadataQuery.split('|').map(s => s.trim()).filter(Boolean);
+      if (parts[0]) title = parts[0];
+      if (parts[1]) queryDate = parts[1];
+      if (parts[2]) channel = parts[2].replace(/Serial|Show|Programme/gi, '').trim();
+    } else {
+      // Server 2 updated format: "Kayal 22-09-2026"
+      const dateMatch = metadataQuery.match(/\b\d{2}-\d{2}-\d{4}\b/);
+      if (dateMatch) {
+        queryDate = dateMatch[0];
+        title = metadataQuery.replace(dateMatch[0], '').replace(/\|/g, '').trim();
+      } else {
+        title = metadataQuery.replace(/\|/g, '').trim();
+      }
+    }
+  }
 
   // Dynamically import clients to prevent circular dependency
   const { TamilDhool } = await import('../providers/tamildhool/TamilDhoolProvider.js');
   const { TamilGun, REQUIRED_PLAYALLU_HEADERS } = await import('../providers/tamilgun/TamilGunProvider.js');
 
-  // 1. If Tamilgun / Arivumani is chosen
+  // 1. If Tamilgun / Arivumani is chosen (Server 2 format: "Kayal 22-09-2026")
   if (serverId === 'tamilgun') {
     try {
       const res = await TamilGun.findEpisodeByDate(title, queryDate, channel);
@@ -2472,7 +2491,7 @@ export async function scrapeEpisodeStreamWithMetadata(metadataQuery, serialObj, 
           streamUrl: res.streamUrl,
           headers: res.headers || REQUIRED_PLAYALLU_HEADERS,
           referer: res.headers?.Referer || 'https://play.playallu.xyz/',
-          matchedTitle: res.matchedTitle || title,
+          matchedTitle: res.matchedTitle || `${title} ${queryDate}`,
           server: 'Server 2 (Tamilgun)',
           status: 'success'
         };
@@ -2482,7 +2501,7 @@ export async function scrapeEpisodeStreamWithMetadata(metadataQuery, serialObj, 
     }
   }
 
-  // 2. If Tamildhool is chosen
+  // 2. If Tamildhool is chosen (Server 1 format: "Kayal | 26-09-2026 |")
   try {
     const res = await TamilDhool.findEpisodeByDate(title, queryDate, channel);
     const resolvedUrl = res?.streamUrl || res?.bestStream?.url || res?.details?.links?.[0]?.url;
@@ -2491,7 +2510,7 @@ export async function scrapeEpisodeStreamWithMetadata(metadataQuery, serialObj, 
         streamUrl: resolvedUrl,
         headers: res.headers || { Referer: 'https://tamildhool.tech/' },
         referer: res.headers?.Referer || res.headers?.referer || 'https://tamildhool.tech/',
-        matchedTitle: res.matchedTitle || res.title || res.post?.title || title,
+        matchedTitle: res.matchedTitle || res.title || res.post?.title || `${title} | ${queryDate} |`,
         server: 'Server 1 (Tamildhool)',
         status: 'success'
       };
@@ -2509,7 +2528,7 @@ export async function scrapeEpisodeStreamWithMetadata(metadataQuery, serialObj, 
           streamUrl: res.streamUrl,
           headers: res.headers || REQUIRED_PLAYALLU_HEADERS,
           referer: res.headers?.Referer || 'https://play.playallu.xyz/',
-          matchedTitle: res.matchedTitle || title,
+          matchedTitle: res.matchedTitle || `${title} ${queryDate}`,
           server: 'Server 2 (Tamilgun Mirror)',
           status: 'success'
         };
@@ -2522,7 +2541,7 @@ export async function scrapeEpisodeStreamWithMetadata(metadataQuery, serialObj, 
     streamUrl: serialObj?.streamUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     headers: { Referer: serverId === 'tamilgun' ? 'https://arivumani.net/' : 'https://tamildhool.tech/' },
     referer: serverId === 'tamilgun' ? 'https://arivumani.net/' : 'https://tamildhool.tech/',
-    matchedTitle: `${title} (${queryDate})`,
+    matchedTitle: serverId === 'tamilgun' ? `${title} ${queryDate}` : `${title} | ${queryDate} |`,
     server: serverId === 'tamilgun' ? 'Server 2' : 'Server 1',
     status: 'fallback'
   };
