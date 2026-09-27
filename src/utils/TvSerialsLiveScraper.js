@@ -444,7 +444,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Daily Drama',
     networkTag: 'SUN TV • DRAMA',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/Kayal-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/Malli.jpg-230x150.webp',
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
@@ -463,7 +463,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Friendship Drama',
     networkTag: 'SUN TV • DRAMA',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/siragugal-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/priyamana-thozhi-230x150.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
@@ -482,7 +482,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Cult Classic',
     networkTag: 'SUN TV • BLOCKBUSTER',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/ilakkiya-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/annam.jpg-1-230x150.webp',
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
@@ -501,7 +501,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Legendary Hit',
     networkTag: 'SUN TV • LEGEND',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/vanathai-pola-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/thirumathi-selvam-230x150.jpg',
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
@@ -520,7 +520,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'All-Time TRP Record',
     networkTag: 'SUN TV • LEGEND',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/sundari-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2026/05/Thulasi-230x150.webp',
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
@@ -539,7 +539,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Golden Milestone',
     networkTag: 'SUN TV • LEGEND',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/ethirneechal-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/Ethir.jpg-230x150.webp',
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
@@ -558,7 +558,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Family Saga',
     networkTag: 'SUN TV • HIT',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/roja-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/Moondru.jpg-1-230x150.webp',
     bgColor: '#172033',
     borderColor: '#38bdf8',
     tamilColor: '#38bdf8',
@@ -1037,7 +1037,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Afternoon Special',
     networkTag: 'VIJAY TV • HIT',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/chinna-marumagal-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/veetuku-vandha-mahalakshmi-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
@@ -1056,7 +1056,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Inspiring Youth',
     networkTag: 'VIJAY TV • HIT',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/malli-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/kaatrukkenna-veli-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
@@ -1075,7 +1075,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Legendary Romance',
     networkTag: 'VIJAY TV • LEGEND',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/raja-rani-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/saravanan-meenatchi-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
@@ -1094,7 +1094,7 @@ export const COMPREHENSIVE_ALL_SERIALS = [
     category: 'serial',
     tag: 'Family Saga',
     networkTag: 'VIJAY TV • HIT',
-    image: 'https://arivumani.net/wp-content/uploads/2025/11/bharathi-kannamma-230x150.jpg',
+    image: 'https://arivumani.net/wp-content/uploads/2025/11/pagal-nilavu-230x150.jpg',
     bgColor: '#1e1b4b',
     borderColor: '#818cf8',
     tamilColor: '#818cf8',
@@ -2446,5 +2446,84 @@ export async function scrapeLiveCatalogFromServers() {
     scrapedSerials,
     scrapedShows,
     scrapedEvents
+  };
+}
+
+/**
+ * Scrape episode stream from active server using metadata query
+ * Format: "Kayal | 26-09-2026 | Sun Tv Serial"
+ */
+export async function scrapeEpisodeStreamWithMetadata(metadataQuery, serialObj, dateStr, serverId = 'tamildhool') {
+  const parts = (metadataQuery || '').split('|').map(s => s.trim());
+  const title = parts[0] || serialObj?.title || 'Kayal';
+  const queryDate = parts[1] || dateStr || '26-09-2026';
+  const channel = (parts[2] || serialObj?.channel || 'Sun TV').replace(/Serial|Show|Programme/gi, '').trim();
+
+  // Dynamically import clients to prevent circular dependency
+  const { TamilDhool } = await import('../providers/tamildhool/TamilDhoolProvider.js');
+  const { TamilGun, REQUIRED_PLAYALLU_HEADERS } = await import('../providers/tamilgun/TamilGunProvider.js');
+
+  // 1. If Tamilgun / Arivumani is chosen
+  if (serverId === 'tamilgun') {
+    try {
+      const res = await TamilGun.findEpisodeByDate(title, queryDate, channel);
+      if (res && res.streamUrl) {
+        return {
+          streamUrl: res.streamUrl,
+          headers: res.headers || REQUIRED_PLAYALLU_HEADERS,
+          referer: res.headers?.Referer || 'https://play.playallu.xyz/',
+          matchedTitle: res.matchedTitle || title,
+          server: 'Server 2 (Tamilgun)',
+          status: 'success'
+        };
+      }
+    } catch (e) {
+      console.warn('[TvSerialsLiveScraper] TamilGun scraper error:', e.message);
+    }
+  }
+
+  // 2. If Tamildhool is chosen
+  try {
+    const res = await TamilDhool.findEpisodeByDate(title, queryDate, channel);
+    const resolvedUrl = res?.streamUrl || res?.bestStream?.url || res?.details?.links?.[0]?.url;
+    if (res && resolvedUrl) {
+      return {
+        streamUrl: resolvedUrl,
+        headers: res.headers || { Referer: 'https://tamildhool.tech/' },
+        referer: res.headers?.Referer || res.headers?.referer || 'https://tamildhool.tech/',
+        matchedTitle: res.matchedTitle || res.title || res.post?.title || title,
+        server: 'Server 1 (Tamildhool)',
+        status: 'success'
+      };
+    }
+  } catch (e) {
+    console.warn('[TvSerialsLiveScraper] TamilDhool scraper error:', e.message);
+  }
+
+  // 3. Fallback to TamilGun if Server 1 had no stream
+  if (serverId !== 'tamilgun') {
+    try {
+      const res = await TamilGun.findEpisodeByDate(title, queryDate, channel);
+      if (res && res.streamUrl) {
+        return {
+          streamUrl: res.streamUrl,
+          headers: res.headers || REQUIRED_PLAYALLU_HEADERS,
+          referer: res.headers?.Referer || 'https://play.playallu.xyz/',
+          matchedTitle: res.matchedTitle || title,
+          server: 'Server 2 (Tamilgun Mirror)',
+          status: 'success'
+        };
+      }
+    } catch (e) {}
+  }
+
+  // 4. Fallback default stream
+  return {
+    streamUrl: serialObj?.streamUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    headers: { Referer: serverId === 'tamilgun' ? 'https://arivumani.net/' : 'https://tamildhool.tech/' },
+    referer: serverId === 'tamilgun' ? 'https://arivumani.net/' : 'https://tamildhool.tech/',
+    matchedTitle: `${title} (${queryDate})`,
+    server: serverId === 'tamilgun' ? 'Server 2' : 'Server 1',
+    status: 'fallback'
   };
 }
