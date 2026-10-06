@@ -1,4 +1,5 @@
 import { Movies4u, Movies4uClient } from './Movies4uProvider.js';
+import { Provider111477, Provider111477Client } from '../providers/111477/index.js';
 import { TamilDhool, TamilDhoolClient } from '../providers/tamildhool/index.js';
 import { TamilGun, TamilGunClient } from '../providers/tamilgun/index.js';
 // src/utils/ScraperEngine.js
@@ -2684,12 +2685,14 @@ var UniversalClientScraper = class {
     this.hdhub4u = new HDHub4uClient();
     this.movies4u = Movies4u;
     this.fourkhdhub = new FourKHDHubClient();
+    this.provider111477 = Provider111477;
   }
 
   async search(query, provider) {
-    if (provider === "hdhub4u") return this.hdhub4u.search(query);
-    if (provider === "4khdhub") return this.fourkhdhub.search(query);
-    if (provider === "movies4u") return this.movies4u.search(query);
+    if (provider === "hdhub4u" || provider === "1") return this.hdhub4u.search(query);
+    if (provider === "4khdhub" || provider === "2") return this.fourkhdhub.search(query);
+    if (provider === "movies4u" || provider === "3") return this.movies4u.search(query);
+    if (provider === "111477" || provider === "4") return this.provider111477.search(query);
     const [h, f] = await Promise.allSettled([this.hdhub4u.search(query), this.fourkhdhub.search(query)]);
     const res = [];
     if (h.status === "fulfilled") res.push(...h.value);
@@ -2698,6 +2701,9 @@ var UniversalClientScraper = class {
   }
 
   async extractDetails(url, targetSeason = 1) {
+    if (url.includes("111477.xyz")) {
+      return this.provider111477.extractDetails(url, targetSeason);
+    }
     if (url.includes("movies4u.") || url.includes("movies4u.clinic")) {
       return this.movies4u.extractDetails(url, targetSeason);
     }
@@ -2712,6 +2718,9 @@ var UniversalClientScraper = class {
   }
 
   async getPlayableStream(pageUrl, isTVShow = false, episodeNumber = 1, seasonNumber = 1) {
+    if (pageUrl.includes("111477.xyz")) {
+      return this.provider111477.getPlayableStream(pageUrl, isTVShow, episodeNumber, seasonNumber);
+    }
     if (pageUrl.includes("movies4u.") || pageUrl.includes("movies4u.clinic")) {
       return this.movies4u.getPlayableStream(pageUrl, isTVShow, episodeNumber, seasonNumber);
     }
@@ -2738,6 +2747,9 @@ var UniversalClientScraper = class {
       if (config.providers['4khdhub']) this.fourkhdhub.applyRemoteConfig(config.providers['4khdhub']);
       if (config.providers.movies4u && this.movies4u && typeof this.movies4u.applyRemoteConfig === 'function') {
         this.movies4u.applyRemoteConfig(config.providers.movies4u);
+      }
+      if (config.providers['111477'] && this.provider111477 && typeof this.provider111477.applyRemoteConfig === 'function') {
+        this.provider111477.applyRemoteConfig(config.providers['111477']);
       }
     }
   }

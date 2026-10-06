@@ -545,11 +545,12 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     }, 3500);
   };
 
-  // Strict Individual Servers: Server 1 (HDHub4u), Server 2 (4KHDHub), Server 3 (Movies4u)
+  // Strict Individual Servers: Server 1 (HDHub4u), Server 2 (4KHDHub), Server 3 (Movies4u), Server 4 (111477)
   const servers = [
     { id: 1, label: 'Server 1', short: 'Server 1', desc: 'HDHub4u Direct Stream' },
     { id: 2, label: 'Server 2', short: 'Server 2', desc: '4KHDHub Ultra & HD Stream' },
     { id: 3, label: 'Server 3', short: 'Server 3', desc: 'Movies4u Direct Stream' },
+    { id: 4, label: 'Server 4', short: 'Server 4', desc: '111477 Direct Stream' },
   ];
 
   // Current selected episode / media item
@@ -988,9 +989,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       // Server 1: strictly hdhub4u
       // Server 2: strictly 4khdhub
       // Server 3: strictly movies4u
+      // Server 4: strictly 111477
       let providerValue = 'hdhub4u';
       let providerLabel = 'Server 1 (HDHub4u)';
-      if (server === 3) {
+      if (server === 4) {
+        providerValue = '111477';
+        providerLabel = 'Server 4 (111477)';
+      } else if (server === 3) {
         providerValue = 'movies4u';
         providerLabel = 'Server 3 (Movies4u)';
       } else if (server === 2) {
@@ -1286,7 +1291,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         const isIndianContent = INDIAN_LANGS.includes(origLang) || originCountries.includes('IN') || prodCountries.includes('IN');
         const targetSeason = currentEpisode?.seasonNumber || selectedSeason || 1;
         const targetEpisodeNum = currentEpisode?.episodeNumber || 1;
-        const providerValue = activeServer === 3 ? 'movies4u' : (activeServer === 2 ? '4khdhub' : 'hdhub4u');
+        const providerValue = activeServer === 4 ? '111477' : (activeServer === 3 ? 'movies4u' : (activeServer === 2 ? '4khdhub' : 'hdhub4u'));
 
         const playable = await ExtensionManager.findAndResolvePlayableStream({
           targetTitle: cleanTitle,

@@ -8,6 +8,7 @@ import {
   cleanTitleKeywords, 
   normalizeString 
 } from './ScraperEngine.js';
+import { Provider111477 } from '../providers/111477/index.js';
 import { TamilDhool } from '../providers/tamildhool/index.js';
 import { TamilGun } from '../providers/tamilgun/index.js';
 import { ProviderUpdateManager } from './ProviderUpdateManager.js';
@@ -20,7 +21,9 @@ import { ProviderUpdateManager } from './ProviderUpdateManager.js';
  * - Intelligent Media Type & Title Matching (Zero False-Positives)
  * - HDHub4u (Server 1): Dedicated to Indian Regional Movies & Multi-Audio Releases
  * - 4KHDHub (Server 2): Dedicated to Hollywood, 4K HDR, Series, KDramas
- * - Extracts direct 10Gbps Cloudflare R2 / Fast CDN streams for Media3 ExoPlayer
+ * - Movies4u (Server 3): Dedicated to Bollywood, Hollywood & PixelDrain / FSL high-speed streams
+ * - 111477 (Server 4): High-speed direct streaming open-directory with zero redirect timers
+ * - Extracts direct streams for VLC Player and ExoPlayer
  * - Dynamic OTA Over-The-Air GitHub update syncing on app open
  */
 class ExtensionManagerService {
@@ -50,8 +53,9 @@ class ExtensionManagerService {
     console.log(`[ExtensionManager] Native search: "${searchQuery}" on ${provider}`);
     try {
       let engine;
-      if (provider === 'tamildhool' || provider === '4') engine = TamilDhool;
-      else if (provider === 'tamilgun' || provider === '5') engine = TamilGun;
+      if (provider === '111477' || provider === '4') engine = Provider111477;
+      else if (provider === 'tamildhool' || provider === '5') engine = TamilDhool;
+      else if (provider === 'tamilgun' || provider === '6') engine = TamilGun;
       else if (provider === 'movies4u' || provider === '3') engine = Movies4u;
       else if (provider === '4khdhub' || provider === '2') engine = FourKHDHub;
       else engine = HDHub4u;
@@ -250,8 +254,9 @@ class ExtensionManagerService {
   async getMeta(provider, link, targetSeason = 1) {
     console.log(`[ExtensionManager] Native extract details: ${link} (Season ${targetSeason})`);
     let engine;
-    if (link.includes('tamildhool') || provider === 'tamildhool' || provider === '4') engine = TamilDhool;
-    else if (link.includes('tamilgun') || link.includes('arivumani') || provider === 'tamilgun' || provider === '5') engine = TamilGun;
+    if (link.includes('111477') || provider === '111477' || provider === '4') engine = Provider111477;
+    else if (link.includes('tamildhool') || provider === 'tamildhool' || provider === '5') engine = TamilDhool;
+    else if (link.includes('tamilgun') || link.includes('arivumani') || provider === 'tamilgun' || provider === '6') engine = TamilGun;
     else if (link.includes('movies4u') || provider === 'movies4u' || provider === '3') engine = Movies4u;
     else if (link.includes('hdhub4u') || provider === 'hdhub4u' || provider === '1') engine = HDHub4u;
     else engine = FourKHDHub;
@@ -270,12 +275,13 @@ class ExtensionManagerService {
   }
 
   /**
-   * Direct 1-Click Playable Stream for Media3 ExoPlayer
+   * Direct 1-Click Playable Stream for VLC Player & Media3
    */
   async getPlayableStream(provider, link, isTVShow = false, episodeNumber = 1, seasonNumber = 1) {
     let engine;
-    if (link.includes('tamildhool') || provider === 'tamildhool' || provider === '4') engine = TamilDhool;
-    else if (link.includes('tamilgun') || link.includes('arivumani') || provider === 'tamilgun' || provider === '5') engine = TamilGun;
+    if (link.includes('111477') || provider === '111477' || provider === '4') engine = Provider111477;
+    else if (link.includes('tamildhool') || provider === 'tamildhool' || provider === '5') engine = TamilDhool;
+    else if (link.includes('tamilgun') || link.includes('arivumani') || provider === 'tamilgun' || provider === '6') engine = TamilGun;
     else if (link.includes('movies4u') || provider === 'movies4u' || provider === '3') engine = Movies4u;
     else if (link.includes('4khdhub') || provider === '4khdhub' || provider === '2') engine = FourKHDHub;
     else engine = HDHub4u;
@@ -463,6 +469,28 @@ class ExtensionManagerService {
 
     console.log(`[ExtensionManager] Resolve on "${activeProvider}" for "${cleanTitle}" (Type: ${isTVShow ? `TV S${targetSeason}E${targetEp}` : 'Movie'})`);
 
+    // Direct fast probe for 111477 (zero countdown timer, direct open directory streaming)
+    if (activeProvider === '111477' || activeProvider === '4') {
+      try {
+        console.log(`[ExtensionManager] Direct 111477 stream resolution for: "${cleanTitle}" (${targetYear || 'N/A'})`);
+        const stream = await Provider111477.getPlayableStream({
+          targetTitle: cleanTitle,
+          targetYear,
+          isTVShow,
+          seasonNumber: targetSeason,
+          episodeNumber: targetEp
+        });
+        if (stream && stream.streamUrl) {
+          return {
+            ...stream,
+            server: 'Server 4 (111477)'
+          };
+        }
+      } catch (err) {
+        console.warn(`[ExtensionManager] Direct 111477 probe notice:`, err?.message || err);
+      }
+    }
+
     const candidates = await this.findCandidatesMedia({
       provider: activeProvider,
       targetTitle: cleanTitle,
@@ -475,7 +503,7 @@ class ExtensionManagerService {
 
     if (!candidates || candidates.length === 0) {
       if (allowCrossProviderFallback) {
-        const otherProviders = ['hdhub4u', '4khdhub', 'movies4u'].filter(p => p !== activeProvider);
+        const otherProviders = ['hdhub4u', '4khdhub', 'movies4u', '111477'].filter(p => p !== activeProvider);
         for (const alt of otherProviders) {
           try {
             console.log(`[ExtensionManager] Provider ${activeProvider} had no candidates, trying alternative provider: ${alt}`);
@@ -517,10 +545,11 @@ class ExtensionManagerService {
             console.log(`[ExtensionManager] Utilizing [Server:10Gbps] Google CDN fallback stream from ${matchedProvider}`);
           }
           const supports206 = playable.supports206 ?? !isGoogleCdn;
-          const serverLabel = matchedProvider === 'tamildhool' ? 'Server 4 (TamilDhool)' 
-            : (matchedProvider === 'tamilgun' ? 'Server 5 (TamilGun)' 
+          const serverLabel = matchedProvider === '111477' ? 'Server 4 (111477)'
+            : (matchedProvider === 'tamildhool' ? 'Server 5 (TamilDhool)' 
+            : (matchedProvider === 'tamilgun' ? 'Server 6 (TamilGun)' 
             : (matchedProvider === 'movies4u' ? 'Server 3 (Movies4u)' 
-            : (matchedProvider === '4khdhub' ? 'Server 2 (4KHDHub)' : 'Server 1 (HDHub4u)')));
+            : (matchedProvider === '4khdhub' ? 'Server 2 (4KHDHub)' : 'Server 1 (HDHub4u)'))));
           
           // Strictly default playback to 1080p if available among resolved stream qualities
           const qualities = { ...(playable.qualities || {}) };
@@ -625,9 +654,11 @@ class ExtensionManagerService {
       provider = '4khdhub';
     } else if (server === 3 || server === '3' || server === 'movies4u') {
       provider = 'movies4u';
-    } else if (server === 4 || server === '4' || server === 'tamildhool') {
+    } else if (server === 4 || server === '4' || server === '111477') {
+      provider = '111477';
+    } else if (server === 5 || server === '5' || server === 'tamildhool') {
       provider = 'tamildhool';
-    } else if (server === 5 || server === '5' || server === 'tamilgun') {
+    } else if (server === 6 || server === '6' || server === 'tamilgun') {
       provider = 'tamilgun';
     }
 
