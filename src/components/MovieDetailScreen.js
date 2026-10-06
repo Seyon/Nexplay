@@ -758,6 +758,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   // Reference to native VLCPlayerView instance & active stream URI
   const vlcPlayerRef = useRef(null);
   const [currentSourceUri, setCurrentSourceUri] = useState(null);
+  const [currentSourceHeaders, setCurrentSourceHeaders] = useState(null);
   const isPlayingRef = useRef(false);
   const durationRef = useRef(0);
   const isMutedRef = useRef(false);
@@ -775,28 +776,58 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   useEffect(() => { availableSubtitleTracksRef.current = availableSubtitleTracks; }, [availableSubtitleTracks]);
   useEffect(() => { selectedSubtitleTrackRef.current = selectedSubtitleTrack; }, [selectedSubtitleTrack]);
 
-  // Stable memoized VLC Source (prevents player recreation across component re-renders)
+  // Stable memoized VLC Source with Ultra Low-Latency Fast Startup & Hardware Decoding
   const vlcSource = useMemo(() => {
     if (!currentSourceUri) return undefined;
+    const mediaOptions = [
+      ':network-caching=250',
+      ':live-caching=250',
+      ':file-caching=250',
+      ':sout-mux-caching=250',
+      ':clock-jitter=0',
+      ':clock-synchro=0',
+      ':avcodec-fast=true',
+      ':avcodec-threads=4',
+      ':no-sub-autodetect-file',
+      ':http-reconnect=true',
+      ':http-continuous=true',
+      ':no-stats'
+    ];
+
+    const initOptions = [
+      '--network-caching=250',
+      '--live-caching=250',
+      '--file-caching=250',
+      '--clock-jitter=0',
+      '--clock-synchro=0',
+      '--drop-late-frames',
+      '--skip-frames',
+      '--no-sub-autodetect-file',
+      '--no-stats',
+      '--avcodec-fast',
+      '--no-audio-time-stretch',
+      '--ipv4-timeout=1500'
+    ];
+
+    const ref = currentSourceHeaders?.Referer || currentSourceHeaders?.referer || '';
+    if (ref) {
+      mediaOptions.push(`:http-referrer=${ref}`);
+      initOptions.push(`--http-referrer=${ref}`);
+    }
+
+    const ua = currentSourceHeaders?.['User-Agent'] || currentSourceHeaders?.['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+    if (ua) {
+      mediaOptions.push(`:http-user-agent=${ua}`);
+      initOptions.push(`--http-user-agent=${ua}`);
+    }
+
     return {
       uri: currentSourceUri,
-      hwDecoderEnabled: VLCHardwareDecoder.Automatic,
-      mediaOptions: [
-        ':network-caching=1500',
-        ':file-caching=1500',
-        ':http-reconnect=true',
-        ':no-stats'
-      ],
-      initOptions: [
-        '--drop-late-frames',
-        '--skip-frames',
-        '--no-sub-autodetect-file',
-        '--no-stats',
-        '--network-caching=1500',
-        '--ipv4-timeout=2000'
-      ]
+      hwDecoderEnabled: VLCHardwareDecoder?.Full ?? 2,
+      mediaOptions,
+      initOptions
     };
-  }, [currentSourceUri]);
+  }, [currentSourceUri, currentSourceHeaders]);
 
   // Unified player interface adapter for VLC (Seamlessly bridges all existing controls)
   const player = useMemo(() => ({
@@ -870,9 +901,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     set subtitleTrack(track) {
       switchSubtitleTrack(track);
     },
-    replace: (src) => {
+    replace: (src, headers = null) => {
       const uri = typeof src === 'string' ? src : (src?.uri || null);
-      console.log('[MovieDetailScreen] VLC replacing source with:', uri);
+      const hdrs = (typeof src === 'object' && src?.headers) ? src.headers : headers;
+      console.log('[MovieDetailScreen] VLC replacing source with:', uri, 'headers:', hdrs ? 'Custom' : 'None');
+      if (hdrs) {
+        setCurrentSourceHeaders(hdrs);
+      }
       setCurrentSourceUri(uri);
       if (uri) {
         setIsPlaying(true);
@@ -882,9 +917,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         isBufferingRef.current = true;
       }
     },
-    replaceAsync: async (src) => {
+    replaceAsync: async (src, headers = null) => {
       const uri = typeof src === 'string' ? src : (src?.uri || null);
-      console.log('[MovieDetailScreen] VLC replaceAsync source with:', uri);
+      const hdrs = (typeof src === 'object' && src?.headers) ? src.headers : headers;
+      console.log('[MovieDetailScreen] VLC replaceAsync source with:', uri, 'headers:', hdrs ? 'Custom' : 'None');
+      if (hdrs) {
+        setCurrentSourceHeaders(hdrs);
+      }
       setCurrentSourceUri(uri);
       if (uri) {
         setIsPlaying(true);
@@ -922,11 +961,10 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     setPlaybackError(null);
     setResolvedQualities(null);
 
-    // 1. Safely halt decoder and flush previous surface buffers
+    // 1. Safely pause previous playback
     if (player) {
       try {
         player.pause();
-        player.replace(null);
       } catch (e) {}
     }
     hasAutoSelectedDefaultAudio.current = false;
@@ -1104,13 +1142,15 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       if (requestId === activeScrapeRequestId.current && isMounted.current) {
         try {
           const safeInitialLink = sanitizePlayableUrl(initialStreamLink);
+          const streamHeaders = playable?.headers || null;
           currentStreamInfoRef.current = {
             streamUrl: safeInitialLink,
+            headers: streamHeaders,
             targetQuality: initialQuality
           };
 
           setPlaybackError(null);
-          player.replace(safeInitialLink);
+          player.replace(safeInitialLink, streamHeaders);
           setIsPlaying(true);
           player.play();
         } catch (playerErr) {
@@ -1171,12 +1211,14 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       setAvailableAudioTracks([]);
       setAvailableSubtitleTracks([]);
 
+      const currentHeaders = currentStreamInfoRef.current?.headers || null;
       currentStreamInfoRef.current = {
         streamUrl: safeStreamUrl,
+        headers: currentHeaders,
         targetQuality: targetQ
       };
 
-      player.replace(safeStreamUrl);
+      player.replace(safeStreamUrl, currentHeaders);
       setIsPlaying(true);
       player.play();
     } catch (e) {

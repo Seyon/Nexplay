@@ -651,7 +651,7 @@ var ClientUtils = class {
   /**
    * Pre-flight video stream health check (verifies HTTP 206 Partial Content and 200 streaming availability)
    */
-  static async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 3500) {
+  static async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 2000) {
     if (!streamUrl || !streamUrl.startsWith("http")) return { isLive: false, supports206: false };
     let controller = null;
     let timeoutId = null;
@@ -722,15 +722,24 @@ var ClientUtils = class {
       .sort((a, b) => (a.priority || 50) - (b.priority || 50));
     
     // 1. Primary: Only return live streams that strictly support HTTP 206 Partial Content from top 3 (FSL -> FSLv2 -> Pixeldrain)
-    for (const item of sorted) {
-      if (item && item.url && (item.priority || 50) <= 3) {
-        const streamHeaders = item.headers || headers;
-        const check = await this.verifyMediaStream(item.url, streamHeaders, 4000);
-        if (check.isLive && check.supports206) {
-          const detectedQ = this.detectQualityFromUrl(item.url, fallbackQuality);
-          const safeUrl = this.sanitizeStreamUrl(item.url);
-          return { q: detectedQ, url: safeUrl, item: { ...item, url: safeUrl, supports206: true } };
-        }
+    const topPrimary = sorted.filter(item => item && item.url && (item.priority || 50) <= 3).slice(0, 3);
+    for (const item of topPrimary) {
+      const streamHeaders = item.headers || headers;
+      const check = await this.verifyMediaStream(item.url, streamHeaders, 2000);
+      if (check.isLive && check.supports206) {
+        const detectedQ = this.detectQualityFromUrl(item.url, fallbackQuality);
+        const safeUrl = this.sanitizeStreamUrl(item.url);
+        return { q: detectedQ, url: safeUrl, item: { ...item, url: safeUrl, supports206: true } };
+      }
+    }
+
+    // Optimistic fast fallback: if top item is known direct CDN (Cloudflare R2, PixelDrain, FastDL)
+    if (topPrimary.length > 0) {
+      const topDirect = topPrimary[0];
+      if (topDirect && (topDirect.url.includes('r2.dev') || topDirect.url.includes('cloudflarestorage') || topDirect.url.includes('pixeldrain') || topDirect.url.includes('fastdl'))) {
+        const detectedQ = this.detectQualityFromUrl(topDirect.url, fallbackQuality);
+        const safeUrl = this.sanitizeStreamUrl(topDirect.url);
+        return { q: detectedQ, url: safeUrl, item: { ...topDirect, url: safeUrl, supports206: true } };
       }
     }
 
@@ -738,7 +747,7 @@ var ClientUtils = class {
     for (const item of sorted) {
       if (item && item.url && ((item.priority || 50) === 10 || item.server?.toLowerCase().includes('10gbps') || item.server?.toLowerCase().includes('google cdn') || item.url.includes('googleusercontent.com') || item.url.includes('video-downloads') || item.url.includes('gpdl'))) {
         const streamHeaders = item.headers || headers;
-        const check = await this.verifyMediaStream(item.url, streamHeaders, 4000);
+        const check = await this.verifyMediaStream(item.url, streamHeaders, 2000);
         if (check.isLive) {
           const detectedQ = this.detectQualityFromUrl(item.url, fallbackQuality);
           const safeUrl = this.sanitizeStreamUrl(item.url);

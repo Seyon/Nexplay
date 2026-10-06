@@ -31,6 +31,7 @@ class ExtensionManagerService {
     this.webViewRef = null;
     this.isReady = true;
     this.updateManager = ProviderUpdateManager;
+    this.streamCache = new Map();
     console.log("[ExtensionManager] Native High-Speed Scraper Engine initialized.");
   }
 
@@ -133,89 +134,85 @@ class ExtensionManagerService {
     const twoWords = titleWords.length > 2 ? `${titleWords[0]} ${titleWords[1]}` : '';
 
     const candidateQueries = [];
+    let primaryQueries = [];
     if (isTVShow) {
+      primaryQueries = [
+        `${cleanTitle} Season ${seasonNumber}`,
+        cleanTitle
+      ];
       candidateQueries.push(`${cleanTitle} (Season ${seasonNumber})`);
-      candidateQueries.push(`${cleanTitle} Season ${seasonNumber}`);
       candidateQueries.push(`${cleanTitle} (S0${seasonNumber})`);
-      candidateQueries.push(`${cleanTitle} (S${seasonNumber})`);
       candidateQueries.push(`${cleanTitle} S0${seasonNumber}`);
-      candidateQueries.push(`${cleanTitle} S${seasonNumber}`);
       if (digitTitle !== cleanTitle) {
-        candidateQueries.push(`${digitTitle} (Season ${seasonNumber})`);
         candidateQueries.push(`${digitTitle} Season ${seasonNumber}`);
       }
       if (mainTitle !== cleanTitle && mainTitle.length >= 3) {
-        candidateQueries.push(`${mainTitle} (Season ${seasonNumber})`);
         candidateQueries.push(`${mainTitle} Season ${seasonNumber}`);
-        candidateQueries.push(mainTitle);
-      }
-      candidateQueries.push(cleanTitle);
-      if (digitTitle !== cleanTitle) candidateQueries.push(digitTitle);
-      if (cleanTitle.includes('&')) {
-        candidateQueries.push(cleanTitle.replace(/&/g, 'and').replace(/\s+/g, ' ').trim());
-        candidateQueries.push(cleanTitle.replace(/&/g, ' ').replace(/\s+/g, ' ').trim());
       }
     } else {
-      candidateQueries.push(cleanTitle);
+      primaryQueries = [
+        targetYear ? `${cleanTitle} ${targetYear}` : cleanTitle,
+        cleanTitle
+      ];
       if (digitTitle !== cleanTitle) candidateQueries.push(digitTitle);
       if (wordTitle !== cleanTitle) candidateQueries.push(wordTitle);
-      if (noEraTitle !== cleanTitle && noEraTitle.length >= 3) candidateQueries.push(noEraTitle);
       if (mainTitle !== cleanTitle && mainTitle.length >= 3) candidateQueries.push(mainTitle);
-      if (targetYear) {
-        candidateQueries.push(`${cleanTitle} ${targetYear}`);
-        if (digitTitle !== cleanTitle) candidateQueries.push(`${digitTitle} ${targetYear}`);
-        if (mainTitle !== cleanTitle && mainTitle.length >= 3) candidateQueries.push(`${mainTitle} ${targetYear}`);
-      }
       if (rootTitle && rootTitle.length > 2 && rootTitle !== cleanTitle) {
         candidateQueries.push(rootTitle);
       }
-      if (cleanTitle.includes('&')) {
-        candidateQueries.push(cleanTitle.replace(/&/g, 'and').replace(/\s+/g, ' ').trim());
-        candidateQueries.push(cleanTitle.replace(/&/g, ' ').replace(/\s+/g, ' ').trim());
-      }
-      if (twoWords && twoWords.length >= 4 && twoWords !== cleanTitle) {
-        candidateQueries.push(twoWords);
-      }
-      if (primaryWord && primaryWord.length >= 4 && !['the', 'that', 'this', 'with', 'from'].includes(primaryWord.toLowerCase())) {
-        candidateQueries.push(primaryWord);
-      }
     }
 
-    const uniqueQueries = Array.from(new Set(candidateQueries));
+    const uniquePrimaryQueries = Array.from(new Set(primaryQueries.filter(Boolean)));
+    const uniqueFallbackQueries = Array.from(new Set(candidateQueries.filter(q => q && !uniquePrimaryQueries.includes(q))));
     let allMatches = [];
     const seenUrls = new Set();
 
-    for (const query of uniqueQueries) {
-      try {
-        const results = await this.getSearchPosts(activeProvider, query);
-        for (const c of results) {
-          const postLink = c.link || c.url;
-          if (postLink && !seenUrls.has(postLink)) {
-            seenUrls.add(postLink);
-            const score = calculateTitleMatchScore(
-              cleanTitle,
-              targetYear,
-              targetType,
-              c.title,
-              c.year,
-              c.type || c.mediaType || (postLink.includes('-series-') ? 'series' : 'movie'),
-              targetSeason,
-              postLink
-            );
-            if (score >= 0.55) {
-              allMatches.push({
-                match: { ...c, matchScore: score, link: postLink },
-                matchScore: score,
-                provider: activeProvider
-              });
-            }
+    const processResults = (results) => {
+      if (!Array.isArray(results)) return;
+      for (const c of results) {
+        const postLink = c.link || c.url;
+        if (postLink && !seenUrls.has(postLink)) {
+          seenUrls.add(postLink);
+          const score = calculateTitleMatchScore(
+            cleanTitle,
+            targetYear,
+            targetType,
+            c.title,
+            c.year,
+            c.type || c.mediaType || (postLink.includes('-series-') ? 'series' : 'movie'),
+            targetSeason,
+            postLink
+          );
+          if (score >= 0.55) {
+            allMatches.push({
+              match: { ...c, matchScore: score, link: postLink },
+              matchScore: score,
+              provider: activeProvider
+            });
           }
         }
-        if (allMatches.some(m => m.matchScore >= 2.0)) {
-          break;
+      }
+    };
+
+    // 1. Concurrent execution of top primary queries
+    const primaryPromises = uniquePrimaryQueries.map(q => this.getSearchPosts(activeProvider, q));
+    const primarySettled = await Promise.allSettled(primaryPromises);
+    for (const res of primarySettled) {
+      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+        processResults(res.value);
+      }
+    }
+
+    // Early termination: If we already found a confident match (score >= 0.85), skip all fallback queries!
+    const hasConfidentMatch = allMatches.some(m => m.matchScore >= 0.85);
+    if (!hasConfidentMatch && uniqueFallbackQueries.length > 0) {
+      // Execute top 2 fallback queries in parallel
+      const fallbackPromises = uniqueFallbackQueries.slice(0, 3).map(q => this.getSearchPosts(activeProvider, q));
+      const fallbackSettled = await Promise.allSettled(fallbackPromises);
+      for (const res of fallbackSettled) {
+        if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+          processResults(res.value);
         }
-      } catch (e) {
-        console.warn(`[ExtensionManager] Error searching ${activeProvider} for "${query}":`, e?.message || e);
       }
     }
 
@@ -467,6 +464,16 @@ class ExtensionManagerService {
     const targetSeason = isTVShow ? parseInt(seasonNumber, 10) : 1;
     const activeProvider = provider || 'hdhub4u';
 
+    // Instant in-memory cache check (15-min TTL)
+    const cacheKey = `${activeProvider}_${cleanTitle}_${targetYear || ''}_${isTVShow ? 'tv' : 'movie'}_${targetSeason}_${targetEp}`;
+    if (this.streamCache && this.streamCache.has(cacheKey)) {
+      const cached = this.streamCache.get(cacheKey);
+      if (Date.now() - cached.timestamp < 15 * 60 * 1000) {
+        console.log(`[ExtensionManager] ⚡ Instant stream cache HIT for: ${cacheKey}`);
+        return cached.data;
+      }
+    }
+
     console.log(`[ExtensionManager] Resolve on "${activeProvider}" for "${cleanTitle}" (Type: ${isTVShow ? `TV S${targetSeason}E${targetEp}` : 'Movie'})`);
 
     // Direct fast probe for 111477 (zero countdown timer, direct open directory streaming)
@@ -481,10 +488,14 @@ class ExtensionManagerService {
           episodeNumber: targetEp
         });
         if (stream && stream.streamUrl) {
-          return {
+          const res = {
             ...stream,
             server: 'Server 4 (111477)'
           };
+          if (this.streamCache) {
+            this.streamCache.set(cacheKey, { timestamp: Date.now(), data: res });
+          }
+          return res;
         }
       } catch (err) {
         console.warn(`[ExtensionManager] Direct 111477 probe notice:`, err?.message || err);
@@ -600,6 +611,9 @@ class ExtensionManagerService {
           }
 
           console.log(`[ExtensionManager] ✅ Successfully resolved playable stream from ${matchedProvider} (${playable.quality || '1080p'}) [${candidateResult.server}]!`);
+          if (this.streamCache) {
+            this.streamCache.set(cacheKey, { timestamp: Date.now(), data: candidateResult });
+          }
           return candidateResult;
         }
       } catch (err) {
