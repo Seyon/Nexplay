@@ -71,7 +71,16 @@ import {
   fetchHindiMovies,
   fetchWithRetry
 } from './src/utils/api';
-import { TMDB_BASE_URL, TMDB_API_KEY } from './src/config/tmdb';
+import { TMDB_BASE_URL } from './src/config/tmdb';
+import AppSettings, {
+  initSettings,
+  getTmdbApiKey,
+  hasTmdbApiKey,
+  getDontShowDonationAgain,
+  subscribeSettings
+} from './src/utils/AppSettings';
+import TmdbApiKeyModal from './src/components/TmdbApiKeyModal';
+import DonationModal from './src/components/DonationModal';
 import { scale, verticalScale, moderateScale } from './src/utils/responsive';
 import { requestAppPermissions } from './src/utils/permissions';
 import { ProviderUpdateManager } from './src/utils/ProviderUpdateManager';
@@ -160,6 +169,10 @@ export default function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [navigationStack, setNavigationStack] = useState([]);
+  const [isTvSerialsDetailOpen, setIsTvSerialsDetailOpen] = useState(false);
+  const [hasTmdbKey, setHasTmdbKey] = useState(false);
+  const [showTmdbModal, setShowTmdbModal] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
   const lastBackPressRef = useRef(0);
 
   // Tab Press Handler: record tab history
@@ -272,6 +285,19 @@ export default function App() {
     ProviderUpdateManager.init({ autoCheck: true });
 
     async function loadData() {
+      if (!hasTmdbApiKey()) {
+        setWeeklyTop10([]);
+        setTrendingMovies([]);
+        setPopularMovies([]);
+        setScifiMovies([]);
+        setActionAdventureMovies([]);
+        setThrillerHorrorMovies([]);
+        setTamilMovies([]);
+        setHindiMovies([]);
+        setContinueWatchingMovies([]);
+        setLoading(false);
+        return;
+      }
       try {
         const [weekly, trending, popular, scifi, actionAdv, thrillerHorror, tamil, hindi] = await Promise.all([
           fetchWeeklyTrendingMovies(),
@@ -284,7 +310,7 @@ export default function App() {
           fetchHindiMovies()
         ]);
         
-        const hasRealApiKey = TMDB_API_KEY && TMDB_API_KEY !== 'YOUR_TMDB_API_KEY';
+        const currentKey = getTmdbApiKey();
         const headers = { 'Accept': 'application/json' };
 
         // Enrich the top 10 weekly items with runtime, seasons, and vote averages
@@ -292,12 +318,12 @@ export default function App() {
         const detailedWeekly = await Promise.all(
           weeklySource.slice(0, 10).map(async (item) => {
             try {
-              if (hasRealApiKey) {
+              if (currentKey) {
                 const isTVShow = item.media_type === 'tv' ? true :
                                  item.media_type === 'movie' ? false :
                                  (Boolean(item.first_air_date) && !item.release_date && !item.title);
                 if (isTVShow) {
-                  const res = await fetchWithRetry(`${TMDB_BASE_URL}/tv/${item.id}?api_key=${TMDB_API_KEY}`, { headers });
+                  const res = await fetchWithRetry(`${TMDB_BASE_URL}/tv/${item.id}`, { headers });
                   if (res && res.ok) {
                     const details = await res.json();
                     return { 
@@ -308,7 +334,7 @@ export default function App() {
                     };
                   }
                 } else {
-                  const res = await fetchWithRetry(`${TMDB_BASE_URL}/movie/${item.id}?api_key=${TMDB_API_KEY}`, { headers });
+                  const res = await fetchWithRetry(`${TMDB_BASE_URL}/movie/${item.id}`, { headers });
                   if (res && res.ok) {
                     const details = await res.json();
                     return { 
@@ -330,9 +356,9 @@ export default function App() {
           })
         );
 
-        setWeeklyTop10(detailedWeekly.length > 0 ? detailedWeekly : INITIAL_FALLBACK_MOVIES);
-        setTrendingMovies(trending.length > 0 ? trending : INITIAL_FALLBACK_MOVIES);
-        setPopularMovies(popular.length > 0 ? popular : INITIAL_FALLBACK_MOVIES);
+        setWeeklyTop10(detailedWeekly.length > 0 ? detailedWeekly : []);
+        setTrendingMovies(trending.length > 0 ? trending : []);
+        setPopularMovies(popular.length > 0 ? popular : []);
         setScifiMovies(scifi.length > 0 ? scifi : []);
         setActionAdventureMovies(actionAdv.length > 0 ? actionAdv : []);
         setThrillerHorrorMovies(thrillerHorror.length > 0 ? thrillerHorror : []);
@@ -340,7 +366,7 @@ export default function App() {
         setHindiMovies(hindi.length > 0 ? hindi : []);
         
         // Build progress objects for Continue Watching row using a subset of items
-        const cwSource = trending.length > 0 ? trending : INITIAL_FALLBACK_MOVIES;
+        const cwSource = trending.length > 0 ? trending : [];
         const continueWatching = cwSource.slice(1, 6).map((movie, idx) => ({
           ...movie,
           progress: idx === 0 ? 80 : idx === 1 ? 50 : idx === 2 ? 50 : idx === 3 ? 50 : 65
@@ -348,20 +374,62 @@ export default function App() {
         setContinueWatchingMovies(continueWatching);
       } catch (error) {
         console.error("Error loading movies from TMDB:", error);
-        setWeeklyTop10(INITIAL_FALLBACK_MOVIES);
-        setTrendingMovies(INITIAL_FALLBACK_MOVIES);
-        setPopularMovies(INITIAL_FALLBACK_MOVIES);
-        setScifiMovies([]);
-        setActionAdventureMovies([]);
-        setThrillerHorrorMovies([]);
-        setContinueWatchingMovies(
-          INITIAL_FALLBACK_MOVIES.slice(1).map((m, idx) => ({ ...m, progress: idx === 0 ? 80 : 50 }))
-        );
       } finally {
         setLoading(false);
       }
     }
-    loadData();
+
+    // Startup flow: initialize settings, check TMDB API key
+    (async () => {
+      await initSettings();
+      const keySet = hasTmdbApiKey();
+      setHasTmdbKey(keySet);
+
+      if (!keySet) {
+        // First install / first run: mandatory prompt for TMDB API key
+        setLoading(false);
+        setShowTmdbModal(true);
+      } else {
+        // Key exists: load data immediately
+        loadData();
+        // Check donation popup
+        if (!getDontShowDonationAgain()) {
+          setTimeout(() => {
+            setShowDonationModal(true);
+          }, 2000);
+        }
+      }
+    })();
+
+    // Listen for settings changes (saving or deleting TMDB key)
+    const unsub = subscribeSettings(({ eventType }) => {
+      if (eventType === 'TMDB_KEY_SAVED') {
+        setHasTmdbKey(true);
+        setShowTmdbModal(false);
+        loadData();
+        if (!getDontShowDonationAgain()) {
+          setTimeout(() => {
+            setShowDonationModal(true);
+          }, 1200);
+        }
+      } else if (eventType === 'TMDB_KEY_DELETED') {
+        setHasTmdbKey(false);
+        // Clear all cached media data - strictly do not fetch or use deleted key
+        setWeeklyTop10([]);
+        setTrendingMovies([]);
+        setPopularMovies([]);
+        setScifiMovies([]);
+        setActionAdventureMovies([]);
+        setThrillerHorrorMovies([]);
+        setTamilMovies([]);
+        setHindiMovies([]);
+        setContinueWatchingMovies([]);
+      }
+    });
+
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   if (loading) {
@@ -404,11 +472,54 @@ export default function App() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
               >
+                {/* Missing TMDB API Key Banner */}
+                {!hasTmdbKey && (
+                  <TouchableOpacity
+                    style={styles.tmdbMissingBanner}
+                    activeOpacity={0.85}
+                    onPress={() => setShowTmdbModal(true)}
+                  >
+                    <View style={styles.tmdbMissingLeft}>
+                      <View style={styles.tmdbMissingIconCircle}>
+                        <Ionicons name="key" size={scale(18)} color="#38bdf8" />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: scale(10) }}>
+                        <Text style={styles.tmdbMissingTitle}>TMDB API Key Required</Text>
+                        <Text style={styles.tmdbMissingSubtitle}>Tap here to enter your key & load movies</Text>
+                      </View>
+                    </View>
+                    <View style={styles.tmdbMissingBtn}>
+                      <Text style={styles.tmdbMissingBtnText}>Enter Key</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
                 {/* Animated Weekly Top 10 Hero Carousel with Ratings, Duration, Year & Genres */}
-                <HeroCarousel 
-                  movies={weeklyTop10.length > 0 ? weeklyTop10 : trendingMovies} 
-                  onMoviePress={handleMoviePress}
-                />
+                {weeklyTop10.length > 0 && (
+                  <HeroCarousel 
+                    movies={weeklyTop10.length > 0 ? weeklyTop10 : trendingMovies} 
+                    onMoviePress={handleMoviePress}
+                  />
+                )}
+
+                {/* Empty State when no TMDB Key */}
+                {!hasTmdbKey && weeklyTop10.length === 0 && (
+                  <View style={styles.emptyTmdbCard}>
+                    <Ionicons name="film-outline" size={scale(48)} color="#38bdf8" />
+                    <Text style={styles.emptyTmdbTitle}>No TMDB API Key Configured</Text>
+                    <Text style={styles.emptyTmdbDesc}>
+                      NexPlay requires your personal TMDB API key to fetch movie posters, descriptions, and trending lists.
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.emptyTmdbBtn}
+                      activeOpacity={0.85}
+                      onPress={() => setShowTmdbModal(true)}
+                    >
+                      <Ionicons name="key" size={scale(16)} color="#ffffff" style={{ marginRight: scale(6) }} />
+                      <Text style={styles.emptyTmdbBtnText}>Enter TMDB API Key</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
 
                 {/* Dynamic Categories List */}
                 <View style={styles.categoriesContainer}>
@@ -501,19 +612,20 @@ export default function App() {
               />
             )}
 
-            {/* 3. TV SERIES TAB */}
-            {activeTab === 'TV Series' && (
+            {/* 3. SERIES TAB */}
+            {(activeTab === 'Series' || activeTab === 'TV Series') && (
               <TvSeriesScreen 
                 onMoviePress={handleMoviePress} 
                 onSeeMore={handleSeeMore}
               />
             )}
 
-            {/* 4. TV SERIALS TAB */}
-            {activeTab === 'TV Serials' && (
+            {/* 4. LIVE TV & SERIALS TAB */}
+            {(activeTab === 'Live TV & Serials' || activeTab === 'TV Serials') && (
               <TvSerialsScreen 
                 onMoviePress={handleMoviePress} 
                 onSeeMore={handleSeeMore}
+                onDetailStateChange={setIsTvSerialsDetailOpen}
               />
             )}
 
@@ -527,10 +639,44 @@ export default function App() {
               <AccountScreen onPlayOffline={handlePlayOffline} />
             )}
 
+            {/* Top-Right Account Profile Button */}
+            {!isTvSerialsDetailOpen && (
+              <TouchableOpacity
+                style={[
+                  styles.topAccountBtn,
+                  activeTab === 'Account' && styles.topAccountBtnActive
+                ]}
+                activeOpacity={0.8}
+                onPress={() => activeTab === 'Account' ? handleTabPress('Home') : handleTabPress('Account')}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons
+                  name={activeTab === 'Account' ? 'person' : 'person-outline'}
+                  size={scale(17)}
+                  color={activeTab === 'Account' ? '#38bdf8' : '#ffffff'}
+                />
+              </TouchableOpacity>
+            )}
+
             {/* Floating Glassmorphic Bottom Navigation Bar */}
             <BottomTabBar 
               activeTab={activeTab} 
               onTabPress={handleTabPress} 
+            />
+
+            {/* TMDB API Key First-Run & Management Modal */}
+            <TmdbApiKeyModal
+              visible={showTmdbModal}
+              onClose={() => setShowTmdbModal(false)}
+              onKeySaved={() => {
+                setShowTmdbModal(false);
+              }}
+            />
+
+            {/* Support NexPlay / Donation Modal */}
+            <DonationModal
+              visible={showDonationModal}
+              onClose={() => setShowDonationModal(false)}
             />
           </View>
         )}
@@ -653,5 +799,128 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
-  }
+  },
+  topAccountBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight ? StatusBar.currentHeight + 8 : verticalScale(34)) : verticalScale(44),
+    right: scale(16),
+    zIndex: 998,
+    width: scale(38),
+    height: scale(38),
+    borderRadius: scale(19),
+    backgroundColor: 'rgba(15, 23, 42, 0.82)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  topAccountBtnActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.22)',
+    borderColor: '#38bdf8',
+    shadowColor: '#38bdf8',
+    shadowOpacity: 0.5,
+  },
+  tmdbMissingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderRadius: scale(14),
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(10),
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(10),
+    marginBottom: verticalScale(14),
+    shadowColor: '#38bdf8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  tmdbMissingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  tmdbMissingIconCircle: {
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tmdbMissingTitle: {
+    color: '#ffffff',
+    fontSize: moderateScale(13.5),
+    fontWeight: '700',
+  },
+  tmdbMissingSubtitle: {
+    color: '#94a3b8',
+    fontSize: moderateScale(11),
+    marginTop: verticalScale(1),
+  },
+  tmdbMissingBtn: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: scale(14),
+  },
+  tmdbMissingBtnText: {
+    color: '#ffffff',
+    fontSize: moderateScale(11.5),
+    fontWeight: '800',
+  },
+  emptyTmdbCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: verticalScale(48),
+    paddingHorizontal: scale(28),
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(20),
+    backgroundColor: 'rgba(18, 18, 24, 0.65)',
+    borderRadius: scale(20),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptyTmdbTitle: {
+    color: '#ffffff',
+    fontSize: moderateScale(17),
+    fontWeight: '800',
+    marginTop: verticalScale(14),
+    textAlign: 'center',
+  },
+  emptyTmdbDesc: {
+    color: '#94a3b8',
+    fontSize: moderateScale(12.5),
+    lineHeight: verticalScale(18),
+    textAlign: 'center',
+    marginTop: verticalScale(8),
+    marginBottom: verticalScale(20),
+  },
+  emptyTmdbBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2563eb',
+    paddingHorizontal: scale(20),
+    height: verticalScale(42),
+    borderRadius: scale(21),
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  emptyTmdbBtnText: {
+    color: '#ffffff',
+    fontSize: moderateScale(13.5),
+    fontWeight: '800',
+  },
 });

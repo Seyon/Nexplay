@@ -5,6 +5,7 @@ import {
   TMDB_BACKDROP_BASE_URL
 } from '../config/tmdb.js';
 import { resolveDomain, resolveUrlWithDoh } from './DnsResolver.js';
+import { getTmdbApiKey } from './AppSettings.js';
 
 // Helper to format image paths
 export const getPosterUrl = (path) => {
@@ -75,11 +76,32 @@ const headers = {
 
 // Fetch with Retry, Timeout, and Direct-IP DoH ISP Bypass fallback
 export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 800) => {
+  let targetUrl = url;
+
+  // Intercept and handle TMDB requests dynamically
+  if (targetUrl && (targetUrl.includes('api.themoviedb.org') || targetUrl.includes('themoviedb.org'))) {
+    const currentKey = getTmdbApiKey();
+    if (!currentKey) {
+      // User deleted key or key not yet set - strictly do not fetch TMDB
+      return {
+        ok: false,
+        status: 401,
+        json: async () => ({ results: [], page: 1, total_pages: 0, total_results: 0 })
+      };
+    }
+    // Dynamically inject the active TMDB API key
+    if (targetUrl.includes('api_key=')) {
+      targetUrl = targetUrl.replace(/api_key=[^&]*/, 'api_key=' + encodeURIComponent(currentKey));
+    } else {
+      targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'api_key=' + encodeURIComponent(currentKey);
+    }
+  }
+
   for (let i = 0; i < retries; i++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await fetch(url, {
+      const res = await fetch(targetUrl, {
         ...options,
         headers: {
           'Accept': 'application/json',
