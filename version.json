@@ -1,15 +1,23 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 0,
+  "patch": 9,
   "issue": 0,
-  "build": 144,
-  "updateType": "minor",
+  "build": 145,
+  "updateType": "patch",
   "timestamp": "20261010",
-  "versionName": "1.8.0.0.144-minor.20261010",
-  "versionCode": 1800144,
-  "lastSuccessfulBuild": "2026-10-10T16:33:15.141Z",
+  "versionName": "1.8.9.0.145-patch.20261010",
+  "versionCode": 1890145,
+  "lastSuccessfulBuild": "2026-10-10T16:56:16.143Z",
   "history": [
+    {
+      "versionName": "1.8.9.0.145-patch.20261010",
+      "versionCode": 1890145,
+      "updateType": "patch",
+      "build": 145,
+      "note": "Fix black screen watchdog premature timeout and optimize OkHttp DNS for real-time network speed",
+      "builtAt": "2026-10-10T16:56:16.143Z"
+    },
     {
       "versionName": "1.8.0.0.144-minor.20261010",
       "versionCode": 1800144,

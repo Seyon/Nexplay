@@ -31,25 +31,15 @@ class DohFallbackDns : Dns {
   override fun lookup(hostname: String): List<InetAddress> {
     if (hostname.isEmpty()) throw UnknownHostException("hostname is empty")
 
-    // If DoH is disabled by user, use standard System DNS
-    if (!DnsPreferenceModule.activeEnabled) {
+    // Fast path: localhost and direct IP addresses
+    if (hostname.equals("localhost", ignoreCase = true) || 
+        hostname == "127.0.0.1" || 
+        hostname == "::1" || 
+        hostname.matches(Regex("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"))) {
       return Dns.SYSTEM.lookup(hostname)
     }
 
-    // 1. First try DoH using the user's selected provider
-    val endpoints = getEndpointsForActiveProvider(hostname)
-    for (urlStr in endpoints) {
-      try {
-        val addresses = queryDohEndpoint(urlStr, hostname)
-        if (addresses.isNotEmpty()) {
-          return addresses
-        }
-      } catch (e: Exception) {
-        // Try next endpoint
-      }
-    }
-
-    // 2. Secondary fallback: Try standard system DNS if not carrier-poisoned
+    // 1. Ultra-fast path: Try standard system DNS first (5-15ms real-time carrier speed)
     try {
       val systemAddresses = Dns.SYSTEM.lookup(hostname)
       val nonBlocked = systemAddresses.filter {
@@ -60,7 +50,25 @@ class DohFallbackDns : Dns {
         return nonBlocked
       }
     } catch (e: Exception) {
-      // System DNS failed / blocked by carrier ISP
+      // System DNS failed / blocked by carrier ISP -> proceed to DoH
+    }
+
+    // If DoH is disabled by user and system DNS failed, throw
+    if (!DnsPreferenceModule.activeEnabled) {
+      throw UnknownHostException("System DNS failed and DoH is disabled: $hostname")
+    }
+
+    // 2. Carrier ISP Bypass: Query DoH using user's active provider
+    val endpoints = getEndpointsForActiveProvider(hostname)
+    for (urlStr in endpoints) {
+      try {
+        val addresses = queryDohEndpoint(urlStr, hostname)
+        if (addresses.isNotEmpty()) {
+          return addresses
+        }
+      } catch (e: Exception) {
+        // Try next endpoint
+      }
     }
 
     // 3. Ultimate emergency fallback: Google DNS via direct IP
@@ -133,8 +141,8 @@ class DohFallbackDns : Dns {
     }
 
     val connection = java.net.URL(urlStr).openConnection() as java.net.HttpURLConnection
-    connection.connectTimeout = 3500
-    connection.readTimeout = 3500
+    connection.connectTimeout = 2000
+    connection.readTimeout = 2000
     connection.setRequestProperty("Accept", "application/dns-json, application/json")
     connection.setRequestProperty("User-Agent", "StitchNexplay/2.0")
     connection.requestMethod = "GET"

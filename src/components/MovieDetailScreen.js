@@ -386,19 +386,19 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     };
   }, [isPlaying, hasStartedPlayback]);
 
-  // Black Screen Watchdog: if playback initiated but 0 frames rendered after 8.5s, trigger adaptive recovery
+  // Adaptive Recovery Watchdog: if playback initiated but 0 frames rendered after 30s and not actively buffering
   useEffect(() => {
     if (!hasStartedPlayback || isResolving || playbackError) return;
     const watchdogTimer = setTimeout(() => {
-      if (!hasFirstFrameRendered && isMounted.current) {
-        console.warn(`[MovieDetailScreen] Black screen detected: 0 frames rendered after 8.5s on Server ${activeServer}.`);
+      if (!hasFirstFrameRendered && !isBufferingRef.current && currentTimeRef.current <= 0 && isMounted.current) {
+        console.warn(`[MovieDetailScreen] Stream stalled: 0 frames rendered after 30s on Server ${activeServer}.`);
         setPlaybackError({
           title: 'Stream Unreachable',
           message: `Server ${activeServer} connection returned no video/audio. Switching to an alternate server is recommended.`,
           server: activeServer
         });
       }
-    }, 8500);
+    }, 30000);
     return () => clearTimeout(watchdogTimer);
   }, [hasStartedPlayback, isResolving, hasFirstFrameRendered, activeServer, currentSourceUri, playbackError]);
   useEffect(() => {

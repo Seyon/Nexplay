@@ -1,6 +1,6 @@
 {
   "name": "nexplay",
-  "version": "1.8.0.0.144-minor.20261010",
+  "version": "1.8.9.0.145-patch.20261010",
   "main": "index.js",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

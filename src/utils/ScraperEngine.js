@@ -650,7 +650,7 @@ var ClientUtils = class {
   /**
    * Pre-flight video stream health check (verifies HTTP 206 Partial Content and 200 streaming availability)
    */
-  static async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 2000) {
+  static async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 6000) {
     if (!streamUrl || !streamUrl.startsWith("http")) return { isLive: false, supports206: false };
     let controller = null;
     let timeoutId = null;
