@@ -137,6 +137,43 @@ export function selectBestStreamCandidate(candidateStreams) {
     return candidateStreams[0] || null;
 }
 
+export function getAudioRichnessScore(text) {
+    const t = (text || '').toLowerCase();
+    let score = 0;
+    const languages = [
+        'tamil', 'telugu', 'malayalam', 'kannada',
+        'hindi', 'english', 'bengali', 'marathi',
+        'punjabi', 'gujarati', 'urdu', 'odia', 'bhojpuri'
+    ];
+    let langCount = 0;
+    for (const lang of languages) {
+        if (t.includes(lang)) {
+            langCount++;
+            score += 250;
+        }
+    }
+    if (t.includes('multi audio') || t.includes('multi-audio') || /\bmulti\b/i.test(t)) {
+        score += 1000;
+    }
+    // High priority when South Indian regional languages (Tamil, Telugu, Malayalam, Kannada) are available
+    const southLangs = ['tamil', 'telugu', 'malayalam', 'kannada'];
+    const southCount = southLangs.filter(l => t.includes(l)).length;
+    if (southCount >= 2) {
+        score += 1500;
+    } else if (southCount === 1) {
+        score += 600;
+    }
+
+    if (langCount >= 4) {
+        score += 2000; // Complete multi-audio release (e.g. Hindi + English + Tamil + Telugu + Malayalam + Kannada)
+    } else if (langCount >= 3) {
+        score += 1000;
+    } else if (t.includes('dual audio') || t.includes('dual')) {
+        score += 100;
+    }
+    return score;
+}
+
 export function sortBridgesByFidelity(bridges) {
     if (!bridges || !Array.isArray(bridges)) return [];
     const isZip = (b) => {
@@ -152,7 +189,10 @@ export function sortBridgesByFidelity(bridges) {
         else if (/\b(720p)\b/i.test(text)) score += 100;
         else if (/\b(480p)\b/i.test(text)) score += 50;
 
-        const targetKeywords = ['hevc', 'hdr', 'hdr10', 'hdr10+', 'sdr', 'dv', 'dolby vision', 'multi audio', 'multi', 'dual audio', 'x265', 'x264', 'h.265', 'h.264', '10bit', '10-bit', 'atmos', 'dts', 'ddp5.1', 'web-dl', 'bluray', 'remux'];
+        // Strict Audio Richness Priority: Multi Audio (Tamil, Telugu, Hindi, English, Malayalam, Kannada) decisively beats Dual Audio
+        score += getAudioRichnessScore(b.label || text);
+
+        const targetKeywords = ['hevc', 'hdr', 'hdr10', 'hdr10+', 'sdr', 'dv', 'dolby vision', 'x265', 'x264', 'h.265', 'h.264', '10bit', '10-bit', 'atmos', 'dts', 'ddp5.1', 'web-dl', 'bluray', 'remux'];
         for (const kw of targetKeywords) {
             if (text.includes(kw)) score += 25;
         }
@@ -386,11 +426,26 @@ export class Movies4uClient {
             bridgeList.push({ label, quality, size, bridgeUrl });
         }
         if (!isSeries) {
-            // For movies, fetch candidate download bridges to discover all available qualities (HubCloud only)
-            const uniqueBridgeUrls = Array.from(new Set(bridgeList.map(b => b.bridgeUrl)));
+            // Group and rank bridge URLs by audio richness first (Multi Audio > Dual Audio > Single Audio)
+            const bridgeAudioMap = new Map();
+            for (const b of bridgeList) {
+                const currentScore = bridgeAudioMap.get(b.bridgeUrl) || 0;
+                const itemScore = getAudioRichnessScore(b.label || '');
+                if (itemScore > currentScore) {
+                    bridgeAudioMap.set(b.bridgeUrl, itemScore);
+                }
+            }
+
+            const uniqueBridgeUrls = Array.from(new Set(bridgeList.map(b => b.bridgeUrl)))
+                .sort((a, b) => (bridgeAudioMap.get(b) || 0) - (bridgeAudioMap.get(a) || 0));
+
             for (const bUrl of uniqueBridgeUrls) {
                 try {
                     const hubLinks = await this.extractHubCloudFromBridge(bUrl, '1080p', fetcher);
+                    const audioScore = bridgeAudioMap.get(bUrl) || 0;
+                    for (const hl of hubLinks) {
+                        hl.audioScore = audioScore;
+                    }
                     streamingLinks.push(...hubLinks);
                 } catch (_) {}
             }
@@ -615,8 +670,12 @@ export class Movies4uClient {
             // Resolve all available qualities in parallel for maximum speed and complete quality availability
             const qualityPromises = Object.entries(qualityBuckets).map(async ([qKey, bucket]) => {
                 if (!bucket || bucket.length === 0) return null;
-                // Prefer HubCloud / direct streams
+                // Prefer Multi Audio (Tamil + Telugu + Hindi + English + Malayalam + Kannada) > Dual Audio, then HubCloud / direct streams
                 const sortedBucket = [...bucket].sort((a, b) => {
+                    const aAudio = a.audioScore ?? getAudioRichnessScore(a.label || a.server || '');
+                    const bAudio = b.audioScore ?? getAudioRichnessScore(b.label || b.server || '');
+                    if (aAudio !== bAudio) return bAudio - aAudio;
+
                     const aHub = (a.url || '').includes('hubcloud') || (a.server || '').includes('Hub');
                     const bHub = (b.url || '').includes('hubcloud') || (b.server || '').includes('Hub');
                     if (aHub && !bHub) return -1;

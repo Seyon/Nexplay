@@ -6,7 +6,8 @@ import {
   calculateTitleMatchScore, 
   findBestMatch, 
   cleanTitleKeywords, 
-  normalizeString 
+  normalizeString,
+  getAudioRichnessScore
 } from './ScraperEngine.js';
 
 import { TamilDhool } from '../providers/tamildhool/index.js';
@@ -214,7 +215,15 @@ class ExtensionManagerService {
       }
     }
 
-    allMatches.sort((a, b) => b.matchScore - a.matchScore);
+    allMatches.sort((a, b) => {
+      // Audio richness priority: Multi Audio (Tamil, Telugu, Hindi, English, etc.) prioritized over Dual Audio
+      const aAudio = getAudioRichnessScore(a.match?.title || '');
+      const bAudio = getAudioRichnessScore(b.match?.title || '');
+      if (Math.abs(a.matchScore - b.matchScore) < 0.15 && aAudio !== bAudio) {
+        return bAudio - aAudio;
+      }
+      return b.matchScore - a.matchScore;
+    });
 
     // Strict Server 1 (HDHub4u) & Server 2 (4KHDHub) rule: If both WEB-DL and WEBRip are available, consider ONLY WEB-DL
     if (activeProvider === 'hdhub4u' || activeProvider === '4khdhub') {

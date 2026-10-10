@@ -585,6 +585,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     if (hasUserManuallySelectedAudioTrack.current) return;
     if (hasAutoSelectedDefaultAudio.current) return;
 
+    hasAutoSelectedDefaultAudio.current = true;
+
     // Use TMDB API metadata for officially released language
     const optimalTrack = selectOptimalDefaultAudioTrack(tracks, {
       ...details,
@@ -597,13 +599,15 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
 
     if (optimalTrack) {
       console.log('[MovieDetailScreen] Auto-selected optimal audio track based on TMDB metadata:', optimalTrack);
-      hasAutoSelectedDefaultAudio.current = true;
       setSelectedAudioTrack(optimalTrack);
       selectedAudioTrackRef.current = optimalTrack;
       const tId = typeof optimalTrack.trackId === 'number'
         ? optimalTrack.trackId
         : (typeof optimalTrack.id === 'number' ? optimalTrack.id : parseInt(optimalTrack.id, 10));
-      if (!isNaN(tId) && tId !== -1) {
+      // In LibVLC, track 0 is selected by default on playback start.
+      // Only invoke selectAudioTrack if there are multiple tracks and optimal is NOT the first track,
+      // avoiding redundant demuxer flushing and audio stutter.
+      if (!isNaN(tId) && tId !== -1 && tracks.length > 1 && tId !== tracks[0].trackId) {
         vlcPlayerRef.current?.selectAudioTrack(tId);
       }
     }
@@ -782,15 +786,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const vlcSource = useMemo(() => {
     if (!currentSourceUri) return undefined;
     const mediaOptions = [
-      ':network-caching=2000',
-      ':live-caching=2000',
-      ':file-caching=2000',
-      ':sout-mux-caching=2000',
-      ':avcodec-fast=true',
-      ':avcodec-threads=4',
-      ':no-sub-autodetect-file',
+      ':network-caching=3000',
+      ':file-caching=3000',
+      ':live-caching=3000',
       ':http-reconnect=true',
-      ':http-continuous=true',
+      ':no-sub-autodetect-file',
       ':no-stats'
     ];
 
@@ -952,6 +952,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         player.pause();
       } catch (e) {}
     }
+    lastSavedSeekTimeRef.current = 0;
     hasAutoSelectedDefaultAudio.current = false;
     hasUserManuallySelectedAudioTrack.current = false;
     setSelectedAudioTrack(null);
@@ -1919,7 +1920,6 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             continueAudioInBackground={false}
             onLoadStart={() => {
               console.log('[VLCPlayer] onLoadStart');
-              vlcPlayerRef.current?.getTracks();
             }}
             onLoad={(event) => {
               console.log('[VLCPlayer] onLoad event:', event);
@@ -1929,15 +1929,6 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               if (event?.duration && event.duration > 0) {
                 setDuration(event.duration);
               }
-              if (lastSavedSeekTimeRef.current > 0.5) {
-                const targetSec = lastSavedSeekTimeRef.current;
-                console.log('[VLCPlayer] Seamlessly restoring position after orientation change:', targetSec);
-                vlcPlayerRef.current?.seek(targetSec);
-                currentTimeRef.current = targetSec;
-                setCurrentTime(targetSec);
-                lastSavedSeekTimeRef.current = 0;
-              }
-              vlcPlayerRef.current?.getTracks();
             }}
             onProgress={(event) => {
               if (isScrubbingRef.current) return;
@@ -1966,9 +1957,6 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 if (controlsVisibleRef.current || !isSeekingRef.current) {
                   setCurrentTime(cur);
                 }
-                if (availableAudioTracksRef.current.length === 0) {
-                  vlcPlayerRef.current?.getTracks();
-                }
               }
               if (event?.duration && event.duration > 0 && event.duration !== duration) {
                 setDuration(event.duration);
@@ -1992,13 +1980,21 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               setHasFirstFrameRendered(true);
               setIsBuffering(false);
               isBufferingRef.current = false;
-              vlcPlayerRef.current?.getTracks();
+              if (lastSavedSeekTimeRef.current > 0.5) {
+                const targetSec = lastSavedSeekTimeRef.current;
+                console.log('[VLCPlayer] Restoring playback position to:', targetSec);
+                lastSavedSeekTimeRef.current = 0;
+                setTimeout(() => {
+                  try {
+                    vlcPlayerRef.current?.seek(targetSec);
+                    currentTimeRef.current = targetSec;
+                    setCurrentTime(targetSec);
+                  } catch (_) {}
+                }, 300);
+              }
               setTimeout(() => {
                 try { vlcPlayerRef.current?.getTracks(); } catch (_) {}
-              }, 600);
-              setTimeout(() => {
-                try { vlcPlayerRef.current?.getTracks(); } catch (_) {}
-              }, 1800);
+              }, 800);
             }}
             onPaused={() => {
               setIsPlaying(false);
@@ -2011,41 +2007,33 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               isBufferingRef.current = buffering;
               if (!buffering) {
                 isSeekingRef.current = false;
-                vlcPlayerRef.current?.getTracks();
               }
             }}
             onTracks={(tracks) => {
               console.log('[VLCPlayer] onTracks received:', tracks);
-              if (tracks?.audio && Array.isArray(tracks.audio) && tracks.audio.length > 0) {
-                const formatted = tracks.audio.map((t, idx) => ({
+              let audioList = [];
+              if (Array.isArray(tracks?.audio)) {
+                audioList = tracks.audio;
+              } else if (typeof tracks?.audio === 'string' && tracks.audio.trim().startsWith('[')) {
+                try { audioList = JSON.parse(tracks.audio); } catch (_) {}
+              }
+
+              if (audioList.length > 0) {
+                const formatted = audioList.map((t, idx) => ({
                   id: String(t.id),
                   trackId: t.id,
                   originalIndex: idx,
                   name: t.name,
                   label: t.name,
                   language: t.name,
-                  displayLabel: getTrackDisplayLabel(t, 'Audio Track', idx, tracks.audio)
+                  displayLabel: getTrackDisplayLabel(t, 'Audio Track', idx, audioList)
                 }));
                 setAvailableAudioTracks(formatted);
                 availableAudioTracksRef.current = formatted;
-                // Lock & preserve active audio track across minimize/maximize and track reload events
-                if (selectedAudioTrackRef.current) {
-                  const match = formatted.find(t => 
-                    t.trackId === selectedAudioTrackRef.current.trackId || 
-                    (t.id != null && selectedAudioTrackRef.current.id != null && String(t.id) === String(selectedAudioTrackRef.current.id)) ||
-                    (t.displayLabel && t.displayLabel === selectedAudioTrackRef.current.displayLabel)
-                  );
-                  if (match) {
-                    setSelectedAudioTrack(match);
-                    selectedAudioTrackRef.current = match;
-                    if (typeof tracks.audioIndex === 'number' && tracks.audioIndex !== match.trackId) {
-                      console.log('[MovieDetailScreen] Preserving selected audio track:', match.trackId, match.displayLabel);
-                      vlcPlayerRef.current?.selectAudioTrack(match.trackId);
-                    }
-                  }
-                } else if (!hasAutoSelectedDefaultAudio.current && !hasUserManuallySelectedAudioTrack.current) {
+
+                if (!hasAutoSelectedDefaultAudio.current && !hasUserManuallySelectedAudioTrack.current) {
                   applyDefaultAudioTrack(formatted);
-                } else if (typeof tracks.audioIndex === 'number') {
+                } else if (!selectedAudioTrackRef.current && typeof tracks.audioIndex === 'number' && tracks.audioIndex !== -1) {
                   const currentActive = formatted.find(t => t.trackId === tracks.audioIndex);
                   if (currentActive) {
                     setSelectedAudioTrack(currentActive);
@@ -2053,8 +2041,16 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                   }
                 }
               }
-              if (tracks?.subtitle && Array.isArray(tracks.subtitle)) {
-                const formattedSubs = tracks.subtitle
+
+              let subList = [];
+              if (Array.isArray(tracks?.subtitle)) {
+                subList = tracks.subtitle;
+              } else if (typeof tracks?.subtitle === 'string' && tracks.subtitle.trim().startsWith('[')) {
+                try { subList = JSON.parse(tracks.subtitle); } catch (_) {}
+              }
+
+              if (subList.length > 0) {
+                const formattedSubs = subList
                   .filter(s => s && s.id !== -1 && String(s.name || '').trim().toLowerCase() !== 'disable' && String(s.name || '').trim().toLowerCase() !== 'disabled')
                   .map((s, idx) => ({
                     id: String(s.id),

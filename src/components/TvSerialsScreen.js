@@ -571,15 +571,11 @@ export default function TvSerialsScreen({ onMoviePress, onDetailStateChange }) {
     const initOptions = [];
 
     const mediaOptions = [
-      ':network-caching=2000',
-      ':live-caching=2000',
-      ':file-caching=2000',
-      ':sout-mux-caching=2000',
-      ':avcodec-fast=true',
-      ':avcodec-threads=4',
-      ':no-sub-autodetect-file',
+      ':network-caching=3000',
+      ':file-caching=3000',
+      ':live-caching=3000',
       ':http-reconnect=true',
-      ':http-continuous=true',
+      ':no-sub-autodetect-file',
       ':no-stats'
     ];
 

@@ -2,14 +2,38 @@
   "major": 1,
   "minor": 8,
   "patch": 10,
-  "issue": 0,
-  "build": 146,
-  "updateType": "patch",
+  "issue": 4,
+  "build": 149,
+  "updateType": "bugfix",
   "timestamp": "20261010",
-  "versionName": "1.8.10.0.146-patch.20261010",
-  "versionCode": 1900146,
-  "lastSuccessfulBuild": "2026-10-10T19:31:40.843Z",
+  "versionName": "1.8.10.4.149-bugfix.20261010",
+  "versionCode": 1900149,
+  "lastSuccessfulBuild": "2026-10-10T20:59:22.068Z",
   "history": [
+    {
+      "versionName": "1.8.10.4.149-bugfix.20261010",
+      "versionCode": 1900149,
+      "updateType": "bugfix",
+      "build": 149,
+      "note": "Debug build with seek diagnostics",
+      "builtAt": "2026-10-10T20:59:22.068Z"
+    },
+    {
+      "versionName": "1.8.10.3.148-bugfix.20261010",
+      "versionCode": 1900148,
+      "updateType": "bugfix",
+      "build": 148,
+      "note": "Debug build with seek diagnostics",
+      "builtAt": "2026-10-10T20:33:30.244Z"
+    },
+    {
+      "versionName": "1.8.10.2.147-bugfix.20261010",
+      "versionCode": 1900147,
+      "updateType": "bugfix",
+      "build": 147,
+      "note": "Fix LibVLC initOptions crash and update Server 1 & Server 3 mirrors",
+      "builtAt": "2026-10-10T20:10:45.844Z"
+    },
     {
       "versionName": "1.8.10.0.146-patch.20261010",
       "versionCode": 1900146,

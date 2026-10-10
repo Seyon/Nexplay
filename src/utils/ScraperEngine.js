@@ -100,9 +100,46 @@ function extractSeasonNumbers(str) {
   return Array.from(seasons);
 }
 
+export function getAudioRichnessScore(text) {
+  const t = (text || '').toLowerCase();
+  let score = 0;
+  const languages = [
+    'tamil', 'telugu', 'malayalam', 'kannada',
+    'hindi', 'english', 'bengali', 'marathi',
+    'punjabi', 'gujarati', 'urdu', 'odia', 'bhojpuri'
+  ];
+  let langCount = 0;
+  for (const lang of languages) {
+    if (t.includes(lang)) {
+      langCount++;
+      score += 250;
+    }
+  }
+  if (t.includes('multi audio') || t.includes('multi-audio') || /\bmulti\b/i.test(t)) {
+    score += 1000;
+  }
+  // High priority when South Indian regional languages (Tamil, Telugu, Malayalam, Kannada) are available
+  const southLangs = ['tamil', 'telugu', 'malayalam', 'kannada'];
+  const southCount = southLangs.filter(l => t.includes(l)).length;
+  if (southCount >= 2) {
+    score += 1500;
+  } else if (southCount === 1) {
+    score += 600;
+  }
+
+  if (langCount >= 4) {
+    score += 2000; // Complete multi-audio release (e.g. Hindi + English + Tamil + Telugu + Malayalam + Kannada)
+  } else if (langCount >= 3) {
+    score += 1000;
+  } else if (t.includes('dual audio') || t.includes('dual')) {
+    score += 100;
+  }
+  return score;
+}
+
 /**
  * Intelligent Media & Title Matching Scorer
- * Evaluates Token overlap, Candidate coverage, Release Year, Media Type (Movie vs TV Series), and TV Season Number
+ * Evaluates Token overlap, Candidate coverage, Release Year, Media Type (Movie vs TV Series), TV Season Number, and Multi-Audio
  */
 function calculateTitleMatchScore(
   targetTitle, 
@@ -120,6 +157,13 @@ function calculateTitleMatchScore(
   const cleanCandidate = normalizeNumbers(cleanTitleKeywords(candidateTitle));
 
   if (!normTarget || !normCandidate) return 0.0;
+
+  // Audio richness priority (Multi-Audio with Tamil, Telugu, Hindi, English prioritized over Dual Audio)
+  const audioScore = getAudioRichnessScore(candidateTitle);
+  let audioMultiplier = 1.0;
+  if (audioScore >= 3000) audioMultiplier = 1.25;
+  else if (audioScore >= 1500) audioMultiplier = 1.15;
+  else if (audioScore >= 500) audioMultiplier = 1.08;
 
   // Media Type check (Strict penalty if user wanted movie but candidate is series, or vice versa)
   const isTargetSeries = targetType === 'tv' || targetType === 'series';
@@ -151,7 +195,7 @@ function calculateTitleMatchScore(
 
   // 1. Exact string match (strong bonus so exact titles decisively beat partials)
   if (normTarget === normCandidate || cleanTarget === cleanCandidate) {
-    return 2.0 * typeMultiplier * seasonMultiplier;
+    return 2.0 * typeMultiplier * seasonMultiplier * audioMultiplier;
   }
 
   const targetTokens = cleanTarget.split(' ').filter(t => t.length > 0);
@@ -212,7 +256,7 @@ function calculateTitleMatchScore(
     (filteredCandidateTokens.length >= targetTokens.length && targetTokens.every((t, i) => t === filteredCandidateTokens[i]));
 
   if (targetRecall === 1.0 && isTargetPrefix && yearMultiplier >= 1.0) {
-    return Math.min(1.7, (1.2 + candidatePrecision * 0.4) * typeMultiplier * seasonMultiplier);
+    return Math.min(1.85, (1.2 + candidatePrecision * 0.4) * typeMultiplier * seasonMultiplier * audioMultiplier);
   }
 
   // Severe penalty for single-word targets (like "From") when candidate has extra non-meta words ("The Girl From Plainville", "Agent from Above")
@@ -225,8 +269,8 @@ function calculateTitleMatchScore(
   if (!isTargetPrefix && targetTokens.length <= 2) {
     baseScore *= 0.4; // Strong penalty if target word appears in the middle of an unrelated title
   }
-  // Cap partial matches at 0.95 so exact/core matches (>1.0) always take priority
-  return Math.min(0.95, baseScore * yearMultiplier * typeMultiplier * seasonMultiplier);
+  // Cap partial matches at 0.98 so exact/core matches (>1.0) always take priority
+  return Math.min(0.98, baseScore * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier);
 }
 
 /**
@@ -1383,7 +1427,8 @@ function parseMediaBridges(html, pageTitle = '') {
     const resScore = quality === '4k' ? 500 : (quality === '1080p' ? 250 : (quality === '720p' ? 100 : 50));
     const tagScore = matchedTags.length * 25 + (highExtMatches > 0 ? 50 : 0);
     const sizeScore = Math.min(150, Math.round(sizeMB / 100));
-    const totalScore = resScore + tagScore + sizeScore;
+    const audioScore = getAudioRichnessScore(combined);
+    const totalScore = resScore + tagScore + sizeScore + audioScore;
 
     const bridgeObj = {
       seasonNumber: seasonNum,
