@@ -20,7 +20,9 @@ import {
   fetchHindiTvSeries,
   fetchTopRatedTvSeries
 } from '../utils/api';
-import { verticalScale } from '../utils/responsive';
+import { verticalScale, scale, moderateScale } from '../utils/responsive';
+import { Ionicons } from '@expo/vector-icons';
+import { hasTmdbApiKey, subscribeSettings } from '../utils/AppSettings';
 
 export default function TvSeriesScreen({ onMoviePress, onSeeMore }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -75,6 +77,23 @@ export default function TvSeriesScreen({ onMoviePress, onSeeMore }) {
 
   useEffect(() => {
     loadAllTvData();
+    const unsub = subscribeSettings(({ eventType }) => {
+      if (eventType === 'TMDB_KEY_SAVED') {
+        loadAllTvData();
+      } else if (eventType === 'TMDB_KEY_DELETED') {
+        setHeroSeries([]);
+        setPopularSeries([]);
+        setSciFiSeries([]);
+        setActionAdventureSeries([]);
+        setThrillerHorrorSeries([]);
+        setTamilSeries([]);
+        setHindiSeries([]);
+        setTopRatedSeries([]);
+      }
+    });
+    return () => {
+      if (unsub) unsub();
+    };
   }, [loadAllTvData]);
 
   const onRefresh = () => {
@@ -217,5 +236,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 12,
     fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: verticalScale(60),
+    paddingHorizontal: scale(28),
+    marginTop: verticalScale(30),
+    marginHorizontal: scale(16),
+    backgroundColor: 'rgba(18, 18, 24, 0.65)',
+    borderRadius: scale(20),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptyTitle: {
+    color: '#ffffff',
+    fontSize: moderateScale(17),
+    fontWeight: '800',
+    marginTop: verticalScale(14),
+    textAlign: 'center',
+  },
+  emptyDesc: {
+    color: '#94a3b8',
+    fontSize: moderateScale(12.5),
+    lineHeight: verticalScale(18),
+    textAlign: 'center',
+    marginTop: verticalScale(8),
   }
 });

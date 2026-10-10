@@ -19,6 +19,28 @@ import {
 import { parseDateInput, resilientHttpGet } from '../common/index.js';
 import { resolveUrlWithDoh } from '../../utils/DnsResolver.js';
 
+export const TAMILDHOOL_ALIASES = {
+  'singapenne': 'Singappenne',
+  'singa penne': 'Singappenne',
+  'singapennae': 'Singappenne',
+  'pandian stores': 'Pandian Stores 2',
+  'anna': 'Annamalai Kudumbam',
+  'thendral': 'Thendrale Mella Pesu',
+  'suttum vizhi': 'Suttum Vizhi Sudare',
+  'kanmani': 'Kanmani Anbudan',
+  'ayyanar': 'Ayyanar Thunai',
+  'vaagai sooda': 'Vaagai Sooda Vaa',
+  'parijatham': 'Paarijatham',
+  'paarijatham': 'Paarijatham',
+  'chinnamarumagal': 'Chinna Marumagal',
+  'chinna marumagal': 'Chinna Marumagal',
+  'baakiya lakshmi': 'Baakiyalakshmi',
+  'sundari': 'Sundari',
+  'bigg boss 10': 'Bigg Boss Tamil Season 10',
+  'bigg boss': 'Bigg Boss Tamil Season 10',
+  'bigg boss tamil': 'Bigg Boss Tamil Season 10'
+};
+
 export class TamilDhoolClient {
   constructor() {
     this.baseUrl = "https://www.tamildhool.tech";
@@ -242,22 +264,73 @@ export class TamilDhoolClient {
    * @param {Function} [customHttpGet]
    */
   async findEpisodeByDate(serialName, dateStr, channel, customHttpGet) {
-    const parsedDate = parseDateInput(dateStr);
-    const queries = [];
-
-    if (parsedDate) {
-      queries.push(`${serialName} ${parsedDate.formatted}`);
-      queries.push(`${serialName} ${parsedDate.formattedShort}`);
-      queries.push(`${serialName} ${parsedDate.formattedText}`);
-      queries.push(`${serialName} ${parsedDate.day}`);
+    const fetchFn = customHttpGet || this.defaultHttpGet.bind(this);
+    const cleanLower = (serialName || '').toLowerCase().trim();
+    let canonicalTitle = serialName;
+    for (const [alias, real] of Object.entries(TAMILDHOOL_ALIASES)) {
+      if (cleanLower === alias || cleanLower.startsWith(alias) || cleanLower.replace(/[^a-z0-9]/g, '') === alias.replace(/[^a-z0-9]/g, '')) {
+        canonicalTitle = real;
+        break;
+      }
     }
-    queries.push(serialName);
+
+    const parsedDate = parseDateInput(dateStr);
+    const channelSlug = (channel || 'sun-tv').toLowerCase().includes('vijay') ? 'vijay-tv'
+      : (channel || '').toLowerCase().includes('zee') ? 'zee-tamil'
+      : 'sun-tv';
+    const slug = canonicalTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    // 1. Direct Category URL Lookup (Instant & 100% accurate date matching)
+    const categoryUrl = `${this.baseUrl}/${channelSlug}/${channelSlug}-serial/${slug}/`;
+    try {
+      const catHtml = await fetchFn(categoryUrl, this.baseUrl, 7000);
+      if (catHtml && !catHtml.includes("<title>Just a moment...</title>")) {
+        const postRegex = /<article[^>]*id="post-(\d+)"[^>]*>([\s\S]*?)<\/article>/gi;
+        let pm;
+        while ((pm = postRegex.exec(catHtml)) !== null) {
+          const pBody = pm[2];
+          const lMatch = pBody.match(/<a\s+[^>]*href=["'](https?:\/\/[^"']*tamildhool\.tech\/[^"']+)["'][^>]*>/i);
+          const tMatch = pBody.match(/<h[1-6][^>]*class=["'][^"']*entry-title[^"']*["'][^>]*>\s*<a[^>]*>([\s\S]*?)<\/a>/i);
+          if (lMatch && tMatch) {
+            const rTitle = tMatch[1].replace(/<[^>]+>/g, '').trim();
+            const rLink = lMatch[1];
+            if (parsedDate && (rTitle.includes(parsedDate.formatted) || rLink.includes(parsedDate.formatted))) {
+              const stream = await this.getPlayableStream(rLink, true, 1, 1, fetchFn);
+              if (stream) {
+                return {
+                  ...stream,
+                  matchedTitle: rTitle,
+                  matchedPageUrl: rLink,
+                  requestedSerial: serialName,
+                  canonicalTitle,
+                  requestedDate: dateStr,
+                  requestedChannel: channel,
+                  score: 100
+                };
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Category fallback silent, proceed to search
+    }
+
+    // 2. Search Fallback with Server 1 formatted queries
+    const queries = [];
+    if (parsedDate) {
+      queries.push(`${canonicalTitle} | ${parsedDate.formatted} |`);
+      queries.push(`${canonicalTitle} ${parsedDate.formatted}`);
+      queries.push(`${canonicalTitle} ${parsedDate.formattedShort}`);
+      queries.push(`${canonicalTitle} ${parsedDate.day}`);
+    }
+    queries.push(canonicalTitle);
 
     const candidatePosts = [];
     const seenUrls = new Set();
 
     for (const q of queries) {
-      const results = await this.search(q, customHttpGet);
+      const results = await this.search(q, fetchFn);
       for (const r of results) {
         if (!seenUrls.has(r.link)) {
           seenUrls.add(r.link);
@@ -269,7 +342,7 @@ export class TamilDhoolClient {
 
     if (candidatePosts.length === 0) return null;
 
-    const nameTokens = serialName.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(Boolean);
+    const nameTokens = canonicalTitle.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(Boolean);
     let bestMatch = null;
     let highestScore = -1;
 
@@ -323,7 +396,7 @@ export class TamilDhoolClient {
 
     if (!bestMatch) return null;
 
-    const stream = await this.getPlayableStream(bestMatch.link, true, 1, 1, customHttpGet);
+    const stream = await this.getPlayableStream(bestMatch.link, true, 1, 1, fetchFn);
     if (!stream) return null;
 
     return {
@@ -331,11 +404,13 @@ export class TamilDhoolClient {
       matchedTitle: bestMatch.title,
       matchedPageUrl: bestMatch.link,
       requestedSerial: serialName,
+      canonicalTitle,
       requestedDate: dateStr,
       requestedChannel: channel,
       score: highestScore
     };
   }
+
 }
 
 export const TamilDhool = new TamilDhoolClient();

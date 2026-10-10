@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
@@ -8,11 +8,16 @@ export default function BottomTabBar({ activeTab = 'Home', onTabPress }) {
   const tabs = [
     { name: 'Home', iconActive: 'home', iconInactive: 'home-outline', label: 'Home' },
     { name: 'Movies', iconActive: 'film', iconInactive: 'film-outline', label: 'Movies' },
-    { name: 'TV Series', iconActive: 'tv', iconInactive: 'tv-outline', label: 'TV Series' },
-    { name: 'TV Serials', iconActive: 'albums', iconInactive: 'albums-outline', label: 'TV Serials' },
+    { name: 'Series', aliases: ['TV Series', 'Series'], iconActive: 'tv', iconInactive: 'tv-outline', label: 'Series' },
+    { name: 'Live TV & Serials', aliases: ['TV Serials', 'Live TV & Serials'], iconActive: 'albums', iconInactive: 'albums-outline', label: 'Live & Serials' },
     { name: 'Search', iconActive: 'search', iconInactive: 'search-outline', label: 'Search' },
-    { name: 'Account', iconActive: 'person', iconInactive: 'person-outline', label: 'Account' },
   ];
+
+  const isTabActive = (tab) => {
+    if (activeTab === tab.name) return true;
+    if (tab.aliases && tab.aliases.includes(activeTab)) return true;
+    return false;
+  };
 
   return (
     <View style={styles.container} pointerEvents="box-none">
@@ -20,9 +25,9 @@ export default function BottomTabBar({ activeTab = 'Home', onTabPress }) {
         {/* Glass reflection top highlight */}
         <LinearGradient
           colors={[
-            'rgba(255, 255, 255, 0.15)',
+            'rgba(255, 255, 255, 0.16)',
             'rgba(255, 255, 255, 0.04)',
-            'rgba(10, 10, 15, 0.45)'
+            'rgba(10, 14, 24, 0.55)'
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
@@ -32,36 +37,54 @@ export default function BottomTabBar({ activeTab = 'Home', onTabPress }) {
 
         <View style={styles.tabBarPill}>
           {tabs.map((tab) => {
-            const isActive = activeTab === tab.name;
+            const isActive = isTabActive(tab);
             const iconName = isActive ? tab.iconActive : tab.iconInactive;
-            const tintColor = isActive ? '#38bdf8' : '#a1a1aa';
+            const tintColor = isActive ? '#38bdf8' : '#94a3b8';
 
             return (
-              <TouchableOpacity
+              <Pressable
                 key={tab.name}
-                style={[
+                style={({ pressed }) => [
                   styles.tabButton,
-                  isActive && styles.tabButtonActive
+                  isActive ? styles.tabButtonActive : styles.tabButtonInactive,
+                  pressed && { opacity: 0.65 }
                 ]}
-                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                 onPress={() => onTabPress && onTabPress(tab.name)}
               >
-                <Ionicons
-                  name={iconName}
-                  size={scale(18)}
-                  color={tintColor}
-                />
-                <Text 
-                  numberOfLines={1}
-                  style={[
-                    styles.tabLabel, 
-                    { color: tintColor, fontWeight: isActive ? '700' : '500' }
-                  ]}
-                >
-                  {tab.label}
-                </Text>
-                {isActive && <View style={styles.activeDot} />}
-              </TouchableOpacity>
+                {/* 1. Fixed-height icon slot for vertical baseline alignment */}
+                <View style={styles.iconSlot}>
+                  <Ionicons
+                    name={iconName}
+                    size={scale(19)}
+                    color={tintColor}
+                  />
+                </View>
+
+                {/* 2. Fixed-height label slot */}
+                <View style={styles.labelSlot}>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.75}
+                    style={[
+                      styles.tabLabel,
+                      { color: tintColor, fontWeight: isActive ? '700' : '500' }
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </View>
+
+                {/* 3. Fixed-height indicator slot so layout never shifts */}
+                <View style={styles.indicatorSlot}>
+                  {isActive ? (
+                    <View style={styles.activeDot} />
+                  ) : (
+                    <View style={styles.inactivePlaceholder} />
+                  )}
+                </View>
+              </Pressable>
             );
           })}
         </View>
@@ -78,55 +101,83 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: scale(12),
+    paddingHorizontal: scale(14),
     zIndex: 999,
   },
   glassContainer: {
     width: '100%',
-    borderRadius: scale(38),
+    borderRadius: scale(40),
     overflow: 'hidden',
-    backgroundColor: 'rgba(18, 18, 24, 0.65)', // Pure semi-transparent frosted glass
+    backgroundColor: 'rgba(15, 19, 28, 0.88)',
     borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-    borderTopColor: 'rgba(255, 255, 255, 0.32)',
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderTopColor: 'rgba(255, 255, 255, 0.28)',
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.65,
-    shadowRadius: 20,
+    shadowRadius: 18,
     elevation: 25,
   },
   tabBarPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: verticalScale(5),
-    paddingHorizontal: scale(6),
+    justifyContent: 'space-between',
+    paddingVertical: verticalScale(7),
+    paddingHorizontal: scale(8),
+    minHeight: verticalScale(62),
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: verticalScale(5),
-    paddingHorizontal: scale(2),
+    paddingHorizontal: scale(3),
     borderRadius: scale(20),
   },
   tabButtonActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    backgroundColor: 'rgba(56, 189, 248, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.28)',
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+  },
+  tabButtonInactive: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  iconSlot: {
+    height: scale(22),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  labelSlot: {
+    height: verticalScale(14),
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginTop: verticalScale(2),
   },
   tabLabel: {
-    fontSize: moderateScale(8.5),
-    marginTop: verticalScale(2),
-    letterSpacing: 0,
+    fontSize: moderateScale(9.5),
     textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  indicatorSlot: {
+    height: verticalScale(5),
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginTop: verticalScale(2),
   },
   activeDot: {
-    width: scale(3.5),
-    height: scale(3.5),
+    width: scale(12),
+    height: verticalScale(3),
     borderRadius: scale(2),
     backgroundColor: '#38bdf8',
-    marginTop: verticalScale(2),
-  }
+  },
+  inactivePlaceholder: {
+    width: scale(12),
+    height: verticalScale(3),
+    backgroundColor: 'transparent',
+  },
 });

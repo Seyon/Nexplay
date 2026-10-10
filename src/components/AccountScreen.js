@@ -19,12 +19,16 @@ import {
   setDnsConfig, 
   testDnsServer 
 } from '../utils/DnsResolver';
-import DownloadsScreen from './DownloadsScreen';
-import { DownloadManager } from '../utils/DownloadManager';
+import AppSettings, {
+  getTmdbApiKey,
+  hasTmdbApiKey,
+  deleteTmdbApiKey,
+  subscribeSettings
+} from '../utils/AppSettings';
+import TmdbApiKeyModal from './TmdbApiKeyModal';
+import DonationModal from './DonationModal';
 
-export default function AccountScreen({ onPlayOffline }) {
-  const [showDownloadsScreen, setShowDownloadsScreen] = useState(false);
-  const [downloadsSummary, setDownloadsSummary] = useState({ total: 0, active: 0, completed: 0, sizeStr: '0 MB' });
+export default function AccountScreen() {
   const [dnsConfig, setDnsConfigState] = useState(getDnsConfig());
   const [customDnsInput, setCustomDnsInput] = useState(dnsConfig.customUrl || 'https://dns.google/resolve');
   const [testingDns, setTestingDns] = useState(false);
@@ -32,6 +36,9 @@ export default function AccountScreen({ onPlayOffline }) {
   const [selectedQuality, setSelectedQuality] = useState('1080p');
   const [autoPlayNext, setAutoPlayNext] = useState(true);
   const [isEditingCustom, setIsEditingCustom] = useState(false);
+  const [tmdbKey, setTmdbKeyState] = useState(getTmdbApiKey());
+  const [showTmdbModal, setShowTmdbModal] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
 
   useEffect(() => {
     // Initial sync & latency check
@@ -39,20 +46,16 @@ export default function AccountScreen({ onPlayOffline }) {
     setDnsConfigState(current);
     handleTestDns(current.providerId, current.customUrl);
 
-    const unsubDownloads = DownloadManager.subscribe((items) => {
-      const active = items.filter(d => d.status === 'downloading' || d.status === 'paused').length;
-      const completed = items.filter(d => d.status === 'completed').length;
-      const totalBytes = items.filter(d => d.status === 'completed').reduce((acc, c) => acc + (c.totalBytes || 0), 0);
-      setDownloadsSummary({
-        total: items.length,
-        active,
-        completed,
-        sizeStr: DownloadManager.formatBytes(totalBytes)
-      });
+    const unsubSettings = subscribeSettings(({ eventType, payload }) => {
+      if (eventType === 'TMDB_KEY_SAVED') {
+        setTmdbKeyState(payload.key || '');
+      } else if (eventType === 'TMDB_KEY_DELETED') {
+        setTmdbKeyState('');
+      }
     });
 
     return () => {
-      if (unsubDownloads) unsubDownloads();
+      if (unsubSettings) unsubSettings();
     };
   }, []);
 
@@ -73,6 +76,28 @@ export default function AccountScreen({ onPlayOffline }) {
     };
     setDnsConfig(updated);
     setDnsConfigState(updated);
+  };
+
+  const handleDeleteTmdbKey = () => {
+    Alert.alert(
+      '⚠️ Delete TMDB API Key?',
+      'Deleting your TMDB API key will immediately stop all movie and TV show data fetching. Posters, metadata, and search for TMDB titles will become unavailable until you provide a new key.\n\nAre you sure you want to proceed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Key',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteTmdbApiKey();
+            setTmdbKeyState('');
+            Alert.alert(
+              'TMDB API Key Deleted',
+              'Your TMDB API key has been removed. Media data fetching has stopped.'
+            );
+          }
+        }
+      ]
+    );
   };
 
   const handleSaveCustomDns = () => {
@@ -103,17 +128,7 @@ export default function AccountScreen({ onPlayOffline }) {
     }
   };
 
-  if (showDownloadsScreen) {
-    return (
-      <DownloadsScreen 
-        onBack={() => setShowDownloadsScreen(false)} 
-        onPlayOffline={(item) => {
-          setShowDownloadsScreen(false);
-          if (onPlayOffline) onPlayOffline(item);
-        }}
-      />
-    );
-  }
+
 
   return (
     <ScrollView 
@@ -142,34 +157,73 @@ export default function AccountScreen({ onPlayOffline }) {
         </View>
       </View>
 
-      {/* 2. OFFLINE DOWNLOADS & STORAGE CARD */}
-      <TouchableOpacity 
-        style={styles.downloadsCard}
-        activeOpacity={0.8}
-        onPress={() => setShowDownloadsScreen(true)}
-      >
-        <View style={styles.downloadsIconCircle}>
-          <MaterialCommunityIcons name="cloud-download-outline" size={scale(24)} color="#38bdf8" />
-        </View>
-        <View style={styles.downloadsInfo}>
-          <View style={styles.downloadsTitleRow}>
-            <Text style={styles.downloadsTitle}>Offline Downloads</Text>
-            {downloadsSummary.active > 0 && (
-              <View style={styles.activeDownloadingBadge}>
-                <Text style={styles.activeDownloadingBadgeText}>{downloadsSummary.active} Active</Text>
-              </View>
-            )}
+
+
+      {/* 2b. TMDB API KEY SETTINGS CARD */}
+      <View style={styles.tmdbCard}>
+        <View style={styles.tmdbCardHeader}>
+          <View style={styles.tmdbCardIconContainer}>
+            <Ionicons name="key" size={scale(20)} color="#38bdf8" />
           </View>
-          <Text style={styles.downloadsSubtitle}>
-            {downloadsSummary.completed > 0 
-              ? `${downloadsSummary.completed} ready offline • ${downloadsSummary.sizeStr} stored`
-              : 'Save movies & episodes directly to your device'}
-          </Text>
+          <View style={{ flex: 1, marginLeft: scale(10) }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={styles.tmdbCardTitle}>TMDB API Key</Text>
+              <View style={[styles.statusPill, tmdbKey ? styles.statusPillActive : styles.statusPillInactive]}>
+                <View style={[styles.statusDot, { backgroundColor: tmdbKey ? '#10b981' : '#f59e0b' }]} />
+                <Text style={[styles.statusPillText, { color: tmdbKey ? '#10b981' : '#f59e0b' }]}>
+                  {tmdbKey ? 'Active' : 'Not Set'}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.tmdbCardSubtitle}>
+              Powers movie & TV metadata, posters, cast, and search
+            </Text>
+          </View>
         </View>
-        <View style={styles.downloadsArrow}>
-          <Ionicons name="chevron-forward" size={scale(20)} color="#94a3b8" />
-        </View>
-      </TouchableOpacity>
+
+        {tmdbKey ? (
+          <View style={styles.tmdbActiveBox}>
+            <View style={styles.tmdbKeyDisplayRow}>
+              <Text style={styles.tmdbKeyLabel}>Saved Key:</Text>
+              <Text style={styles.tmdbKeyMasked}>
+                ••••••••••••••••{tmdbKey.slice(-4)}
+              </Text>
+            </View>
+            <View style={styles.tmdbActionsRow}>
+              <TouchableOpacity
+                style={styles.tmdbModifyBtn}
+                activeOpacity={0.8}
+                onPress={() => setShowTmdbModal(true)}
+              >
+                <Ionicons name="create-outline" size={scale(15)} color="#38bdf8" style={{ marginRight: scale(5) }} />
+                <Text style={styles.tmdbModifyBtnText}>Modify / Replace</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.tmdbDeleteBtn}
+                activeOpacity={0.8}
+                onPress={handleDeleteTmdbKey}
+              >
+                <Ionicons name="trash-outline" size={scale(15)} color="#ef4444" style={{ marginRight: scale(5) }} />
+                <Text style={styles.tmdbDeleteBtnText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.tmdbInactiveBox}>
+            <Text style={styles.tmdbInactiveText}>
+              No TMDB API key saved. Movie and TV show catalog fetching is paused.
+            </Text>
+            <TouchableOpacity
+              style={styles.tmdbAddBtn}
+              activeOpacity={0.85}
+              onPress={() => setShowTmdbModal(true)}
+            >
+              <Ionicons name="add-circle-outline" size={scale(17)} color="#ffffff" style={{ marginRight: scale(6) }} />
+              <Text style={styles.tmdbAddBtnText}>Add TMDB API Key</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
 
       {/* 2. DNS & NETWORK PRIVACY (ANTI-ISP BLOCKING SECTION) */}
       <View style={styles.sectionCard}>
@@ -457,6 +511,29 @@ export default function AccountScreen({ onPlayOffline }) {
         </View>
       </View>
 
+      {/* 3b. SUPPORT NEXPLAY (DONATION) CARD */}
+      <View style={styles.supportCard}>
+        <View style={styles.supportCardHeader}>
+          <View style={styles.supportIconCircle}>
+            <Ionicons name="heart" size={scale(22)} color="#ec4899" />
+          </View>
+          <View style={{ flex: 1, marginLeft: scale(12) }}>
+            <Text style={styles.supportCardTitle}>Support NexPlay Development</Text>
+            <Text style={styles.supportCardSubtitle}>
+              Help us maintain high-speed scrapers, ISP bypass, and add new features
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.supportCardBtn}
+          activeOpacity={0.85}
+          onPress={() => setShowDonationModal(true)}
+        >
+          <Ionicons name="heart" size={scale(16)} color="#ffffff" style={{ marginRight: scale(6) }} />
+          <Text style={styles.supportCardBtnText}>Support Us ❤️</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* 4. APP & SYSTEM BUILD INFO */}
       <View style={styles.infoCard}>
         <View style={styles.infoRow}>
@@ -476,6 +553,23 @@ export default function AccountScreen({ onPlayOffline }) {
           <Text style={styles.infoValue}>Zero CORS High-Speed v3</Text>
         </View>
       </View>
+
+      {/* Modals */}
+      <TmdbApiKeyModal
+        visible={showTmdbModal}
+        onClose={() => setShowTmdbModal(false)}
+        onKeySaved={(newKey) => {
+          setTmdbKeyState(newKey);
+          Alert.alert(
+            'TMDB API Key Saved',
+            'Your TMDB API key has been securely saved. NexPlay is now ready to fetch all movies and TV shows.'
+          );
+        }}
+      />
+      <DonationModal
+        visible={showDonationModal}
+        onClose={() => setShowDonationModal(false)}
+      />
 
       {/* Footer Branding */}
       <View style={styles.footer}>
@@ -559,64 +653,7 @@ const styles = StyleSheet.create({
     color: '#71717a',
     fontSize: moderateScale(11),
   },
-  downloadsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#18181b',
-    borderRadius: scale(16),
-    padding: scale(14),
-    marginBottom: verticalScale(16),
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  downloadsIconCircle: {
-    width: scale(42),
-    height: scale(42),
-    borderRadius: scale(21),
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  downloadsInfo: {
-    flex: 1,
-    marginLeft: scale(12),
-  },
-  downloadsTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(8),
-  },
-  downloadsTitle: {
-    fontSize: moderateScale(15),
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  activeDownloadingBadge: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: scale(6),
-    paddingVertical: verticalScale(1),
-    borderRadius: scale(8),
-  },
-  activeDownloadingBadgeText: {
-    fontSize: moderateScale(9.5),
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  downloadsSubtitle: {
-    fontSize: moderateScale(11.5),
-    color: '#94a3b8',
-    marginTop: verticalScale(2),
-  },
-  downloadsArrow: {
-    marginLeft: scale(8),
-  },
+
   sectionCard: {
     backgroundColor: '#18181b',
     borderRadius: scale(16),
@@ -915,5 +952,213 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: verticalScale(3),
     maxWidth: scale(260),
+  },
+  tmdbCard: {
+    backgroundColor: '#18181b',
+    borderRadius: scale(16),
+    padding: scale(16),
+    marginBottom: verticalScale(16),
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  tmdbCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(12),
+  },
+  tmdbCardIconContainer: {
+    width: scale(38),
+    height: scale(38),
+    borderRadius: scale(19),
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  tmdbCardTitle: {
+    color: '#ffffff',
+    fontSize: moderateScale(15),
+    fontWeight: '700',
+  },
+  tmdbCardSubtitle: {
+    color: '#a1a1aa',
+    fontSize: moderateScale(11.5),
+    marginTop: verticalScale(2),
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(3),
+    borderRadius: scale(12),
+    gap: scale(4),
+  },
+  statusPillActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  statusPillInactive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  statusDot: {
+    width: scale(6),
+    height: scale(6),
+    borderRadius: scale(3),
+  },
+  statusPillText: {
+    fontSize: moderateScale(10),
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  tmdbActiveBox: {
+    backgroundColor: '#121215',
+    borderRadius: scale(12),
+    padding: scale(12),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  tmdbKeyDisplayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(10),
+  },
+  tmdbKeyLabel: {
+    color: '#71717a',
+    fontSize: moderateScale(12),
+    fontWeight: '600',
+  },
+  tmdbKeyMasked: {
+    color: '#38bdf8',
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    letterSpacing: 1,
+  },
+  tmdbActionsRow: {
+    flexDirection: 'row',
+    gap: scale(10),
+  },
+  tmdbModifyBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    height: verticalScale(38),
+    borderRadius: scale(10),
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tmdbModifyBtnText: {
+    color: '#38bdf8',
+    fontSize: moderateScale(12.5),
+    fontWeight: '700',
+  },
+  tmdbDeleteBtn: {
+    flex: 0.8,
+    flexDirection: 'row',
+    height: verticalScale(38),
+    borderRadius: scale(10),
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tmdbDeleteBtnText: {
+    color: '#ef4444',
+    fontSize: moderateScale(12.5),
+    fontWeight: '700',
+  },
+  tmdbInactiveBox: {
+    backgroundColor: '#121215',
+    borderRadius: scale(12),
+    padding: scale(14),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+  },
+  tmdbInactiveText: {
+    color: '#94a3b8',
+    fontSize: moderateScale(12),
+    textAlign: 'center',
+    marginBottom: verticalScale(12),
+    lineHeight: verticalScale(17),
+  },
+  tmdbAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563eb',
+    height: verticalScale(40),
+    paddingHorizontal: scale(18),
+    borderRadius: scale(20),
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  tmdbAddBtnText: {
+    color: '#ffffff',
+    fontSize: moderateScale(13),
+    fontWeight: '800',
+  },
+  supportCard: {
+    backgroundColor: '#18181b',
+    borderRadius: scale(16),
+    padding: scale(16),
+    marginBottom: verticalScale(16),
+    borderWidth: 1,
+    borderColor: 'rgba(236, 72, 153, 0.25)',
+  },
+  supportCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(12),
+  },
+  supportIconCircle: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
+    backgroundColor: 'rgba(236, 72, 153, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(236, 72, 153, 0.35)',
+  },
+  supportCardTitle: {
+    color: '#ffffff',
+    fontSize: moderateScale(15),
+    fontWeight: '700',
+  },
+  supportCardSubtitle: {
+    color: '#a1a1aa',
+    fontSize: moderateScale(11.5),
+    marginTop: verticalScale(2),
+    lineHeight: verticalScale(16),
+  },
+  supportCardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563eb',
+    height: verticalScale(42),
+    borderRadius: scale(21),
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  supportCardBtnText: {
+    color: '#ffffff',
+    fontSize: moderateScale(14),
+    fontWeight: '800',
   },
 });

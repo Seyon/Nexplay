@@ -416,8 +416,6 @@ export class TamilGunClient {
     if (parsedDate) {
       queries.push(`${serialName} ${parsedDate.formatted}`);
       queries.push(`${serialName} ${parsedDate.formattedShort}`);
-      queries.push(`${serialName} ${parsedDate.formattedText}`);
-      queries.push(`${serialName} ${parsedDate.day}`);
     }
     queries.push(serialName);
 
@@ -432,7 +430,7 @@ export class TamilGunClient {
           candidatePosts.push(r);
         }
       }
-      if (candidatePosts.length >= 10) break;
+      if (candidatePosts.length > 0) break;
     }
 
     if (candidatePosts.length === 0) return null;

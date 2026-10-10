@@ -21,7 +21,9 @@ import {
   fetchHindiMovies,
   fetchTopRatedMovies
 } from '../utils/api';
-import { verticalScale } from '../utils/responsive';
+import { verticalScale, scale, moderateScale } from '../utils/responsive';
+import { Ionicons } from '@expo/vector-icons';
+import { hasTmdbApiKey, subscribeSettings } from '../utils/AppSettings';
 
 export default function MoviesScreen({ onMoviePress, onSeeMore }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -80,6 +82,24 @@ export default function MoviesScreen({ onMoviePress, onSeeMore }) {
 
   useEffect(() => {
     loadAllMoviesData();
+    const unsub = subscribeSettings(({ eventType }) => {
+      if (eventType === 'TMDB_KEY_SAVED') {
+        loadAllMoviesData();
+      } else if (eventType === 'TMDB_KEY_DELETED') {
+        setWeeklyHeroMovies([]);
+        setPopularMovies([]);
+        setTrendingMovies([]);
+        setSciFiMovies([]);
+        setActionMovies([]);
+        setHorrorMovies([]);
+        setTamilMovies([]);
+        setHindiMovies([]);
+        setTopRatedMovies([]);
+      }
+    });
+    return () => {
+      if (unsub) unsub();
+    };
   }, [loadAllMoviesData]);
 
   const onRefresh = () => {
@@ -111,6 +131,17 @@ export default function MoviesScreen({ onMoviePress, onSeeMore }) {
           />
         }
       >
+        {/* Empty state when no TMDB key */}
+        {!hasTmdbApiKey() && weeklyHeroMovies.length === 0 && (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="film-outline" size={scale(48)} color="#38bdf8" />
+            <Text style={styles.emptyTitle}>TMDB API Key Required</Text>
+            <Text style={styles.emptyDesc}>
+              Movies catalog requires your personal TMDB API key. Please configure your key in Account Settings.
+            </Text>
+          </View>
+        )}
+
         {/* Hero Carousel with Weekly Top Movies */}
         {weeklyHeroMovies.length > 0 && (
           <HeroCarousel
@@ -233,5 +264,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 12,
     fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: verticalScale(60),
+    paddingHorizontal: scale(28),
+    marginTop: verticalScale(30),
+    marginHorizontal: scale(16),
+    backgroundColor: 'rgba(18, 18, 24, 0.65)',
+    borderRadius: scale(20),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptyTitle: {
+    color: '#ffffff',
+    fontSize: moderateScale(17),
+    fontWeight: '800',
+    marginTop: verticalScale(14),
+    textAlign: 'center',
+  },
+  emptyDesc: {
+    color: '#94a3b8',
+    fontSize: moderateScale(12.5),
+    lineHeight: verticalScale(18),
+    textAlign: 'center',
+    marginTop: verticalScale(8),
   }
 });

@@ -42,7 +42,6 @@ import {
   getWriters
 } from '../utils/api';
 import { ExtensionManager } from '../utils/ExtensionManager';
-import { DownloadManager } from '../utils/DownloadManager';
 
 // Safe URL sanitizer for Media3 ExoPlayer:
 // Preserves AWS/Cloudflare R2 presigned URLs (%2F in credentials must NOT become %252F)
@@ -386,6 +385,22 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       deactivateKeepAwake('NexPlayPlaybackWakeLock').catch(() => {});
     };
   }, [isPlaying, hasStartedPlayback]);
+
+  // Black Screen Watchdog: if playback initiated but 0 frames rendered after 8.5s, trigger adaptive recovery
+  useEffect(() => {
+    if (!hasStartedPlayback || isResolving || playbackError) return;
+    const watchdogTimer = setTimeout(() => {
+      if (!hasFirstFrameRendered && isMounted.current) {
+        console.warn(`[MovieDetailScreen] Black screen detected: 0 frames rendered after 8.5s on Server ${activeServer}.`);
+        setPlaybackError({
+          title: 'Stream Unreachable',
+          message: `Server ${activeServer} connection returned no video/audio. Switching to an alternate server is recommended.`,
+          server: activeServer
+        });
+      }
+    }, 8500);
+    return () => clearTimeout(watchdogTimer);
+  }, [hasStartedPlayback, isResolving, hasFirstFrameRendered, activeServer, currentSourceUri, playbackError]);
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -498,21 +513,9 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const [resolvedQualitySizes, setResolvedQualitySizes] = useState({});
   const [qualityMode, setQualityMode] = useState('auto'); // 'auto' (ABR) | '1080p' | '4k' | '720p'
   const [currentQuality, setCurrentQuality] = useState('1080p');
-  const [isDownloadModalVisible, setIsDownloadModalVisible] = useState(false);
-  const [isScrapingForDownload, setIsScrapingForDownload] = useState(false);
-  const [activeDownloads, setActiveDownloads] = useState([]);
   const [abrNotice, setAbrNotice] = useState(null);
   const abrNoticeAnim = useRef(new Animated.Value(0)).current;
   const abrTimeoutRef = useRef(null);
-
-  useEffect(() => {
-    const unsub = DownloadManager.subscribe((items) => {
-      setActiveDownloads(items);
-    });
-    return () => {
-      if (unsub) unsub();
-    };
-  }, []);
 
   // ABR Adaptation Tracker Refs
   const stallsHistoryRef = useRef([]);
@@ -545,9 +548,10 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     }, 3500);
   };
 
-  // Strict Individual Servers: Server 1 (HDHub4u), Server 2 (4KHDHub), Server 3 (Movies4u), Server 4 (111477)
+  // Strict Individual Servers: Server 1 (HDHub4u), Server 5 (Netmirror), Server 2 (4KHDHub), Server 3 (Movies4u), Server 4 (111477)
   const servers = [
     { id: 1, label: 'Server 1', short: 'Server 1', desc: 'HDHub4u Direct Stream' },
+    { id: 5, label: 'Server 5', short: 'Server 5', desc: 'Netmirror Direct Stream' },
     { id: 2, label: 'Server 2', short: 'Server 2', desc: '4KHDHub Ultra & HD Stream' },
     { id: 3, label: 'Server 3', short: 'Server 3', desc: 'Movies4u Direct Stream' },
     { id: 4, label: 'Server 4', short: 'Server 4', desc: '111477 Direct Stream' },
@@ -780,12 +784,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const vlcSource = useMemo(() => {
     if (!currentSourceUri) return undefined;
     const mediaOptions = [
-      ':network-caching=250',
-      ':live-caching=250',
-      ':file-caching=250',
-      ':sout-mux-caching=250',
-      ':clock-jitter=0',
-      ':clock-synchro=0',
+      ':network-caching=1500',
+      ':live-caching=1500',
+      ':file-caching=1500',
+      ':sout-mux-caching=1500',
+      ':clock-jitter=300',
+      ':clock-synchro=1',
+      ':fast-seek=true',
       ':avcodec-fast=true',
       ':avcodec-threads=4',
       ':no-sub-autodetect-file',
@@ -795,18 +800,19 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     ];
 
     const initOptions = [
-      '--network-caching=250',
-      '--live-caching=250',
-      '--file-caching=250',
-      '--clock-jitter=0',
-      '--clock-synchro=0',
+      '--network-caching=1500',
+      '--live-caching=1500',
+      '--file-caching=1500',
+      '--clock-jitter=300',
+      '--clock-synchro=1',
+      '--fast-seek',
       '--drop-late-frames',
       '--skip-frames',
       '--no-sub-autodetect-file',
       '--no-stats',
       '--avcodec-fast',
       '--no-audio-time-stretch',
-      '--ipv4-timeout=1500'
+      '--ipv4-timeout=5000'
     ];
 
     const ref = currentSourceHeaders?.Referer || currentSourceHeaders?.referer || '';
@@ -1028,9 +1034,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       // Server 2: strictly 4khdhub
       // Server 3: strictly movies4u
       // Server 4: strictly 111477
+      // Server 5: strictly netmirror
       let providerValue = 'hdhub4u';
       let providerLabel = 'Server 1 (HDHub4u)';
-      if (server === 4) {
+      if (server === 5) {
+        providerValue = 'netmirror';
+        providerLabel = 'Server 5 (Netmirror)';
+      } else if (server === 4) {
         providerValue = '111477';
         providerLabel = 'Server 4 (111477)';
       } else if (server === 3) {
@@ -1066,7 +1076,10 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
           episodeNumber: targetEpisodeNum,
           originalLanguage: origLang,
           isIndianRegion: isIndianContent,
-          allowCrossProviderFallback: true
+          allowCrossProviderFallback: true,
+          tmdbId: details?.id || movie?.id,
+          movie,
+          details
         });
       } catch (e) {
         console.log(`[MovieDetailScreen] Primary Vega resolution note:`, e?.message || e);
@@ -1320,69 +1333,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     }
   };
 
-  // Open Download Quality Modal & Scrape Available Media Sizes
-  const handleDownloadButtonPress = async () => {
-    setIsDownloadModalVisible(true);
-    if (!resolvedQualities || Object.keys(resolvedQualities).length === 0) {
-      setIsScrapingForDownload(true);
-      try {
-        const origLang = (details.original_language || movie.original_language || '').toLowerCase();
-        const originCountries = (details.origin_country || movie.origin_country || []);
-        const prodCountries = (details.production_countries || []).map(c => c.iso_3166_1);
-        const INDIAN_LANGS = ['ta', 'hi', 'te', 'ml', 'kn', 'mr', 'pa', 'bn', 'gu', 'or', 'as'];
-        const isIndianContent = INDIAN_LANGS.includes(origLang) || originCountries.includes('IN') || prodCountries.includes('IN');
-        const targetSeason = currentEpisode?.seasonNumber || selectedSeason || 1;
-        const targetEpisodeNum = currentEpisode?.episodeNumber || 1;
-        const providerValue = activeServer === 4 ? '111477' : (activeServer === 3 ? 'movies4u' : (activeServer === 2 ? '4khdhub' : 'hdhub4u'));
 
-        const playable = await ExtensionManager.findAndResolvePlayableStream({
-          targetTitle: cleanTitle,
-          targetYear: releaseYear,
-          isTVShow,
-          seasonNumber: targetSeason,
-          episodeNumber: targetEpisodeNum,
-          provider: providerValue,
-          originalLanguage: origLang,
-          isIndianRegion: isIndianContent,
-          allowCrossProviderFallback: true
-        });
-
-        if (playable?.qualities && Object.keys(playable.qualities).length > 0) {
-          setResolvedQualities(playable.qualities);
-          setResolvedQualitySizes(playable.qualitySizes || {});
-        } else if (playable?.streamUrl) {
-          const q = (playable.streamUrl.includes('2160') || playable.streamUrl.includes('4k')) ? '4k' : (playable.streamUrl.includes('720') ? '720p' : '1080p');
-          setResolvedQualities({ [q]: playable.streamUrl });
-          setResolvedQualitySizes(playable.qualitySizes || {});
-        }
-      } catch (err) {
-        console.warn('[MovieDetailScreen] Error scraping qualities for download:', err);
-      } finally {
-        setIsScrapingForDownload(false);
-      }
-    }
-  };
-
-  const handleStartQualityDownload = async (qualityKey, streamUrl, sizeStr) => {
-    const downloadId = `${movie.id}_${isTVShow ? `s${currentEpisode?.seasonNumber || 1}e${currentEpisode?.episodeNumber || 1}` : 'movie'}_${qualityKey}`;
-    const epSubtitle = isTVShow 
-      ? `Season ${currentEpisode?.seasonNumber || 1} • Episode ${currentEpisode?.episodeNumber || 1}`
-      : `${releaseYear || ''} • ${qualityKey.toUpperCase()}`;
-
-    await DownloadManager.startDownload({
-      id: downloadId,
-      mediaId: movie.id,
-      title: displayTitle,
-      subtitle: epSubtitle,
-      poster: posterUrl || backdropUrl,
-      quality: qualityKey,
-      size: sizeStr,
-      streamUrl: streamUrl,
-      mediaType: isTVShow ? 'series' : 'movie',
-      seasonNumber: currentEpisode?.seasonNumber || 1,
-      episodeNumber: currentEpisode?.episodeNumber || 1
-    });
-  };
 
   // Fullscreen Landscape Toggle with System Orientation Support
   const toggleFullscreen = () => {
@@ -2025,7 +1976,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 if (pendingSeekTimeRef.current !== null) {
                   const elapsed = Date.now() - lastSeekTimestampRef.current;
                   if (Math.abs(cur - pendingSeekTimeRef.current) > 3) {
-                    if (elapsed < 5000) {
+                    if (elapsed < 1200) {
                       return; // Drop stale pre-seek progress while decoder catches up
                     }
                   }
@@ -2054,6 +2005,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             }}
             onSeek={(event) => {
               console.log('[VLCPlayer] onSeek event:', event);
+              pendingSeekTimeRef.current = null;
+              isSeekingRef.current = false;
               if (isBufferingRef.current) {
                 setIsBuffering(false);
                 isBufferingRef.current = false;
@@ -2063,13 +2016,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               console.log('[VLCPlayer] onPlaying');
               setIsPlaying(true);
               isPlayingRef.current = true;
-              if (pendingSeekTimeRef.current !== null) {
-                const elapsed = Date.now() - lastSeekTimestampRef.current;
-                if (elapsed >= 1500) {
-                  pendingSeekTimeRef.current = null;
-                  isSeekingRef.current = false;
-                }
-              }
+              pendingSeekTimeRef.current = null;
+              isSeekingRef.current = false;
               setHasFirstFrameRendered(true);
               setIsBuffering(false);
               isBufferingRef.current = false;
@@ -2152,6 +2100,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             }}
             onError={(err) => {
               console.warn('[VLCPlayer] Playback error event:', err);
+              if (!hasFirstFrameRendered) {
+                setPlaybackError({
+                  title: 'Playback Error',
+                  message: `Server ${activeServer} connection failed. Switching to an alternate server is recommended.`,
+                  server: activeServer
+                });
+              }
             }}
             onEnd={() => {
               setIsPlaying(false);
@@ -3650,7 +3605,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         nestedScrollEnabled={true}
       >
         {/* ========================================================================= */}
-        {/* 1. PRIMARY ACTION BUTTONS: PLAY & DOWNLOAD */}
+        {/* 1. PRIMARY ACTION BUTTON: PLAY */}
         {/* ========================================================================= */}
         <View style={detailStyles.actionButtonsRow}>
           {/* Main White Play Button */}
@@ -3662,18 +3617,6 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             <Ionicons name="play" size={scale(18)} color="#09090b" style={{ marginRight: scale(6) }} />
             <Text style={detailStyles.playButtonText}>
               Play
-            </Text>
-          </TouchableOpacity>
-
-          {/* Dark Charcoal Download Button */}
-          <TouchableOpacity 
-            onPress={handleDownloadButtonPress}
-            activeOpacity={0.85}
-            style={detailStyles.downloadButton}
-          >
-            <Ionicons name="download-outline" size={scale(18)} color="#ffffff" style={{ marginRight: scale(6) }} />
-            <Text style={detailStyles.downloadButtonText}>
-              Download
             </Text>
           </TouchableOpacity>
         </View>
@@ -4039,190 +3982,6 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         </Pressable>
       </Modal>
 
-      {/* 2. DOWNLOAD QUALITY & RESUMABLE MANAGER MODAL */}
-      <Modal
-        visible={isDownloadModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsDownloadModalVisible(false)}
-      >
-        <Pressable 
-          onPress={() => setIsDownloadModalVisible(false)}
-          style={detailStyles.modalBackdrop}
-        >
-          <Pressable 
-            onPress={(e) => e.stopPropagation()}
-            style={detailStyles.downloadModalCard}
-          >
-            {/* Modal Header */}
-            <View style={detailStyles.modalHeader}>
-              <View style={{ flex: 1, marginRight: scale(10) }}>
-                <Text style={detailStyles.modalTitle} numberOfLines={1}>
-                  {displayTitle}
-                </Text>
-                <Text style={detailStyles.downloadModalSubtitle} numberOfLines={1}>
-                  {isTVShow 
-                    ? `Season ${currentEpisode?.seasonNumber || 1} • Episode ${currentEpisode?.episodeNumber || 1}${currentEpisode?.name ? ` : ${currentEpisode.name}` : ''}`
-                    : `${releaseYear || ''} • Direct Device Download`}
-                </Text>
-              </View>
-              <TouchableOpacity 
-                style={detailStyles.modalCloseBtn}
-                onPress={() => setIsDownloadModalVisible(false)}
-              >
-                <Ionicons name="close" size={scale(20)} color="#a1a1aa" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Modal Content */}
-            {isScrapingForDownload ? (
-              <View style={detailStyles.downloadLoadingContainer}>
-                <ActivityIndicator size="large" color="#38bdf8" />
-                <Text style={detailStyles.downloadLoadingText}>
-                  Extracting available video qualities & file sizes...
-                </Text>
-              </View>
-            ) : (
-              <ScrollView style={{ maxHeight: verticalScale(360) }} showsVerticalScrollIndicator={false}>
-                {(() => {
-                  const qMap = (resolvedQualities && typeof resolvedQualities === 'object') ? resolvedQualities : {};
-                  const sizeMap = resolvedQualitySizes || {};
-                  const standardKeys = [
-                    { key: '4k', label: '4K Ultra HD (2160p)', defaultSize: '4.5 GB' },
-                    { key: '1080p', label: 'Full HD (1080p)', defaultSize: '2.1 GB' },
-                    { key: '720p', label: 'HD (720p)', defaultSize: '950 MB' },
-                    { key: '480p', label: 'SD (480p)', defaultSize: '450 MB' }
-                  ];
-
-                  const availableItems = [];
-                  for (const std of standardKeys) {
-                    const qUrl = qMap[std.key] || qMap[std.key.replace('p', '')] || (std.key === '4k' && (qMap['2160p'] || qMap['2160']));
-                    if (qUrl) {
-                      availableItems.push({
-                        quality: std.key,
-                        label: std.label,
-                        url: qUrl,
-                        size: sizeMap[std.key] || std.defaultSize
-                      });
-                    }
-                  }
-
-                  // Non-standard keys
-                  Object.keys(qMap).forEach(k => {
-                    const lowerK = k.toLowerCase();
-                    if (!['4k', '2160p', '2160', '1080p', '1080', '720p', '720', '480p', '480', 'auto'].includes(lowerK)) {
-                      availableItems.push({
-                        quality: lowerK,
-                        label: `${k.toUpperCase()} Quality`,
-                        url: qMap[k],
-                        size: sizeMap[lowerK] || '1.5 GB'
-                      });
-                    }
-                  });
-
-                  if (availableItems.length === 0) {
-                    return (
-                      <View style={detailStyles.downloadLoadingContainer}>
-                        <Ionicons name="alert-circle-outline" size={scale(36)} color="#f59e0b" />
-                        <Text style={detailStyles.downloadLoadingText}>
-                          Play the video once or select a server to load download links.
-                        </Text>
-                      </View>
-                    );
-                  }
-
-                  return availableItems.map((item) => {
-                    const downloadId = `${movie.id}_${isTVShow ? `s${currentEpisode?.seasonNumber || 1}e${currentEpisode?.episodeNumber || 1}` : 'movie'}_${item.quality}`;
-                    const activeDownload = activeDownloads.find(d => d.id === downloadId);
-                    const isCompleted = activeDownload?.status === 'completed';
-                    const isDownloading = activeDownload?.status === 'downloading';
-                    const isPaused = activeDownload?.status === 'paused';
-                    const progressPct = Math.round((activeDownload?.progress || 0) * 100);
-
-                    return (
-                      <View 
-                        key={`dl-item-${item.quality}`}
-                        style={detailStyles.qualityDownloadCard}
-                      >
-                        <View style={detailStyles.qualityDownloadInfo}>
-                          <View style={detailStyles.qualityTitleRow}>
-                            <Text style={detailStyles.qualityDownloadTitle}>
-                              {item.label}
-                            </Text>
-                            <View style={detailStyles.sizePill}>
-                              <Text style={detailStyles.sizePillText}>{item.size}</Text>
-                            </View>
-                          </View>
-
-                          {/* Progress bar if downloading / paused */}
-                          {(isDownloading || isPaused) && (
-                            <View style={detailStyles.modalProgressContainer}>
-                              <View style={detailStyles.modalProgressBarBg}>
-                                <View 
-                                  style={[
-                                    detailStyles.modalProgressBarFill, 
-                                    { 
-                                      width: `${Math.min(Math.max(progressPct, 4), 100)}%`,
-                                      backgroundColor: isPaused ? '#eab308' : '#38bdf8' 
-                                    }
-                                  ]} 
-                                />
-                              </View>
-                              <View style={detailStyles.modalProgressTextRow}>
-                                <Text style={detailStyles.modalProgressPct}>
-                                  {isPaused ? 'Paused' : `${progressPct}%`}
-                                </Text>
-                                <Text style={detailStyles.modalProgressBytes}>
-                                  {DownloadManager.formatBytes(activeDownload.downloadedBytes || 0)} / {item.size}
-                                </Text>
-                              </View>
-                            </View>
-                          )}
-                        </View>
-
-                        {/* Actions */}
-                        <View style={detailStyles.qualityDownloadActions}>
-                          {isCompleted ? (
-                            <View style={detailStyles.completedBadge}>
-                              <Ionicons name="checkmark-circle" size={scale(18)} color="#22c55e" />
-                              <Text style={detailStyles.completedBadgeText}>Ready</Text>
-                            </View>
-                          ) : isDownloading ? (
-                            <TouchableOpacity
-                              style={detailStyles.modalControlBtn}
-                              onPress={() => DownloadManager.pauseDownload(downloadId)}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="pause" size={scale(15)} color="#ffffff" />
-                            </TouchableOpacity>
-                          ) : isPaused ? (
-                            <TouchableOpacity
-                              style={[detailStyles.modalControlBtn, detailStyles.modalResumeBtn]}
-                              onPress={() => DownloadManager.resumeDownload(downloadId)}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="play" size={scale(15)} color="#ffffff" />
-                            </TouchableOpacity>
-                          ) : (
-                            <TouchableOpacity
-                              style={detailStyles.modalStartDownloadBtn}
-                              onPress={() => handleStartQualityDownload(item.quality, item.url, item.size)}
-                              activeOpacity={0.85}
-                            >
-                              <Ionicons name="arrow-down" size={scale(14)} color="#09090b" />
-                              <Text style={detailStyles.modalStartDownloadText}>Download</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  });
-                })()}
-              </ScrollView>
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -4262,23 +4021,7 @@ const detailStyles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.1,
   },
-  downloadButton: {
-    flex: 1,
-    height: verticalScale(44),
-    backgroundColor: '#242426',
-    borderRadius: scale(24),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  downloadButtonText: {
-    color: '#f3f4f6',
-    fontSize: moderateScale(14),
-    fontWeight: '700',
-    letterSpacing: 0.1,
-  },
+
   serverSelectorRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -4603,155 +4346,5 @@ const detailStyles = StyleSheet.create({
     color: '#a1a1aa',
     fontSize: moderateScale(11),
     fontWeight: '500',
-  },
-  downloadModalCard: {
-    width: '92%',
-    maxWidth: scale(380),
-    backgroundColor: '#18181b',
-    borderRadius: scale(16),
-    padding: scale(16),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  downloadModalSubtitle: {
-    fontSize: moderateScale(11.5),
-    color: '#94a3b8',
-    marginTop: verticalScale(2),
-  },
-  modalCloseBtn: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: scale(16),
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  downloadLoadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: verticalScale(30),
-    paddingHorizontal: scale(16),
-  },
-  downloadLoadingText: {
-    color: '#cbd5e1',
-    fontSize: moderateScale(12.5),
-    textAlign: 'center',
-    marginTop: verticalScale(12),
-    lineHeight: moderateScale(18),
-  },
-  qualityDownloadCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: scale(12),
-    padding: scale(12),
-    marginBottom: verticalScale(10),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  qualityDownloadInfo: {
-    flex: 1,
-    marginRight: scale(10),
-  },
-  qualityTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(8),
-  },
-  qualityDownloadTitle: {
-    fontSize: moderateScale(13.5),
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  sizePill: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    paddingHorizontal: scale(7),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(6),
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-  },
-  sizePillText: {
-    fontSize: moderateScale(10.5),
-    fontWeight: '800',
-    color: '#38bdf8',
-  },
-  modalProgressContainer: {
-    marginTop: verticalScale(8),
-  },
-  modalProgressBarBg: {
-    height: verticalScale(4),
-    backgroundColor: '#27272a',
-    borderRadius: scale(2),
-    overflow: 'hidden',
-  },
-  modalProgressBarFill: {
-    height: '100%',
-    borderRadius: scale(2),
-  },
-  modalProgressTextRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: verticalScale(4),
-  },
-  modalProgressPct: {
-    fontSize: moderateScale(10.5),
-    fontWeight: '700',
-    color: '#38bdf8',
-  },
-  modalProgressBytes: {
-    fontSize: moderateScale(10),
-    color: '#94a3b8',
-  },
-  qualityDownloadActions: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-    paddingHorizontal: scale(10),
-    paddingVertical: verticalScale(6),
-    borderRadius: scale(14),
-    gap: scale(4),
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
-  },
-  completedBadgeText: {
-    fontSize: moderateScale(11),
-    fontWeight: '700',
-    color: '#22c55e',
-  },
-  modalControlBtn: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
-    backgroundColor: '#27272a',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalResumeBtn: {
-    backgroundColor: '#0284c7',
-  },
-  modalStartDownloadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: scale(13),
-    paddingVertical: verticalScale(7),
-    borderRadius: scale(16),
-    gap: scale(5),
-  },
-  modalStartDownloadText: {
-    fontSize: moderateScale(12),
-    fontWeight: '700',
-    color: '#09090b',
   },
 });

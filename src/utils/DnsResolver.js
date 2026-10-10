@@ -455,8 +455,10 @@ export const testDnsServer = async (providerId = 'google', customUrl = '') => {
 
   try {
     const testPromises = candidateUrls.map(async (url) => {
+      // Perform initial preflight to establish TCP & TLS 1.3 session, then measure true Keep-Alive DNS lookup latency
+      await querySingleDohEndpoint(url, 'api.themoviedb.org', 2500).catch(() => null);
       const startTime = Date.now();
-      const result = await querySingleDohEndpoint(url, 'api.themoviedb.org', 3500);
+      const result = await querySingleDohEndpoint(url, 'api.themoviedb.org', 2500);
       const latency = Date.now() - startTime;
       if (result && result.ip) {
         return {

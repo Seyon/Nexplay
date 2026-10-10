@@ -1,15 +1,119 @@
 {
   "major": 1,
-  "minor": 6,
+  "minor": 8,
   "patch": 0,
   "issue": 0,
-  "build": 131,
+  "build": 144,
   "updateType": "minor",
-  "timestamp": "20260926",
-  "versionName": "1.6.0.0.131-minor.20260926",
-  "versionCode": 1600131,
-  "lastSuccessfulBuild": "2026-09-26T15:44:16.997Z",
+  "timestamp": "20261010",
+  "versionName": "1.8.0.0.144-minor.20261010",
+  "versionCode": 1800144,
+  "lastSuccessfulBuild": "2026-10-10T16:33:15.141Z",
   "history": [
+    {
+      "versionName": "1.8.0.0.144-minor.20261010",
+      "versionCode": 1800144,
+      "updateType": "minor",
+      "build": 144,
+      "note": "Added Server 5 Netmirror, fixed Server 2 4KHDHub streams, reordered servers, removed download section",
+      "builtAt": "2026-10-10T16:33:15.141Z"
+    },
+    {
+      "versionName": "1.7.17.2.143-bugfix.20261007",
+      "versionCode": 1870143,
+      "updateType": "bugfix",
+      "build": 143,
+      "note": "Fix Server 4 black screen and seek loading",
+      "builtAt": "2026-10-07T18:07:33.009Z"
+    },
+    {
+      "versionName": "1.7.17.0.142-patch.20261007",
+      "versionCode": 1870142,
+      "updateType": "patch",
+      "build": 142,
+      "note": "Server 5 (Netmirror) direct TMDB-based scraper integration",
+      "builtAt": "2026-10-07T15:20:00.000Z"
+    },
+    {
+      "versionName": "1.7.16.0.141-patch.20261006",
+      "versionCode": 1860141,
+      "updateType": "patch",
+      "build": 141,
+      "note": "Ultra low-latency VLC playback and parallel scraper acceleration",
+      "builtAt": "2026-10-06T15:10:15.709Z"
+    },
+    {
+      "versionName": "1.7.15.0.140-patch.20261006",
+      "versionCode": 1850140,
+      "updateType": "patch",
+      "build": 140,
+      "note": "Server 4 (111477) direct scraper integration",
+      "builtAt": "2026-10-06T14:33:27.671Z"
+    },
+    {
+      "versionName": "1.7.14.0.139-patch.20261006",
+      "versionCode": 1840139,
+      "updateType": "patch",
+      "build": 139,
+      "note": "Live TV & Serials UI overhaul, TMDB key validation & persistence, aligned navbar",
+      "builtAt": "2026-10-06T13:16:08.070Z"
+    },
+    {
+      "versionName": "1.7.13.0.138-patch.20260928",
+      "versionCode": 1830138,
+      "updateType": "patch",
+      "build": 138,
+      "note": "TMDB API Key prompt, Donation modal & Account Key Management",
+      "builtAt": "2026-09-28T17:37:41.042Z"
+    },
+    {
+      "versionName": "1.7.12.0.137-patch.20260928",
+      "versionCode": 1820137,
+      "updateType": "patch",
+      "build": 137,
+      "note": "TMDB API Key prompt, Donation modal & Account Key Management",
+      "builtAt": "2026-09-28T17:21:17.751Z"
+    },
+    {
+      "versionName": "1.7.11.0.136-patch.20260927",
+      "versionCode": 1810136,
+      "updateType": "patch",
+      "build": 136,
+      "note": "Debug build with seek diagnostics",
+      "builtAt": "2026-09-27T16:27:57.519Z"
+    },
+    {
+      "versionName": "1.7.10.0.135-patch.20260927",
+      "versionCode": 1800135,
+      "updateType": "patch",
+      "build": 135,
+      "note": "Debug build with seek diagnostics",
+      "builtAt": "2026-09-27T16:17:21.953Z"
+    },
+    {
+      "versionName": "1.7.9.0.134-patch.20260927",
+      "versionCode": 1790134,
+      "updateType": "patch",
+      "build": 134,
+      "note": "Eliminate touch delays, remove Tamildhool/Tamilgun names, remove reload stream, add Bigg Boss 10 prime show, format release APKs",
+      "builtAt": "2026-09-27T15:57:11.017Z"
+    },
+    {
+      "versionName": "1.7.0.0.133-minor.20260927",
+      "versionCode": 1700133,
+      "updateType": "minor",
+      "build": 133,
+      "note": "Tv serial home posters, hero carousel height, server 1 playback fix",
+      "builtAt": "2026-09-27T09:50:47.704Z"
+    },
+    {
+      "versionName": "1.6.8.2.132-bugfix.20260926",
+      "versionCode": 1680132,
+      "updateType": "bugfix",
+      "build": 132,
+      "note": "VLC player UI UX and updated server 1 and 2 metadata formats",
+      "builtAt": "2026-09-27T05:06:36.881Z"
+    },
     {
       "versionName": "1.6.0.0.131-minor.20260926",
       "versionCode": 1600131,

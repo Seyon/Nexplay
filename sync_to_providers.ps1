@@ -32,4 +32,14 @@ if (Test-Path "manifest.json") {
     Write-Host "  -> Synced manifest.json" -ForegroundColor Green
 }
 
+if (Test-Path "version.json") {
+    Copy-Item -Path "version.json" -Destination "$rootDestination\version.json" -Force
+    Write-Host "  -> Synced version.json" -ForegroundColor Green
+}
+
+if (Test-Path "src\providers") {
+    Copy-Item -Path "src\providers\*" -Destination "$rootDestination\src\providers" -Recurse -Force
+    Write-Host "  -> Synced src\providers" -ForegroundColor Green
+}
+
 Write-Host "✅ All scraper files successfully updated on Providers-Nexplay repository path!" -ForegroundColor Green

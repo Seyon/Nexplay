@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.8",
-  "updatedAt": "2026-09-26T14:18:05.303Z",
+  "version": "1.0.9",
+  "updatedAt": "2026-10-10T15:48:00.000Z",
   "commitSha": "4332ea1",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
@@ -11,11 +11,12 @@
       "name": "Server 1 (HDHub4u)",
       "enabled": true,
       "priority": 1,
-      "baseUrl": "https://new6.hdhub4u.cl",
+      "baseUrl": "https://new2.hdhub4u.free",
       "mirrors": [
-        "https://new6.hdhub4u.cl",
-        "https://new5.hdhub4u.cl",
+        "https://new2.hdhub4u.free",
+        "https://hdhub4u.free",
         "https://hdhub4u.bi",
+        "https://hdhub4u.tv",
         "https://hdhub4u.ms"
       ],
       "headers": {
@@ -95,11 +96,36 @@
         "vlcPlayerOptimized": true
       }
     },
-    "tamildhool": {
-      "id": "tamildhool",
-      "name": "Server 5 (TamilDhool)",
+    "netmirror": {
+      "id": "netmirror",
+      "name": "Server 5 (Netmirror)",
       "enabled": true,
       "priority": 5,
+      "baseUrl": "https://net79.cc",
+      "mirrors": [
+        "https://net79.cc",
+        "https://net27.cc",
+        "https://net77.in"
+      ],
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "Accept": "*/*"
+      },
+      "features": {
+        "movieResolution": true,
+        "tvShowResolution": true,
+        "directStreaming": true,
+        "tmdbStreaming": true,
+        "multiQuality": true,
+        "subtitles": true,
+        "vlcPlayerOptimized": true
+      }
+    },
+    "tamildhool": {
+      "id": "tamildhool",
+      "name": "Server 6 (TamilDhool)",
+      "enabled": true,
+      "priority": 6,
       "baseUrl": "https://www.tamildhool.tech",
       "mirrors": [
         "https://www.tamildhool.tech",
@@ -121,9 +147,9 @@
     },
     "tamilgun": {
       "id": "tamilgun",
-      "name": "Server 6 (TamilGun)",
+      "name": "Server 7 (TamilGun)",
       "enabled": true,
-      "priority": 6,
+      "priority": 7,
       "baseUrl": "https://tamilgun.now",
       "tvBaseUrl": "https://arivumani.net",
       "mirrors": [
@@ -154,9 +180,10 @@
     ]
   },
   "changeLog": [
+    "Added Server 5 (Netmirror) target website https://net79.cc/ with TMDB-based direct streaming for movies and TV series (#w={tmdbId}-movie and #w={tmdbId}-tv-{season}-{episode}) playable in VLC Player",
     "Added Server 4 (111477) high-speed open-directory direct stream scraper with zero countdown timers for movies and TV series directly playable in VLC player",
-    "Modular provider architecture: isolated dedicated directories for HDHub4u, 4KHDHub, Movies4u, 111477, TamilDhool, and TamilGun with zero clumsy folder mixing",
-    "Integrated Server 5 (TamilDhool) and Server 6 (TamilGun / Arivumani) with high-speed Bunny CDN and PlayAllu AES direct stream resolution",
+    "Modular provider architecture: isolated dedicated directories for HDHub4u, 4KHDHub, Movies4u, 111477, Netmirror, TamilDhool, and TamilGun with zero clumsy folder mixing",
+    "Integrated Server 6 (TamilDhool) and Server 7 (TamilGun / Arivumani) with high-speed Bunny CDN and PlayAllu AES direct stream resolution",
     "Added high-accuracy serial episode finder matching by Title, Date (today, yesterday, DD-MM-YYYY), and Channel",
     "Always scrape all qualities (480p, 720p, 1080p, 4K) concurrently and post to ExoPlayer qualities map",
     "Strict WEB-DL exclusivity over WEBRip for Server 1 (HDHub4u) and Server 2 (4KHDHub)",
