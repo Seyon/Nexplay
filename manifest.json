@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.9",
-  "updatedAt": "2026-10-10T15:48:00.000Z",
+  "version": "1.1.0",
+  "updatedAt": "2026-10-10T17:10:00.000Z",
   "commitSha": "4332ea1",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
@@ -75,52 +75,6 @@
         "directR2Streams": true
       }
     },
-    "111477": {
-      "id": "111477",
-      "name": "Server 4 (111477)",
-      "enabled": true,
-      "priority": 4,
-      "baseUrl": "https://a.111477.xyz",
-      "mirrors": [
-        "https://a.111477.xyz"
-      ],
-      "headers": {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-        "Accept": "*/*"
-      },
-      "features": {
-        "movieResolution": true,
-        "tvShowResolution": true,
-        "directStreaming": true,
-        "noCountdownTimer": true,
-        "vlcPlayerOptimized": true
-      }
-    },
-    "netmirror": {
-      "id": "netmirror",
-      "name": "Server 5 (Netmirror)",
-      "enabled": true,
-      "priority": 5,
-      "baseUrl": "https://net79.cc",
-      "mirrors": [
-        "https://net79.cc",
-        "https://net27.cc",
-        "https://net77.in"
-      ],
-      "headers": {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-        "Accept": "*/*"
-      },
-      "features": {
-        "movieResolution": true,
-        "tvShowResolution": true,
-        "directStreaming": true,
-        "tmdbStreaming": true,
-        "multiQuality": true,
-        "subtitles": true,
-        "vlcPlayerOptimized": true
-      }
-    },
     "tamildhool": {
       "id": "tamildhool",
       "name": "Server 6 (TamilDhool)",
@@ -180,8 +134,7 @@
     ]
   },
   "changeLog": [
-    "Added Server 5 (Netmirror) target website https://net79.cc/ with TMDB-based direct streaming for movies and TV series (#w={tmdbId}-movie and #w={tmdbId}-tv-{season}-{episode}) playable in VLC Player",
-    "Added Server 4 (111477) high-speed open-directory direct stream scraper with zero countdown timers for movies and TV series directly playable in VLC player",
+    "Completely removed Server 4 (111477) and Server 5 (Netmirror) from providers registry",
     "Modular provider architecture: isolated dedicated directories for HDHub4u, 4KHDHub, Movies4u, 111477, Netmirror, TamilDhool, and TamilGun with zero clumsy folder mixing",
     "Integrated Server 6 (TamilDhool) and Server 7 (TamilGun / Arivumani) with high-speed Bunny CDN and PlayAllu AES direct stream resolution",
     "Added high-accuracy serial episode finder matching by Title, Date (today, yesterday, DD-MM-YYYY), and Channel",

@@ -13,8 +13,7 @@
 import { HDHub4u, HDHub4uClient } from './hdhub4u/index.js';
 import { FourKHDHub, FourKHDHubClient } from './4khdhub/index.js';
 import { Movies4u, Movies4uClient, unpack } from './movies4u/index.js';
-import { Provider111477, Provider111477Client } from './111477/index.js';
-import { ProviderNetmirror, ProviderNetmirrorClient } from './netmirror/index.js';
+
 import { 
   TamilDhool, 
   TamilDhoolClient, 
@@ -38,10 +37,6 @@ export {
   Movies4u,
   Movies4uClient,
   unpack,
-  Provider111477,
-  Provider111477Client,
-  ProviderNetmirror,
-  ProviderNetmirrorClient,
   TamilDhool,
   TamilDhoolClient,
   parseMediaRequest,
@@ -79,22 +74,6 @@ export const PROVIDERS = {
     client: Movies4u,
     type: 'movies_and_shows'
   },
-  '111477': {
-    id: '111477',
-    name: 'Server 4 (111477)',
-    short: '111477',
-    serverNumber: 4,
-    client: Provider111477,
-    type: 'movies_and_shows'
-  },
-  netmirror: {
-    id: 'netmirror',
-    name: 'Server 5 (Netmirror)',
-    short: 'Netmirror',
-    serverNumber: 5,
-    client: ProviderNetmirror,
-    type: 'movies_and_shows'
-  },
   tamildhool: {
     id: 'tamildhool',
     name: 'Server 6 (TamilDhool)',
@@ -115,7 +94,7 @@ export const PROVIDERS = {
 
 /**
  * Get provider instance by ID string or server number
- * @param {string|number} identifier e.g. 'netmirror', 5, '5', '111477', 4, '4', 'hdhub4u', 1
+ * @param {string|number} identifier e.g. 'movies4u', 3, '3', 'hdhub4u', 1
  * @returns {object|null}
  */
 export function getProviderById(identifier) {
@@ -125,8 +104,6 @@ export function getProviderById(identifier) {
   if (str === '1' || str === 'hdhub4u') return PROVIDERS.hdhub4u;
   if (str === '2' || str === '4khdhub') return PROVIDERS['4khdhub'];
   if (str === '3' || str === 'movies4u') return PROVIDERS.movies4u;
-  if (str === '4' || str === '111477') return PROVIDERS['111477'];
-  if (str === '5' || str === 'netmirror') return PROVIDERS.netmirror;
   if (str === '6' || str === 'tamildhool') return PROVIDERS.tamildhool;
   if (str === '7' || str === 'tamilgun') return PROVIDERS.tamilgun;
 
