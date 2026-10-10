@@ -385,6 +385,9 @@ class VLCPlayerView(context: ThemedReactContext) :
             emit("onLoadStart", Arguments.createMap())
         } catch (e: Exception) {
             Log.e(TAG, "Error creating player", e)
+            val event = Arguments.createMap()
+            event.putString("error", e.message ?: "Error creating player")
+            emit("onError", event)
         }
     }
 

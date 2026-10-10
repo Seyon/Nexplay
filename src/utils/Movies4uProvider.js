@@ -169,8 +169,8 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
  * Optimized for Android Media3 ExoPlayer & Stitch-Nexplay Integration
  */
 export class Movies4uClient {
-    liveBaseUrl = 'https://new7.movies4u.clinic';
-    mirrors = ['https://new7.movies4u.clinic', 'https://new8.movies4u.clinic', 'https://movies4u.co', 'https://movies4u.clinic', 'https://movies4u.vip'];
+    liveBaseUrl = 'https://new1.movies4u.garden';
+    mirrors = ['https://new1.movies4u.garden', 'https://new2.movies4u.garden', 'https://movies4u.foo', 'https://movies4u.co', 'https://movies4u.vip'];
     domainResolved = false;
     constructor(customBaseUrl) {
         if (customBaseUrl) {
@@ -194,7 +194,7 @@ export class Movies4uClient {
 
     setBaseUrl(url) {
         if (url && typeof url === 'string') {
-            const cleanUrl = url.replace(/new[1-6]\.movies4u\.clinic/g, 'new7.movies4u.clinic').replace(/\/+$/, '');
+            const cleanUrl = url.replace(/\/+$/, '');
             this.liveBaseUrl = cleanUrl;
             this.domainResolved = true;
             if (!this.mirrors.includes(this.liveBaseUrl)) {
@@ -205,9 +205,7 @@ export class Movies4uClient {
 
     setMirrors(mirrors) {
         if (Array.isArray(mirrors) && mirrors.length > 0) {
-            this.mirrors = mirrors
-                .map(m => m.replace(/new[1-6]\.movies4u\.clinic/g, 'new7.movies4u.clinic').replace(/\/+$/, ''))
-                .filter(m => !m.includes('new6.') && !m.includes('new5.'));
+            this.mirrors = mirrors.map(m => (m || '').replace(/\/+$/, '')).filter(Boolean);
             if (this.mirrors.length > 0) {
                 this.liveBaseUrl = this.mirrors[0];
                 this.domainResolved = true;
@@ -223,42 +221,49 @@ export class Movies4uClient {
      * Resolves the active live mirror from the entry point https://movies4u.foo
      */
     async resolveLiveDomain(customHttpGet) {
-        if (this.domainResolved && this.liveBaseUrl && !this.liveBaseUrl.includes('new6.') && !this.liveBaseUrl.includes('new5.'))
+        if (this.domainResolved && this.liveBaseUrl && !this.liveBaseUrl.includes('.clinic'))
             return this.liveBaseUrl;
         const fetchHtml = customHttpGet || this.defaultHttpGet.bind(this);
         try {
             const html = await fetchHtml('https://movies4u.foo/', { 'User-Agent': DEFAULT_USER_AGENT }, 8000);
-            // Look for base64 encoded redirect script: window.open(atob('aHR0cHM6Ly90aW55dXJsLmNvbS9yb2NreWJoYWlwcm8x'))
+            // Look for tinyurl redirect link in html or base64 atob matches
+            const tinyMatch = html.match(/https?:\/\/tinyurl\.com\/[a-zA-Z0-9]+/i);
             const atobMatches = [...html.matchAll(/atob\s*\(\s*['"]([A-Za-z0-9+/=]+)['"]\s*\)/g)];
-            for (const m of atobMatches) {
-                try {
-                    const decoded = this.decodeBase64(m[1]);
-                    if (decoded.includes('tinyurl.com') || decoded.includes('http')) {
-                        const tinyMatch = decoded.match(/https?:\/\/[^\s"'>]+/i);
-                        if (tinyMatch) {
-                            const res = await fetch(tinyMatch[0], {
-                                method: 'HEAD',
-                                redirect: 'follow',
-                                headers: { 'User-Agent': DEFAULT_USER_AGENT }
-                            });
-                            if (res.url && !res.url.includes('tinyurl.com')) {
-                                const resolvedOrigin = new URL(res.url).origin.replace(/new[1-6]\.movies4u\.clinic/g, 'new7.movies4u.clinic');
-                                this.liveBaseUrl = resolvedOrigin;
-                                this.domainResolved = true;
-                                return this.liveBaseUrl;
-                            }
+            let targetTinyUrl = tinyMatch ? tinyMatch[0] : null;
+            if (!targetTinyUrl) {
+                for (const m of atobMatches) {
+                    try {
+                        const decoded = this.decodeBase64(m[1]);
+                        const found = decoded.match(/https?:\/\/[^\s"'>]+/i);
+                        if (found) {
+                            targetTinyUrl = found[0];
+                            break;
                         }
-                    }
+                    } catch (_) {}
                 }
-                catch {
-                    // ignore decoding errors
+            }
+            if (targetTinyUrl) {
+                const res = await fetch(targetTinyUrl, {
+                    method: 'GET',
+                    redirect: 'follow',
+                    headers: { 'User-Agent': DEFAULT_USER_AGENT }
+                });
+                if (res.url && !res.url.includes('tinyurl.com')) {
+                    const resolvedOrigin = new URL(res.url).origin;
+                    this.liveBaseUrl = resolvedOrigin;
+                    this.domainResolved = true;
+                    if (!this.mirrors.includes(resolvedOrigin)) {
+                        this.mirrors.unshift(resolvedOrigin);
+                    }
+                    console.log(`[Movies4u] 🔄 Live mirror auto-resolved from movies4u.foo: ${this.liveBaseUrl}`);
+                    return this.liveBaseUrl;
                 }
             }
         }
-        catch {
-            // fallback to preconfigured liveBaseUrl
+        catch (e) {
+            console.warn('[Movies4u] Note resolving live domain from movies4u.foo:', e?.message || e);
         }
-        this.liveBaseUrl = 'https://new7.movies4u.clinic';
+        this.liveBaseUrl = 'https://new1.movies4u.garden';
         this.domainResolved = true;
         return this.liveBaseUrl;
     }
@@ -274,10 +279,9 @@ export class Movies4uClient {
             baseUrl,
             this.liveBaseUrl,
             ...this.mirrors,
-            'https://new7.movies4u.clinic',
-            'https://new8.movies4u.clinic'
-        ])).map(m => (m || '').replace(/new[1-6]\.movies4u\.clinic/g, 'new7.movies4u.clinic').replace(/\/+$/, ''))
-          .filter(m => m && !m.includes('new6.') && !m.includes('new5.'));
+            'https://new1.movies4u.garden',
+            'https://new2.movies4u.garden'
+        ])).map(m => (m || '').replace(/\/+$/, '')).filter(Boolean);
 
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
 
@@ -301,14 +305,16 @@ export class Movies4uClient {
                     const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
                     const isSeries = /\b(?:season|s\d+|series|episodes?)\b/i.test(rawTitle);
                     const permalink = hit.permalink?.startsWith('http')
-                        ? hit.permalink.replace(/new[1-6]\.movies4u\.clinic/g, 'new7.movies4u.clinic')
+                        ? hit.permalink.replace(/new[1-8]\.movies4u\.clinic/g, 'new1.movies4u.garden')
                         : `${mirror}${hit.permalink?.startsWith('/') ? '' : '/'}${hit.permalink || ''}`;
                     return {
                         id: String(hit.id || ''),
                         title: rawTitle,
                         cleanTitle: this.cleanTitle(rawTitle),
                         url: permalink,
+                        link: permalink,
                         thumbnail: hit.post_thumbnail || undefined,
+                        image: hit.post_thumbnail || undefined,
                         quality: hit.movie_quality || this.detectQuality(rawTitle),
                         year,
                         mediaType: isSeries ? 'series' : 'movie',
@@ -326,8 +332,8 @@ export class Movies4uClient {
      * Extracts detailed metadata, download links, and episode map from a movie/series page
      */
     async extractDetails(pageUrl, targetSeason = 1, customHttpGet) {
-        let cleanPageUrl = (pageUrl || '').replace(/new[1-6]\.movies4u\.clinic/g, 'new7.movies4u.clinic');
-        const baseUrl = (await this.resolveLiveDomain(customHttpGet)).replace(/new[1-6]\.movies4u\.clinic/g, 'new7.movies4u.clinic');
+        const baseUrl = await this.resolveLiveDomain(customHttpGet);
+        let cleanPageUrl = (pageUrl || '').replace(/new[1-8]\.movies4u\.clinic/g, 'new1.movies4u.garden');
         const targetUrl = cleanPageUrl.startsWith('http') ? cleanPageUrl : `${baseUrl}/${cleanPageUrl.replace(/^\/+/, '')}`;
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
         const html = await fetcher(targetUrl, {

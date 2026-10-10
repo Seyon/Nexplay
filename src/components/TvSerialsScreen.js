@@ -568,30 +568,13 @@ export default function TvSerialsScreen({ onMoviePress, onDetailStateChange }) {
   const activeStreamSource = useMemo(() => {
     if (!currentStreamUrl) return null;
     const playUri = currentStreamUrl;
-    const initOptions = [
-      '--network-caching=1500',
-      '--live-caching=1500',
-      '--file-caching=1500',
-      '--clock-jitter=300',
-      '--clock-synchro=1',
-      '--fast-seek',
-      '--drop-late-frames',
-      '--skip-frames',
-      '--no-sub-autodetect-file',
-      '--no-stats',
-      '--avcodec-fast',
-      '--no-audio-time-stretch',
-      '--ipv4-timeout=5000'
-    ];
+    const initOptions = [];
 
     const mediaOptions = [
-      ':network-caching=1500',
-      ':live-caching=1500',
-      ':file-caching=1500',
-      ':sout-mux-caching=1500',
-      ':clock-jitter=300',
-      ':clock-synchro=1',
-      ':fast-seek=true',
+      ':network-caching=2000',
+      ':live-caching=2000',
+      ':file-caching=2000',
+      ':sout-mux-caching=2000',
       ':avcodec-fast=true',
       ':avcodec-threads=4',
       ':no-sub-autodetect-file',
@@ -602,12 +585,10 @@ export default function TvSerialsScreen({ onMoviePress, onDetailStateChange }) {
 
     const ref = currentStreamReferer || currentStreamHeaders?.Referer || currentStreamHeaders?.referer || (activeServerId === 'tamildhool' ? 'https://tamildhool.tech/' : '');
     if (ref) {
-      initOptions.push(`--http-referrer=${ref}`);
       mediaOptions.push(`:http-referrer=${ref}`);
     }
     const ua = currentStreamHeaders?.['User-Agent'] || currentStreamHeaders?.['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
     if (ua) {
-      initOptions.push(`--http-user-agent=${ua}`);
       mediaOptions.push(`:http-user-agent=${ua}`);
     }
 

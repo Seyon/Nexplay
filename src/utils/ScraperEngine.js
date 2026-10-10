@@ -1467,13 +1467,14 @@ export function defaultSizeForQuality(q) {
 
 var HDHub4uClient = class {
   constructor() {
-    this.baseUrl = "https://new2.hdhub4u.free";
+    this.baseUrl = "https://new3.hdhub4u.free";
     this.mirrors = [
+      "https://new3.hdhub4u.free",
       "https://new2.hdhub4u.free",
-      "https://hdhub4u.pro",
       "https://hdhub4u.bi",
-      "https://hdhub4u.tv",
-      "https://hdhub4u.ms"
+      "https://hdhub4u.ms",
+      "https://hdhub4u.pro",
+      "https://hdhub4u.tv"
     ];
   }
 
@@ -1560,6 +1561,7 @@ var HDHub4uClient = class {
                     title,
                     cleanTitle: cleanTitleKeywords(title),
                     url: fullUrl,
+                    link: fullUrl,
                     year: yearMatch ? yearMatch[1] : '',
                     type: isSeries ? 'series' : 'movie',
                     mediaType: isSeries ? 'tv' : 'movie',
@@ -2179,6 +2181,7 @@ var FourKHDHubClient = class {
                 title: cleanT,
                 cleanTitle: cleanTitleKeywords(cleanT),
                 url: fullUrl,
+                link: fullUrl,
                 thumbnail: imgMatch ? imgMatch[1] : void 0,
                 year: yearText,
                 type: isSeries ? "series" : "movie",
