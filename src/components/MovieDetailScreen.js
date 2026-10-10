@@ -3622,8 +3622,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 key={server.id}
                 onPress={() => {
                   console.log('[MovieDetailScreen] Manually selected server:', server.id);
-                  setActiveServer(server.id);
-                  setPlaybackError(null);
+                  handleServerChange(server.id);
                 }}
                 activeOpacity={0.8}
                 style={[
