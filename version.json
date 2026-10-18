@@ -1,15 +1,215 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 10,
-  "issue": 4,
-  "build": 149,
-  "updateType": "bugfix",
-  "timestamp": "20261010",
-  "versionName": "1.8.10.4.149-bugfix.20261010",
-  "versionCode": 1900149,
-  "lastSuccessfulBuild": "2026-10-10T20:59:22.068Z",
+  "patch": 26,
+  "issue": 0,
+  "build": 174,
+  "updateType": "patch",
+  "timestamp": "20261018",
+  "versionName": "1.8.26.0.174-patch.20261018",
+  "versionCode": 2060174,
+  "lastSuccessfulBuild": "2026-10-18T15:48:27.417Z",
   "history": [
+    {
+      "versionName": "1.8.26.0.174-patch.20261018",
+      "versionCode": 2060174,
+      "updateType": "patch",
+      "build": 174,
+      "note": "Server 3 multi-audio priority and VLC fast seeking fix",
+      "builtAt": "2026-10-18T15:48:27.417Z"
+    },
+    {
+      "versionName": "1.8.25.0.173-patch.20261018",
+      "versionCode": 2050173,
+      "updateType": "patch",
+      "build": 173,
+      "note": "Live TMDB refresh every launch, 14 categories for Movies and Series screens",
+      "builtAt": "2026-10-18T15:04:24.681Z"
+    },
+    {
+      "versionName": "1.8.24.0.172-patch.20261018",
+      "versionCode": 2040172,
+      "updateType": "patch",
+      "build": 172,
+      "note": "Recommended Home screen category order: 1-14 main sections + 7 deep discovery sections, auto-hide empty rows, watch history integration",
+      "builtAt": "2026-10-18T14:33:42.454Z"
+    },
+    {
+      "versionName": "1.8.23.0.171-patch.20261018",
+      "versionCode": 2030171,
+      "updateType": "patch",
+      "build": 171,
+      "note": "Smooth animated cross-dissolve from launch screen to Home screen upon layout and text ready",
+      "builtAt": "2026-10-18T14:08:02.979Z"
+    },
+    {
+      "versionName": "1.8.22.0.170-patch.20261018",
+      "versionCode": 2020170,
+      "updateType": "patch",
+      "build": 170,
+      "note": "Lossless launch screen, Google rolling spinner, uninterrupted launch",
+      "builtAt": "2026-10-18T14:00:13.479Z"
+    },
+    {
+      "versionName": "1.8.21.0.169-patch.20261018",
+      "versionCode": 2010169,
+      "updateType": "patch",
+      "build": 169,
+      "note": "Launch screen, TV Serials calendar and player red theme, account screen cleanup",
+      "builtAt": "2026-10-18T13:40:42.712Z"
+    },
+    {
+      "versionName": "1.8.20.0.168-patch.20261018",
+      "versionCode": 2000168,
+      "updateType": "patch",
+      "build": 168,
+      "note": "Optimize APK size and strip unused libraries",
+      "builtAt": "2026-10-18T11:20:06.288Z"
+    },
+    {
+      "versionName": "1.8.19.0.167-patch.20261018",
+      "versionCode": 1990167,
+      "updateType": "patch",
+      "build": 167,
+      "note": "TV Serials redesign and clean test files",
+      "builtAt": "2026-10-18T11:00:56.649Z"
+    },
+    {
+      "versionName": "1.8.18.9.166-bugfix.20261018",
+      "versionCode": 1980166,
+      "updateType": "bugfix",
+      "build": 166,
+      "note": "Unified movie detail screen with persistent Up Next and Donate positions",
+      "builtAt": "2026-10-18T09:43:43.350Z"
+    },
+    {
+      "versionName": "1.8.18.8.165-bugfix.20261017",
+      "versionCode": 1980165,
+      "updateType": "bugfix",
+      "build": 165,
+      "note": "Inline movie detail screen playback with servers button, Up Next, donate banner, and darker description text",
+      "builtAt": "2026-10-18T05:22:02.976Z"
+    },
+    {
+      "versionName": "1.8.18.7.164-bugfix.20261017",
+      "versionCode": 1980164,
+      "updateType": "bugfix",
+      "build": 164,
+      "note": "Remove top poster action bar and replace player blue colors with app red",
+      "builtAt": "2026-10-18T05:00:15.161Z"
+    },
+    {
+      "versionName": "1.8.18.6.163-bugfix.20261017",
+      "versionCode": 1980163,
+      "updateType": "bugfix",
+      "build": 163,
+      "note": "Episodes tab series only and next episode in Up Next",
+      "builtAt": "2026-10-18T04:29:31.885Z"
+    },
+    {
+      "versionName": "1.8.18.5.162-bugfix.20261017",
+      "versionCode": 1980162,
+      "updateType": "bugfix",
+      "build": 162,
+      "note": "Movie detail screen white camera notch spacer and poster below camera hole",
+      "builtAt": "2026-10-18T04:09:24.444Z"
+    },
+    {
+      "versionName": "1.8.18.4.161-bugfix.20261017",
+      "versionCode": 1980161,
+      "updateType": "bugfix",
+      "build": 161,
+      "note": "Hero carousel bottom pinned with 4GB heap",
+      "builtAt": "2026-10-17T17:58:17.077Z"
+    },
+    {
+      "versionName": "1.8.18.3.160-bugfix.20261017",
+      "versionCode": 1980160,
+      "updateType": "bugfix",
+      "build": 160,
+      "note": "Hero carousel content pinned to bottom, adjusted sizes",
+      "builtAt": "2026-10-17T17:46:26.978Z"
+    },
+    {
+      "versionName": "1.8.18.2.159-bugfix.20261017",
+      "versionCode": 1980159,
+      "updateType": "bugfix",
+      "build": 159,
+      "note": "Refined hero layout, 44dp action buttons, and elongated active pagination",
+      "builtAt": "2026-10-17T17:32:36.550Z"
+    },
+    {
+      "versionName": "1.8.18.0.158-patch.20261017",
+      "versionCode": 1980158,
+      "updateType": "patch",
+      "build": 158,
+      "note": "Compact hero and section layout matching reference Image 1",
+      "builtAt": "2026-10-17T14:40:39.461Z"
+    },
+    {
+      "versionName": "1.8.17.2.157-bugfix.20261016",
+      "versionCode": 1970157,
+      "updateType": "bugfix",
+      "build": 157,
+      "note": "Fix isTmdbReady reference in App.js",
+      "builtAt": "2026-10-16T18:18:13.355Z"
+    },
+    {
+      "versionName": "1.8.17.0.156-patch.20261016",
+      "versionCode": 1970156,
+      "updateType": "patch",
+      "build": 156,
+      "note": "Home screen and cinematic splash update",
+      "builtAt": "2026-10-16T18:13:09.724Z"
+    },
+    {
+      "versionName": "1.8.16.0.155-patch.20261015",
+      "versionCode": 1960155,
+      "updateType": "patch",
+      "build": 155,
+      "note": "Refine Home screen layout, balanced hero carousel proportions, poster aspect ratios, and section spacing",
+      "builtAt": "2026-10-16T04:33:45.187Z"
+    },
+    {
+      "versionName": "1.8.15.0.154-patch.20261015",
+      "versionCode": 1950154,
+      "updateType": "patch",
+      "build": 154,
+      "note": "Refine dynamic active navbar highlight, exact hero carousel proportions, and camera hole clearance",
+      "builtAt": "2026-10-16T04:00:18.628Z"
+    },
+    {
+      "versionName": "1.8.14.0.153-patch.20261015",
+      "versionCode": 1940153,
+      "updateType": "patch",
+      "build": 153,
+      "note": "UI revamp with exact launch screen, floating navbar, camera hole inset avoidance, and white-red movie detail",
+      "builtAt": "2026-10-15T18:51:41.004Z"
+    },
+    {
+      "versionName": "1.8.13.0.152-patch.20261015",
+      "versionCode": 1930152,
+      "updateType": "patch",
+      "build": 152,
+      "note": "Fix SCREEN_WIDTH import in MovieDetailScreen",
+      "builtAt": "2026-10-15T18:16:39.825Z"
+    },
+    {
+      "versionName": "1.8.12.0.151-patch.20261015",
+      "versionCode": 1920151,
+      "updateType": "patch",
+      "build": 151,
+      "note": "Redesign UI UX design from scratch matching references",
+      "builtAt": "2026-10-15T18:05:02.203Z"
+    },
+    {
+      "versionName": "1.8.11.0.150-patch.20261013",
+      "versionCode": 1910150,
+      "updateType": "patch",
+      "build": 150,
+      "note": "Netflix level intro animation and direct TMDB live sync",
+      "builtAt": "2026-10-14T04:57:36.021Z"
+    },
     {
       "versionName": "1.8.10.4.149-bugfix.20261010",
       "versionCode": 1900149,
@@ -209,94 +409,6 @@
       "build": 121,
       "note": "Fix seek in VLC player",
       "builtAt": "2026-09-26T03:17:22.862Z"
-    },
-    {
-      "versionName": "1.1.8.7.120-bugfix.20260925",
-      "versionCode": 1180120,
-      "updateType": "bugfix",
-      "build": 120,
-      "note": "Retain SurfaceTexture across minimize/maximize to eliminate video blackscreen",
-      "builtAt": "2026-09-25T20:15:06.832Z"
-    },
-    {
-      "versionName": "1.1.8.6.119-bugfix.20260925",
-      "versionCode": 1180119,
-      "updateType": "bugfix",
-      "build": 119,
-      "note": "Seamless minimize/maximize audio lock, remove disable subtitle, manual server select before play",
-      "builtAt": "2026-09-25T19:19:12.268Z"
-    },
-    {
-      "versionName": "1.1.8.5.118-bugfix.20260925",
-      "versionCode": 1180118,
-      "updateType": "bugfix",
-      "build": 118,
-      "note": "Fix fullscreen minimize/maximize restart and enable continuous screen wake lock",
-      "builtAt": "2026-09-25T18:59:22.148Z"
-    },
-    {
-      "versionName": "1.1.8.4.117-bugfix.20260925",
-      "versionCode": 1180117,
-      "updateType": "bugfix",
-      "build": 117,
-      "note": "Clean language audio tracks, remove 10/20min jump buttons, and TMDB official language default",
-      "builtAt": "2026-09-25T18:44:24.097Z"
-    },
-    {
-      "versionName": "1.1.8.3.116-bugfix.20260925",
-      "versionCode": 1180116,
-      "updateType": "bugfix",
-      "build": 116,
-      "note": "Instant VLC playback start and active audio track polling",
-      "builtAt": "2026-09-25T18:25:16.460Z"
-    },
-    {
-      "versionName": "1.1.8.2.115-bugfix.20260925",
-      "versionCode": 1180115,
-      "updateType": "bugfix",
-      "build": 115,
-      "note": "Fix VLC playback initiation and seek resilience",
-      "builtAt": "2026-09-25T18:04:24.587Z"
-    },
-    {
-      "versionName": "1.1.0.0.114-minor.20260925",
-      "versionCode": 1100114,
-      "updateType": "minor",
-      "build": 114,
-      "note": "Migrate to in-app libvlc player with seamless MKV seeking",
-      "builtAt": "2026-09-25T17:42:44.343Z"
-    },
-    {
-      "versionName": "1.0.8.6.113-bugfix.20260924",
-      "versionCode": 1080113,
-      "updateType": "bugfix",
-      "build": 113,
-      "note": "Debug build with seek diagnostics and standalone bundle",
-      "builtAt": "2026-09-24T15:48:55.357Z"
-    },
-    {
-      "versionName": "1.0.8.4.111-bugfix.20260924",
-      "versionCode": 1080111,
-      "updateType": "bugfix",
-      "build": 111,
-      "note": "Compiled expo-video from source with Media3 seek logging",
-      "builtAt": "2026-09-24T15:33:30.513Z"
-    },
-    {
-      "versionName": "1.0.8.3.110-bugfix.20260924",
-      "versionCode": 1080110,
-      "updateType": "bugfix",
-      "build": 110,
-      "note": "Injected Media3 seek diagnostic logging",
-      "builtAt": "2026-09-24T15:23:34.922Z"
-    },
-    {
-      "versionName": "1.0.8.2.109-bugfix.20260924",
-      "versionCode": 1080109,
-      "updateType": "bugfix",
-      "build": 109,
-      "note": "Resolved Server 1/2 scrapers and ExoPlayer keyframe seeking across all servers",
-      "builtAt": "2026-09-24T15:03:36.273Z"
     }
   ]
 }

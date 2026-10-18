@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,17 +9,20 @@ import {
   Image,
   ActivityIndicator,
   Dimensions,
-  Platform
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchCategoryMedia, getPosterUrl, formatYear } from '../utils/api';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
+import { colors } from '../config/theme';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - scale(44)) / 3;
 
 export default function CategoryDetailScreen({ category, onBack, onMoviePress }) {
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, 38) + verticalScale(6);
   const categoryTitle = category?.title || 'Explore Category';
   const categoryKey = category?.key || 'trending_all';
   const initialData = category?.data || [];
@@ -31,7 +34,7 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  // Initial load: Fetch rich category data sorted newest to oldest
+  // Initial load
   useEffect(() => {
     let isMounted = true;
     async function loadCategoryItems() {
@@ -55,7 +58,7 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
     return () => { isMounted = false; };
   }, [categoryKey]);
 
-  // Infinite scroll: fetch next page
+  // Infinite scroll
   const loadMoreItems = async () => {
     if (loading || !hasMore || searchQuery.trim().length > 0) return;
     setLoading(true);
@@ -79,7 +82,7 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
     }
   };
 
-  // Filter & Sort items
+  // Filter & Sort
   const processedItems = items
     .filter(item => {
       if (!searchQuery.trim()) return true;
@@ -120,14 +123,9 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
             style={styles.posterImage}
             resizeMode="cover"
           />
-          <View style={styles.badgeContainer}>
-            <View style={[styles.typeBadge, isTv ? styles.tvBadge : styles.movieBadge]}>
-              <Text style={styles.typeBadgeText}>{isTv ? 'SERIES' : 'MOVIE'}</Text>
-            </View>
-          </View>
           {rating && (
             <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={scale(9)} color="#f59e0b" />
+              <Ionicons name="star" size={scale(9)} color="#F59E0B" />
               <Text style={styles.ratingText}>{rating}</Text>
             </View>
           )}
@@ -135,7 +133,9 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
         <Text style={styles.cardTitle} numberOfLines={1}>
           {title}
         </Text>
-        {year ? <Text style={styles.cardYear}>{year}</Text> : null}
+        <Text style={styles.cardSubtitle} numberOfLines={1}>
+          {year ? `${year} • ` : ''}{isTv ? 'Series' : 'Movie'}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -144,18 +144,18 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Header with Back Button and Category Title */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: topPadding }]}>
           <TouchableOpacity 
             onPress={onBack} 
             style={styles.backButton}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="arrow-back" size={scale(22)} color="#f3f4f6" />
+            <Ionicons name="arrow-back" size={scale(22)} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle} numberOfLines={1}>{categoryTitle}</Text>
             <Text style={styles.headerSubtitle}>
-              {processedItems.length} titles • Sorted Newest to Oldest
+              {processedItems.length} titles
             </Text>
           </View>
         </View>
@@ -163,18 +163,18 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
         {/* In-Category Search Bar */}
         <View style={styles.searchBarWrapper}>
           <View style={styles.inputContainer}>
-            <Ionicons name="search" size={scale(16)} color="#9ca3af" style={styles.searchIcon} />
+            <Ionicons name="search" size={scale(16)} color={colors.textMuted} style={styles.searchIcon} />
             <TextInput
               style={styles.textInput}
-              placeholder={`Search inside ${categoryTitle}...`}
-              placeholderTextColor="#6b7280"
+              placeholder={`Search in ${categoryTitle}...`}
+              placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCorrect={false}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={scale(17)} color="#9ca3af" />
+                <Ionicons name="close-circle" size={scale(17)} color={colors.textMuted} />
               </TouchableOpacity>
             )}
           </View>
@@ -182,9 +182,9 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
           {/* Sort Filter Pills */}
           <View style={styles.sortRow}>
             {[
-              { id: 'newest', label: '🔥 New to Old' },
-              { id: 'rating', label: '⭐ Top Rated' },
-              { id: 'popular', label: '⚡ Popular' }
+              { id: 'newest', label: 'Newest' },
+              { id: 'rating', label: 'Top Rated' },
+              { id: 'popular', label: 'Popular' }
             ].map(s => {
               const active = sortBy === s.id;
               return (
@@ -220,14 +220,14 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
           ListFooterComponent={
             loading ? (
               <View style={styles.loaderContainer}>
-                <ActivityIndicator size="small" color="#38bdf8" />
+                <ActivityIndicator size="small" color={colors.primary} />
               </View>
             ) : null
           }
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyState}>
-                <Ionicons name="film-outline" size={scale(44)} color="#4b5563" />
+                <Ionicons name="film-outline" size={scale(44)} color={colors.borderLight} />
                 <Text style={styles.emptyStateTitle}>No titles found</Text>
                 <Text style={styles.emptyStateSub}>
                   No movies or series match "{searchQuery}" in this category.
@@ -244,69 +244,59 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#09090b',
+    backgroundColor: '#FFFFFF',
   },
   container: {
     flex: 1,
-    backgroundColor: '#09090b',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: scale(16),
-    paddingTop: Platform.OS === 'android' ? verticalScale(12) : verticalScale(6),
+    paddingTop: Platform.OS === 'android' ? verticalScale(10) : verticalScale(6),
     paddingBottom: verticalScale(10),
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
-    width: scale(38),
-    height: scale(38),
-    borderRadius: scale(19),
-    backgroundColor: '#18181b',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: scale(12),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.10)',
+    padding: scale(4),
+    marginRight: scale(10),
   },
   headerTitleContainer: {
     flex: 1,
   },
   headerTitle: {
-    color: '#f9fafb',
+    color: colors.textPrimary,
     fontSize: moderateScale(18),
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   headerSubtitle: {
-    color: '#38bdf8',
+    color: colors.primary,
     fontSize: moderateScale(11),
     fontWeight: '600',
     marginTop: verticalScale(1),
   },
   searchBarWrapper: {
     paddingHorizontal: scale(16),
-    paddingTop: verticalScale(10),
+    paddingTop: verticalScale(6),
     paddingBottom: verticalScale(8),
-    backgroundColor: '#09090b',
+    backgroundColor: '#FFFFFF',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#18181b',
+    backgroundColor: '#F3F4F6',
     borderRadius: scale(12),
     paddingHorizontal: scale(10),
-    height: verticalScale(40),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.10)',
+    height: verticalScale(38),
   },
   searchIcon: {
     marginRight: scale(6),
   },
   textInput: {
     flex: 1,
-    color: '#f9fafb',
+    color: colors.textPrimary,
     fontSize: moderateScale(13),
     paddingVertical: 0,
     fontWeight: '500',
@@ -317,99 +307,70 @@ const styles = StyleSheet.create({
     gap: scale(6),
   },
   sortPill: {
-    paddingHorizontal: scale(10),
-    paddingVertical: verticalScale(4),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(5),
     borderRadius: scale(16),
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#F3F4F6',
   },
   sortPillActive: {
-    backgroundColor: '#38bdf8',
-    borderColor: '#38bdf8',
+    backgroundColor: colors.primary,
   },
   sortPillText: {
-    color: '#9ca3af',
+    color: colors.textSecondary,
     fontSize: moderateScale(11),
     fontWeight: '600',
   },
   sortPillTextActive: {
-    color: '#09090b',
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   gridContent: {
     paddingHorizontal: scale(16),
-    paddingTop: verticalScale(10),
-    paddingBottom: verticalScale(110),
+    paddingTop: verticalScale(8),
+    paddingBottom: verticalScale(100),
   },
   cardContainer: {
     width: COLUMN_WIDTH,
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(14),
     marginRight: scale(6),
   },
   imageWrapper: {
     width: '100%',
-    height: COLUMN_WIDTH * 1.5,
-    borderRadius: scale(10),
+    height: COLUMN_WIDTH * 1.48,
+    borderRadius: scale(12),
     overflow: 'hidden',
-    backgroundColor: '#18181b',
+    backgroundColor: '#F3F4F6',
     position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   posterImage: {
     width: '100%',
     height: '100%',
   },
-  badgeContainer: {
+  ratingBadge: {
     position: 'absolute',
-    top: scale(5),
-    left: scale(5),
-  },
-  typeBadge: {
+    bottom: scale(6),
+    left: scale(6),
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     paddingHorizontal: scale(5),
     paddingVertical: verticalScale(2),
     borderRadius: scale(4),
-  },
-  movieBadge: {
-    backgroundColor: 'rgba(14, 165, 233, 0.90)',
-  },
-  tvBadge: {
-    backgroundColor: 'rgba(168, 85, 247, 0.90)',
-  },
-  typeBadgeText: {
-    color: '#ffffff',
-    fontSize: moderateScale(8),
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  ratingBadge: {
-    position: 'absolute',
-    top: scale(5),
-    right: scale(5),
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(9, 9, 11, 0.80)',
-    paddingHorizontal: scale(4),
-    paddingVertical: verticalScale(1.5),
-    borderRadius: scale(4),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: scale(2),
   },
   ratingText: {
-    color: '#f9fafb',
+    color: '#FFFFFF',
     fontSize: moderateScale(9),
     fontWeight: '700',
   },
   cardTitle: {
-    color: '#f3f4f6',
-    fontSize: moderateScale(11),
-    fontWeight: '600',
+    color: colors.textPrimary,
+    fontSize: moderateScale(11.5),
+    fontWeight: '700',
     marginTop: verticalScale(5),
   },
-  cardYear: {
-    color: '#9ca3af',
+  cardSubtitle: {
+    color: colors.textMuted,
     fontSize: moderateScale(10),
     marginTop: verticalScale(1),
   },
@@ -424,13 +385,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(30),
   },
   emptyStateTitle: {
-    color: '#f3f4f6',
+    color: colors.textPrimary,
     fontSize: moderateScale(16),
     fontWeight: '700',
     marginTop: verticalScale(10),
   },
   emptyStateSub: {
-    color: '#9ca3af',
+    color: colors.textSecondary,
     fontSize: moderateScale(12),
     textAlign: 'center',
     marginTop: verticalScale(4),

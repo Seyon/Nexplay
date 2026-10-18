@@ -1,66 +1,41 @@
 import React from 'react';
 import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { getPosterUrl } from '../utils/api';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
+import { colors } from '../config/theme';
 
-export default function TopTenRow({ title, data, onMoviePress }) {
+export default function TopTenRow({ title = 'Top 10 This Week', data, onMoviePress }) {
   if (!data || data.length === 0) return null;
 
   const renderItem = ({ item, index }) => {
     const rankNumber = index + 1;
     const posterUri = getPosterUrl(item.poster_path || item.image);
     const itemTitle = item.title || item.name || '';
-    const rating = item.vote_average ? Number(item.vote_average).toFixed(1) : null;
 
     return (
       <TouchableOpacity 
         style={styles.itemContainer}
-        activeOpacity={0.8}
+        activeOpacity={0.82}
         onPress={() => onMoviePress && onMoviePress(item)}
       >
-        <View style={styles.cardAndRankWrapper}>
-          {/* Glowing Ice-Blue Outlined Rank Number */}
-          <View style={styles.rankContainer}>
-            {/* Outline Glow Shadow Layer */}
-            <Text 
-              style={[
-                styles.rankNumberGlow,
-                rankNumber >= 10 && styles.doubleDigitGlow
-              ]}
-            >
-              {rankNumber}
-            </Text>
-            {/* Foreground Main Rank Text */}
-            <Text 
-              style={[
-                styles.rankNumberForeground,
-                rankNumber >= 10 && styles.doubleDigitForeground
-              ]}
-            >
-              {rankNumber}
-            </Text>
-          </View>
-          
-          {/* Movie Poster Card */}
+        <View style={styles.cardWrapper}>
+          {/* Poster */}
           <View style={styles.posterWrapper}>
             <Image 
               source={{ uri: posterUri }} 
               style={styles.posterImage}
               resizeMode="cover"
             />
-            {rating && (
-              <View style={styles.ratingBadge}>
-                <Ionicons name="star" size={scale(9)} color="#f59e0b" />
-                <Text style={styles.ratingText}>{rating}</Text>
-              </View>
-            )}
+            {/* Rank badge at bottom left of card */}
+            <View style={styles.rankBadge}>
+              <Text style={styles.rankBadgeText}>{rankNumber}</Text>
+            </View>
           </View>
         </View>
         
-        {/* Movie Title */}
+        {/* Title */}
         <Text 
-          numberOfLines={2} 
+          numberOfLines={1} 
           style={styles.titleText}
         >
           {itemTitle}
@@ -71,7 +46,9 @@ export default function TopTenRow({ title, data, onMoviePress }) {
 
   return (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
       <FlatList
         data={data.slice(0, 10)}
         horizontal
@@ -86,104 +63,67 @@ export default function TopTenRow({ title, data, onMoviePress }) {
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    marginVertical: verticalScale(14),
+    marginTop: verticalScale(14),
+    marginBottom: verticalScale(6),
+  },
+  sectionHeader: {
+    paddingHorizontal: scale(16),
+    marginBottom: verticalScale(8),
   },
   sectionTitle: {
-    color: '#ffffff',
-    fontSize: moderateScale(20),
+    color: colors.textPrimary,
+    fontSize: moderateScale(17),
     fontWeight: '800',
-    paddingHorizontal: scale(16),
-    marginBottom: verticalScale(12),
     letterSpacing: -0.3,
   },
   listContent: {
-    paddingLeft: scale(20),
-    paddingRight: scale(16),
+    paddingHorizontal: scale(16),
   },
   itemContainer: {
-    width: scale(135),
-    marginRight: scale(10),
+    width: scale(110),
+    marginRight: scale(12),
   },
-  cardAndRankWrapper: {
-    height: verticalScale(168),
+  cardWrapper: {
     position: 'relative',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-  },
-  rankContainer: {
-    position: 'absolute',
-    left: scale(-14),
-    bottom: verticalScale(-6),
-    zIndex: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rankNumberGlow: {
-    fontSize: moderateScale(88),
-    fontWeight: '900',
-    fontFamily: 'System',
-    color: '#38bdf8',
-    textShadowColor: '#38bdf8',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-    position: 'absolute',
-  },
-  rankNumberForeground: {
-    fontSize: moderateScale(88),
-    fontWeight: '900',
-    fontFamily: 'System',
-    color: '#09090b',
-    textShadowColor: '#38bdf8',
-    textShadowOffset: { width: 1.5, height: 1.5 },
-    textShadowRadius: 3,
-  },
-  doubleDigitGlow: {
-    fontSize: moderateScale(72),
-    left: scale(-8),
-  },
-  doubleDigitForeground: {
-    fontSize: moderateScale(72),
-    left: scale(-8),
   },
   posterWrapper: {
     width: scale(110),
-    height: verticalScale(160),
-    borderRadius: scale(10),
+    height: Math.round(scale(110) * 1.50),
+    borderRadius: scale(12),
     overflow: 'hidden',
-    backgroundColor: '#18181b',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    zIndex: 10,
+    backgroundColor: '#F3F4F6',
+    position: 'relative',
   },
   posterImage: {
     width: '100%',
     height: '100%',
   },
-  titleText: {
-    color: '#a1a1aa',
-    fontSize: moderateScale(13),
-    fontWeight: '500',
-    marginTop: verticalScale(6),
-    lineHeight: moderateScale(16),
-    paddingLeft: scale(4),
-  },
-  ratingBadge: {
+  rankBadge: {
     position: 'absolute',
-    top: scale(6),
-    right: scale(6),
-    flexDirection: 'row',
+    bottom: scale(6),
+    left: scale(6),
+    width: scale(22),
+    height: scale(22),
+    borderRadius: scale(6),
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     alignItems: 'center',
-    backgroundColor: 'rgba(9, 9, 11, 0.78)',
-    paddingHorizontal: scale(5),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(5),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    gap: scale(2.5),
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  ratingText: {
-    color: '#f9fafb',
-    fontSize: moderateScale(9),
+  rankBadgeText: {
+    color: colors.textPrimary,
+    fontSize: moderateScale(12),
+    fontWeight: '900',
+  },
+  titleText: {
+    color: colors.textPrimary,
+    fontSize: moderateScale(12.5),
     fontWeight: '700',
-  }
+    marginTop: verticalScale(5),
+    lineHeight: moderateScale(16),
+  },
 });

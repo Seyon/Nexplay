@@ -10,48 +10,104 @@ import {
   ActivityIndicator,
   Keyboard,
   Dimensions,
-  Platform
+  ScrollView
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { searchMulti, fetchTopSearchesToday, getPosterUrl, formatYear } from '../utils/api';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
+import { colors } from '../config/theme';
 
-const { width } = Dimensions.get('window');
-const COLUMN_WIDTH = (width - scale(44)) / 3;
+const POPULAR_SEARCH_CHIPS = [
+  'Dune',
+  'John Wick',
+  'Interstellar',
+  'Money Heist',
+  'The Batman',
+  'Avengers Endgame',
+];
 
-export default function SearchScreen({ onMoviePress }) {
+const CURATED_TRENDING_ITEMS = [
+  {
+    id: 'tr-1',
+    title: 'Dune',
+    genre: 'Sci-Fi',
+    year: '2021',
+    poster_path: '/d5NXSklXo0qyIYkgV94XAgMIckC.jpg',
+    image: 'https://image.tmdb.org/t/p/w500/d5NXSklXo0qyIYkgV94XAgMIckC.jpg',
+    media_type: 'movie',
+    overview: 'Paul Atreides leads nomadic tribes in a battle for control of the desert planet Arrakis.',
+  },
+  {
+    id: 'tr-2',
+    title: 'The Batman',
+    genre: 'Action',
+    year: '2022',
+    poster_path: '/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+    image: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+    media_type: 'movie',
+    overview: 'Batman ventures into Gotham City underworld when a sadistic killer leaves behind cryptic clues.',
+  },
+  {
+    id: 'tr-3',
+    title: 'Stranger Things',
+    genre: 'Sci-Fi',
+    year: '2016',
+    poster_path: '/56v2ox9aywvYTN9vQJWvTwNVm77.jpg',
+    image: 'https://image.tmdb.org/t/p/w500/56v2ox9aywvYTN9vQJWvTwNVm77.jpg',
+    media_type: 'tv',
+    overview: 'When a young boy vanishes, a small town uncovers a mystery involving secret experiments.',
+  },
+  {
+    id: 'tr-4',
+    title: 'Interstellar',
+    genre: 'Sci-Fi',
+    year: '2014',
+    poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+    image: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+    media_type: 'movie',
+    overview: 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity survival.',
+  },
+  {
+    id: 'tr-5',
+    title: 'The Last of Us',
+    genre: 'Drama',
+    year: '2023',
+    poster_path: '/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
+    image: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
+    media_type: 'tv',
+    overview: 'Twenty years after a fungal outbreak ravages the planet, survivors struggle to stay alive.',
+  },
+];
+
+export default function SearchScreen({ onMoviePress, onBack }) {
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, 38) + verticalScale(6);
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all'); // 'all' | 'movie' | 'tv'
   const [searchResults, setSearchResults] = useState([]);
-  const [topSearches, setTopSearches] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [loadingTopSearches, setLoadingTopSearches] = useState(true);
+  const [topSearches, setTopSearches] = useState(CURATED_TRENDING_ITEMS);
 
   const searchDebounceTimer = useRef(null);
   const inputRef = useRef(null);
 
-  // Fetch Top Searches Today on mount
   useEffect(() => {
     let isMounted = true;
-    async function loadTopSearches() {
-      setLoadingTopSearches(true);
+    async function loadTrending() {
       try {
         const results = await fetchTopSearchesToday();
-        if (isMounted) {
-          setTopSearches(results.slice(0, 20));
+        if (isMounted && results && results.length > 0) {
+          setTopSearches(results.slice(0, 10));
         }
       } catch (err) {
-        console.warn('[SearchScreen] Error loading top searches:', err);
-      } finally {
-        if (isMounted) setLoadingTopSearches(false);
+        console.warn('[SearchScreen] Error loading trending:', err);
       }
     }
-    loadTopSearches();
+    loadTrending();
     return () => { isMounted = false; };
   }, []);
 
-  // Real-time debounced TMDB search
   const performSearch = useCallback(async (query) => {
     if (!query || !query.trim()) {
       setSearchResults([]);
@@ -85,418 +141,295 @@ export default function SearchScreen({ onMoviePress }) {
     }, 350);
   };
 
+  const handleChipPress = (term) => {
+    setSearchQuery(term);
+    Keyboard.dismiss();
+    performSearch(term);
+  };
+
   const clearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
     setIsSearching(false);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   };
 
-  const handleChipPress = (title) => {
-    setSearchQuery(title);
-    Keyboard.dismiss();
-    performSearch(title);
-  };
-
-  // Filter items according to active pill
-  const filteredResults = searchResults.filter((item) => {
-    if (selectedFilter === 'all') return true;
-    return item.media_type === selectedFilter;
-  });
-
-  const filteredTopSearches = topSearches.filter((item) => {
-    if (selectedFilter === 'all') return true;
-    return item.media_type === selectedFilter;
-  });
-
-  const renderMediaCard = ({ item, index }) => {
-    const isTv = item.media_type === 'tv' || !item.title;
-    const title = item.title || item.name || 'Untitled';
-    const year = formatYear(item.release_date || item.first_air_date);
-    const rating = item.vote_average ? item.vote_average.toFixed(1) : null;
+  const renderSearchResultItem = ({ item }) => {
     const posterUri = getPosterUrl(item.poster_path || item.backdrop_path);
+    const title = item.title || item.name || '';
+    const year = formatYear(item.release_date || item.first_air_date);
+    const isTv = item.media_type === 'tv' || !item.title;
 
     return (
       <TouchableOpacity
-        style={styles.cardContainer}
-        activeOpacity={0.82}
+        style={styles.trendingRow}
+        activeOpacity={0.8}
         onPress={() => onMoviePress && onMoviePress(item)}
       >
-        <View style={styles.imageWrapper}>
-          <Image
-            source={{ uri: posterUri }}
-            style={styles.posterImage}
-            resizeMode="cover"
-          />
-          <View style={styles.badgeContainer}>
-            <View style={[styles.typeBadge, isTv ? styles.tvBadge : styles.movieBadge]}>
-              <Text style={styles.typeBadgeText}>{isTv ? 'SERIES' : 'MOVIE'}</Text>
-            </View>
-          </View>
-          {rating && (
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={scale(9)} color="#f59e0b" />
-              <Text style={styles.ratingText}>{rating}</Text>
-            </View>
-          )}
+        <Image
+          source={{ uri: posterUri }}
+          style={styles.itemThumb}
+          resizeMode="cover"
+        />
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemTitle} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.itemSubtitle}>
+            {isTv ? 'Series' : 'Movie'}{year ? ` • ${year}` : ''}
+          </Text>
         </View>
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {title}
-        </Text>
-        {year ? <Text style={styles.cardYear}>{year}</Text> : null}
-      </TouchableOpacity>
-    );
-  };
-
-  const renderTrendingChip = (item) => {
-    const title = item.title || item.name;
-    if (!title) return null;
-    return (
-      <TouchableOpacity
-        key={`chip-${item.id}`}
-        style={styles.chip}
-        activeOpacity={0.7}
-        onPress={() => handleChipPress(title)}
-      >
-        <Ionicons name="trending-up-outline" size={scale(13)} color="#38bdf8" />
-        <Text style={styles.chipText} numberOfLines={1}>{title}</Text>
+        <Ionicons name="chevron-forward" size={scale(18)} color={colors.textMuted} />
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Top Header & Search Bar */}
-        <View style={styles.searchHeader}>
-          <Text style={styles.screenHeading}>Search</Text>
+    <View style={styles.container}>
+      {/* Search Input Bar matching Image 2 Screen 8 with camera hole avoidance */}
+      <View style={[styles.searchBarContainer, { paddingTop: topPadding }]}>
+        {onBack && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={scale(22)} color={colors.textPrimary} />
+          </TouchableOpacity>
+        )}
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={scale(19)} color={colors.textMuted} style={styles.searchIcon} />
+          <TextInput
+            ref={inputRef}
+            style={styles.searchInput}
+            placeholder="Search movies, series, actors..."
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={handleQueryChange}
+            autoCorrect={false}
+            returnKeyType="search"
+            onSubmitEditing={() => performSearch(searchQuery)}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
+              <Ionicons name="close-circle" size={scale(18)} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="search" size={scale(18)} color="#9ca3af" style={styles.searchIcon} />
-            <TextInput
-              ref={inputRef}
-              style={styles.textInput}
-              placeholder="Search movies, series, anime..."
-              placeholderTextColor="#6b7280"
-              value={searchQuery}
-              onChangeText={handleQueryChange}
-              autoCorrect={false}
-              returnKeyType="search"
-              onSubmitEditing={() => performSearch(searchQuery)}
-            />
-            {isSearching ? (
-              <ActivityIndicator size="small" color="#38bdf8" style={styles.rightIcon} />
-            ) : searchQuery.length > 0 ? (
-              <TouchableOpacity onPress={clearSearch} style={styles.rightIcon} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close-circle" size={scale(18)} color="#9ca3af" />
-              </TouchableOpacity>
-            ) : null}
+      {/* When searching, show live results */}
+      {searchQuery.trim().length > 0 ? (
+        isSearching ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Searching...</Text>
+          </View>
+        ) : searchResults.length > 0 ? (
+          <FlatList
+            data={searchResults}
+            keyExtractor={(item, index) => `search-${item.id || index}`}
+            renderItem={renderSearchResultItem}
+            contentContainerStyle={styles.resultsList}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="film-outline" size={scale(44)} color={colors.textMuted} />
+            <Text style={styles.emptyTitle}>No Results Found</Text>
+            <Text style={styles.emptySub}>We couldn't find anything matching "{searchQuery}".</Text>
+          </View>
+        )
+      ) : (
+        /* Default View matching Image 2 Screen 8 */
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Section: Popular Searches */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Popular Searches</Text>
+            <View style={styles.chipsContainer}>
+              {POPULAR_SEARCH_CHIPS.map((chip, idx) => (
+                <TouchableOpacity
+                  key={`chip-${idx}`}
+                  style={styles.chip}
+                  activeOpacity={0.75}
+                  onPress={() => handleChipPress(chip)}
+                >
+                  <Text style={styles.chipText}>{chip}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
-          {/* Filter Pills (All / Movies / TV Series) */}
-          <View style={styles.filterRow}>
-            {[
-              { id: 'all', label: 'All' },
-              { id: 'movie', label: 'Movies' },
-              { id: 'tv', label: 'TV Series' }
-            ].map((f) => {
-              const active = selectedFilter === f.id;
+          {/* Section: Trending Now */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Trending Now</Text>
+            {topSearches.map((item, index) => {
+              const posterUri = item.image || getPosterUrl(item.poster_path);
+              const title = item.title || item.name || '';
+              const year = item.year || (item.release_date || item.first_air_date || '').split('-')[0] || '2022';
+              const genre = item.genre || 'Action';
+
               return (
                 <TouchableOpacity
-                  key={f.id}
-                  style={[styles.filterPill, active && styles.filterPillActive]}
-                  onPress={() => setSelectedFilter(f.id)}
-                  activeOpacity={0.75}
+                  key={`trending-${item.id || index}`}
+                  style={styles.trendingRow}
+                  activeOpacity={0.8}
+                  onPress={() => onMoviePress && onMoviePress(item)}
                 >
-                  <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>
-                    {f.label}
-                  </Text>
+                  <Image
+                    source={{ uri: posterUri }}
+                    style={styles.itemThumb}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemTitle} numberOfLines={1}>
+                      {title}
+                    </Text>
+                    <Text style={styles.itemSubtitle}>
+                      {genre} • {year}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={scale(18)} color={colors.textMuted} />
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
-
-        {/* Content Body */}
-        {searchQuery.trim().length > 0 ? (
-          /* Search Results Grid */
-          filteredResults.length > 0 ? (
-            <FlatList
-              data={filteredResults}
-              keyExtractor={(item, index) => `search-${item.id}-${index}`}
-              renderItem={renderMediaCard}
-              numColumns={3}
-              initialNumToRender={12}
-              maxToRenderPerBatch={12}
-              windowSize={5}
-              removeClippedSubviews={Platform.OS === 'android'}
-              contentContainerStyle={styles.gridContent}
-              showsVerticalScrollIndicator={false}
-              keyboardDismissMode="on-drag"
-            />
-          ) : !isSearching ? (
-            <View style={styles.emptyStateContainer}>
-              <Ionicons name="film-outline" size={scale(48)} color="#4b5563" />
-              <Text style={styles.emptyStateTitle}>No results found</Text>
-              <Text style={styles.emptyStateSub}>
-                We couldn't find anything for "{searchQuery}". Try searching for another movie or series title.
-              </Text>
-            </View>
-          ) : null
-        ) : (
-          /* Top Searches Today (Daily TMDB trending) */
-          <FlatList
-            data={filteredTopSearches}
-            keyExtractor={(item, index) => `top-${item.id}-${index}`}
-            renderItem={renderMediaCard}
-            numColumns={3}
-            initialNumToRender={12}
-            maxToRenderPerBatch={12}
-            windowSize={5}
-            removeClippedSubviews={Platform.OS === 'android'}
-            contentContainerStyle={styles.gridContent}
-            showsVerticalScrollIndicator={false}
-            keyboardDismissMode="on-drag"
-            ListHeaderComponent={
-              <View style={styles.topSearchesHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <Ionicons name="flame" size={scale(18)} color="#f97316" />
-                  <Text style={styles.sectionTitle}>Top Searches Today</Text>
-                </View>
-                {/* Horizontal Trending Quick Chips */}
-                <View style={styles.chipsContainer}>
-                  {topSearches.slice(0, 6).map(renderTrendingChip)}
-                </View>
-              </View>
-            }
-            ListEmptyComponent={
-              loadingTopSearches ? (
-                <View style={styles.loaderContainer}>
-                  <ActivityIndicator size="large" color="#38bdf8" />
-                  <Text style={styles.loaderText}>Fetching daily trending titles...</Text>
-                </View>
-              ) : null
-            }
-          />
-        )}
-      </View>
-    </SafeAreaView>
+        </ScrollView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#09090b',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#09090b',
+    backgroundColor: '#FFFFFF',
   },
-  searchHeader: {
-    paddingHorizontal: scale(16),
-    paddingTop: Platform.OS === 'android' ? verticalScale(18) : verticalScale(8),
-    paddingBottom: verticalScale(10),
-    backgroundColor: '#09090b',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  screenHeading: {
-    fontSize: moderateScale(24),
-    fontWeight: '800',
-    color: '#f3f4f6',
-    letterSpacing: -0.5,
-    marginBottom: verticalScale(12),
-  },
-  inputContainer: {
+  searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#18181b',
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(12),
+    backgroundColor: '#FFFFFF',
+  },
+  backButton: {
+    padding: scale(6),
+    marginRight: scale(8),
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
     borderRadius: scale(14),
     paddingHorizontal: scale(12),
     height: verticalScale(44),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   searchIcon: {
     marginRight: scale(8),
   },
-  textInput: {
+  searchInput: {
     flex: 1,
-    color: '#f9fafb',
+    color: colors.textPrimary,
     fontSize: moderateScale(14),
-    paddingVertical: 0,
     fontWeight: '500',
+    paddingVertical: 0,
   },
-  rightIcon: {
-    marginLeft: scale(6),
+  clearBtn: {
+    padding: scale(4),
   },
-  filterRow: {
-    flexDirection: 'row',
-    marginTop: verticalScale(12),
-    gap: scale(8),
+  scrollContent: {
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(100),
   },
-  filterPill: {
-    paddingHorizontal: scale(14),
-    paddingVertical: verticalScale(5),
-    borderRadius: scale(20),
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.10)',
-  },
-  filterPillActive: {
-    backgroundColor: '#38bdf8',
-    borderColor: '#38bdf8',
-  },
-  filterPillText: {
-    color: '#9ca3af',
-    fontSize: moderateScale(12),
-    fontWeight: '600',
-  },
-  filterPillTextActive: {
-    color: '#09090b',
-    fontWeight: '700',
-  },
-  topSearchesHeader: {
-    marginBottom: verticalScale(12),
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: verticalScale(10),
-    gap: scale(6),
+  section: {
+    marginBottom: verticalScale(22),
   },
   sectionTitle: {
-    fontSize: moderateScale(16),
-    fontWeight: '700',
-    color: '#f3f4f6',
-    letterSpacing: -0.2,
+    color: colors.textPrimary,
+    fontSize: moderateScale(17),
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    marginBottom: verticalScale(12),
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: scale(6),
-    marginBottom: verticalScale(8),
+    gap: scale(8),
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1f2937',
-    paddingHorizontal: scale(10),
-    paddingVertical: verticalScale(5),
-    borderRadius: scale(16),
-    gap: scale(5),
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(7),
+    borderRadius: scale(18),
   },
   chipText: {
-    color: '#e5e7eb',
-    fontSize: moderateScale(11),
-    fontWeight: '500',
-    maxWidth: scale(110),
+    color: '#374151',
+    fontSize: moderateScale(12.5),
+    fontWeight: '600',
   },
-  gridContent: {
-    paddingHorizontal: scale(16),
-    paddingTop: verticalScale(14),
-    paddingBottom: verticalScale(110),
-  },
-  cardContainer: {
-    width: COLUMN_WIDTH,
-    marginBottom: verticalScale(16),
-    marginRight: scale(6),
-  },
-  imageWrapper: {
-    width: '100%',
-    height: COLUMN_WIDTH * 1.5,
-    borderRadius: scale(10),
-    overflow: 'hidden',
-    backgroundColor: '#18181b',
-    position: 'relative',
-  },
-  posterImage: {
-    width: '100%',
-    height: '100%',
-  },
-  badgeContainer: {
-    position: 'absolute',
-    top: scale(5),
-    left: scale(5),
-  },
-  typeBadge: {
-    paddingHorizontal: scale(5),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(4),
-  },
-  movieBadge: {
-    backgroundColor: 'rgba(14, 165, 233, 0.90)',
-  },
-  tvBadge: {
-    backgroundColor: 'rgba(168, 85, 247, 0.90)',
-  },
-  typeBadgeText: {
-    color: '#ffffff',
-    fontSize: moderateScale(8),
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  ratingBadge: {
-    position: 'absolute',
-    bottom: scale(5),
-    right: scale(5),
+  trendingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingHorizontal: scale(5),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(4),
-    gap: scale(2),
+    paddingVertical: verticalScale(8),
   },
-  ratingText: {
-    color: '#f9fafb',
-    fontSize: moderateScale(9),
+  itemThumb: {
+    width: scale(64),
+    height: verticalScale(64),
+    borderRadius: scale(12),
+    backgroundColor: '#F3F4F6',
+  },
+  itemInfo: {
+    flex: 1,
+    marginLeft: scale(14),
+    justifyContent: 'center',
+  },
+  itemTitle: {
+    color: colors.textPrimary,
+    fontSize: moderateScale(14.5),
     fontWeight: '700',
+    marginBottom: verticalScale(3),
   },
-  cardTitle: {
-    color: '#f3f4f6',
-    fontSize: moderateScale(11),
-    fontWeight: '600',
-    marginTop: verticalScale(5),
+  itemSubtitle: {
+    color: colors.textSecondary,
+    fontSize: moderateScale(12),
+    fontWeight: '500',
   },
-  cardYear: {
-    color: '#9ca3af',
-    fontSize: moderateScale(10),
-    marginTop: verticalScale(1),
+  resultsList: {
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(100),
   },
-  emptyStateContainer: {
+  loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: scale(32),
     paddingTop: verticalScale(60),
   },
-  emptyStateTitle: {
-    color: '#f3f4f6',
-    fontSize: moderateScale(16),
-    fontWeight: '700',
-    marginTop: verticalScale(12),
+  loadingText: {
+    color: colors.textSecondary,
+    fontSize: moderateScale(13),
+    marginTop: verticalScale(8),
   },
-  emptyStateSub: {
-    color: '#9ca3af',
-    fontSize: moderateScale(12),
-    textAlign: 'center',
-    marginTop: verticalScale(6),
-    lineHeight: verticalScale(18),
-  },
-  loaderContainer: {
-    paddingVertical: verticalScale(40),
+  emptyContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: verticalScale(60),
+    paddingHorizontal: scale(32),
   },
-  loaderText: {
-    color: '#9ca3af',
-    fontSize: moderateScale(12),
-    marginTop: verticalScale(10),
-  }
+  emptyTitle: {
+    color: colors.textPrimary,
+    fontSize: moderateScale(17),
+    fontWeight: '800',
+    marginTop: verticalScale(12),
+  },
+  emptySub: {
+    color: colors.textSecondary,
+    fontSize: moderateScale(12.5),
+    textAlign: 'center',
+    marginTop: verticalScale(4),
+  },
 });

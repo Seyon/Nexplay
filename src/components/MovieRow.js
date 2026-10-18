@@ -3,18 +3,29 @@ import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { getPosterUrl } from '../utils/api';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
+import { colors } from '../config/theme';
+
+// Common Genre ID map for subtitle fallback
+const GENRE_MAP = {
+  28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
+  80: "Crime", 99: "Doc", 18: "Drama", 10751: "Family",
+  14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music",
+  9648: "Mystery", 10749: "Romance", 878: "Sci-Fi", 53: "Thriller",
+  10752: "War", 37: "Western", 10759: "Action", 10765: "Sci-Fi"
+};
 
 export default function MovieRow({ 
   title, 
   data, 
   categoryKey, 
   onMoviePress, 
-  onSeeMore 
+  onSeeMore,
+  showRating = true,
+  showSeasons = false 
 }) {
   if (!data || data.length === 0) return null;
 
-  // Max 10 items displayed in the home row
-  const displayData = data.slice(0, 10);
+  const displayData = data.slice(0, 12);
 
   const handleSeeMore = () => {
     if (onSeeMore) {
@@ -26,67 +37,105 @@ export default function MovieRow({
     }
   };
 
+  const getGenreName = (item) => {
+    if (showSeasons) {
+      const s = item.number_of_seasons || 1;
+      return s === 1 ? '1 Season' : `${s} Seasons`;
+    }
+    if (item.genre) return item.genre;
+    if (item.genre_ids && item.genre_ids.length > 0) {
+      return GENRE_MAP[item.genre_ids[0]] || 'Sci-Fi';
+    }
+    if (item.genres && item.genres.length > 0) {
+      return typeof item.genres[0] === 'object' ? item.genres[0].name : item.genres[0];
+    }
+    return 'Action';
+  };
+
+  const getSubtitle = (item) => {
+    const genre = getGenreName(item);
+    const year = item.year || (item.release_date || item.first_air_date || '').split('-')[0];
+    if (year) {
+      return `${genre}  •  ${year}`;
+    }
+    return genre;
+  };
+
   const renderItem = ({ item }) => {
-    const posterUri = getPosterUrl(item.poster_path || item.image);
+    let posterUri = item.image;
+    if (!posterUri && item.poster_path) {
+      posterUri = getPosterUrl(item.poster_path);
+    } else if (!posterUri && item.backdrop_path) {
+      posterUri = getPosterUrl(item.backdrop_path);
+    }
+    if (!posterUri) {
+      posterUri = 'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg';
+    }
+
     const itemTitle = item.title || item.name || '';
-    const rating = item.vote_average ? Number(item.vote_average).toFixed(1) : null;
+    const rating = item.vote_average ? Number(item.vote_average).toFixed(1) : '8.0';
+    const subtitle = getSubtitle(item);
+    const quality = item.quality || 'HD';
 
     return (
       <TouchableOpacity 
         style={styles.cardContainer}
-        activeOpacity={0.8}
+        activeOpacity={0.84}
         onPress={() => onMoviePress && onMoviePress(item)}
       >
+        {/* Rounded Poster with Badges (proportions matching Image 1: 3.5 cards visible) */}
         <View style={styles.imageWrapper}>
           <Image 
             source={{ uri: posterUri }} 
             style={styles.posterImage}
             resizeMode="cover"
           />
-          {rating && (
+
+          {/* Top-Right HD Badge */}
+          <View style={styles.hdBadge}>
+            <Text style={styles.hdText}>{quality}</Text>
+          </View>
+
+          {/* Bottom-Left Gold Star Rating Overlay */}
+          {showRating && rating ? (
             <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={scale(9)} color="#f59e0b" />
-              <Text style={styles.ratingText}>{rating}</Text>
+              <Ionicons name="star" size={scale(8.5)} color="#FACC15" />
+              <Text style={styles.ratingBadgeText}>{rating}</Text>
             </View>
-          )}
+          ) : null}
         </View>
-        <Text numberOfLines={2} style={styles.titleText}>
+
+        {/* Title Below */}
+        <Text numberOfLines={1} style={styles.titleText}>
           {itemTitle}
         </Text>
-      </TouchableOpacity>
-    );
-  };
 
-  const renderSeeMoreCard = () => {
-    if (!onSeeMore) return null;
-    return (
-      <TouchableOpacity
-        style={styles.seeMoreCard}
-        activeOpacity={0.75}
-        onPress={handleSeeMore}
-      >
-        <View style={styles.seeMoreIconWrapper}>
-          <Ionicons name="arrow-forward-circle" size={scale(32)} color="#38bdf8" />
-          <Text style={styles.seeMoreCardTitle}>Explore All</Text>
-          <Text style={styles.seeMoreCardSub}>New to Old</Text>
-        </View>
+        {/* Subtitle: Genre • Year */}
+        <Text numberOfLines={1} style={styles.subtitleText}>
+          {subtitle}
+        </Text>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.sectionContainer}>
-      {/* Section Header with Title & See More button */}
+      {/* Section Header with Vertical Red Bar, Title & See All > link */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.verticalBar} />
+          <Text style={styles.sectionTitle}>{title}</Text>
+        </View>
+
         {onSeeMore && (
           <TouchableOpacity 
-            style={styles.seeMoreButton} 
+            style={styles.seeAllButton} 
             activeOpacity={0.7} 
             onPress={handleSeeMore}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.seeMoreText}>See More</Text>
-            <Ionicons name="chevron-forward" size={scale(14)} color="#38bdf8" />
+            <Text style={styles.seeAllText}>See All</Text>
+            <Ionicons name="chevron-forward" size={scale(12)} color="#64748B" />
           </TouchableOpacity>
         )}
       </View>
@@ -101,7 +150,6 @@ export default function MovieRow({
         keyExtractor={(item, index) => (item.id ? `movie-${categoryKey || 'cat'}-${item.id}` : `movie-idx-${index}`)}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        ListFooterComponent={renderSeeMoreCard}
       />
     </View>
   );
@@ -109,106 +157,109 @@ export default function MovieRow({
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    marginVertical: verticalScale(14),
+    marginTop: verticalScale(8),
+    marginBottom: verticalScale(4),
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: scale(16),
-    marginBottom: verticalScale(10),
+    marginBottom: verticalScale(6),
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  verticalBar: {
+    width: scale(3.5),
+    height: verticalScale(15),
+    backgroundColor: colors.primary,
+    borderRadius: scale(1.5),
+    marginRight: scale(6),
   },
   sectionTitle: {
-    color: '#ffffff',
-    fontSize: moderateScale(19),
+    color: '#0F172A',
+    fontSize: moderateScale(15.5),
     fontWeight: '800',
     letterSpacing: -0.3,
   },
-  seeMoreButton: {
+  seeAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(2),
-    paddingVertical: verticalScale(4),
-    paddingHorizontal: scale(6),
   },
-  seeMoreText: {
-    color: '#38bdf8',
-    fontSize: moderateScale(12),
-    fontWeight: '700',
+  seeAllText: {
+    color: '#64748B',
+    fontSize: moderateScale(11.5),
+    fontWeight: '500',
   },
   listContent: {
     paddingHorizontal: scale(16),
   },
   cardContainer: {
-    width: scale(115),
-    marginRight: scale(12),
+    width: scale(98),
+    marginRight: scale(10),
   },
   imageWrapper: {
-    width: scale(115),
-    height: verticalScale(168),
+    width: scale(98),
+    height: Math.round(scale(98) * 1.48),
     borderRadius: scale(10),
     overflow: 'hidden',
-    backgroundColor: '#18181b',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#0F172A',
     position: 'relative',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
   },
   posterImage: {
     width: '100%',
     height: '100%',
   },
+  hdBadge: {
+    position: 'absolute',
+    top: scale(4),
+    right: scale(4),
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: scale(3.5),
+    paddingVertical: verticalScale(1),
+    borderRadius: scale(3),
+  },
+  hdText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(8),
+    fontWeight: '700',
+  },
   ratingBadge: {
     position: 'absolute',
-    top: scale(6),
-    right: scale(6),
+    bottom: scale(4),
+    left: scale(4),
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(9, 9, 11, 0.78)',
-    paddingHorizontal: scale(5),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(5),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    gap: scale(2.5),
+    gap: scale(2),
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: scale(4),
+    paddingVertical: verticalScale(1),
+    borderRadius: scale(3),
   },
-  ratingText: {
-    color: '#f9fafb',
+  ratingBadgeText: {
+    color: '#FFFFFF',
     fontSize: moderateScale(9),
     fontWeight: '700',
   },
   titleText: {
-    color: '#a1a1aa',
-    fontSize: moderateScale(13),
-    fontWeight: '500',
-    marginTop: verticalScale(6),
-    lineHeight: moderateScale(16),
-  },
-  seeMoreCard: {
-    width: scale(100),
-    height: verticalScale(168),
-    borderRadius: scale(10),
-    backgroundColor: '#18181b',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: scale(16),
-  },
-  seeMoreIconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  seeMoreCardTitle: {
-    color: '#f3f4f6',
-    fontSize: moderateScale(12),
+    color: '#0F172A',
+    fontSize: moderateScale(11.5),
     fontWeight: '700',
-    marginTop: verticalScale(6),
+    marginTop: verticalScale(4),
+    lineHeight: moderateScale(15),
   },
-  seeMoreCardSub: {
-    color: '#38bdf8',
-    fontSize: moderateScale(9.5),
-    fontWeight: '600',
-    marginTop: verticalScale(2),
-  }
+  subtitleText: {
+    color: '#64748B',
+    fontSize: moderateScale(10),
+    fontWeight: '500',
+    marginTop: verticalScale(1),
+  },
 });

@@ -4,16 +4,21 @@ import {
   Text, 
   View, 
   FlatList, 
-  ImageBackground, 
+  Image, 
   TouchableOpacity, 
-  Animated as RNAnimated 
+  Dimensions 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getBackdropUrl, getPosterUrl, formatRuntime } from '../utils/api';
-import CinematicLogo from './CinematicLogo';
-import { scale, verticalScale, moderateScale, SCREEN_WIDTH, SCREEN_HEIGHT } from '../utils/responsive';
+import { getBackdropUrl, getPosterUrl } from '../utils/api';
+import { scale, verticalScale, moderateScale } from '../utils/responsive';
+import { colors } from '../config/theme';
+
+const { width: WINDOW_WIDTH } = Dimensions.get('window');
+const SLIDE_WIDTH = WINDOW_WIDTH;
+const CARD_WIDTH = WINDOW_WIDTH - scale(32);
+// Compact landscape cinematic banner matching Image 1 target (~0.63 aspect ratio, ~225-230dp)
+const CARD_HEIGHT = Math.round(CARD_WIDTH * 0.63);
 
 // Genre ID to name mapping
 const GENRE_MAP = {
@@ -21,35 +26,25 @@ const GENRE_MAP = {
   80: "Crime", 99: "Doc", 18: "Drama", 10751: "Family",
   14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music",
   9648: "Mystery", 10749: "Romance", 878: "Sci-Fi", 53: "Thriller",
-  10752: "War", 37: "Western", 10759: "Action & Adv", 10765: "Sci-Fi & Fantasy"
+  10752: "War", 37: "Western", 10759: "Action", 10765: "Sci-Fi"
 };
 
-const DEFAULT_BANNER = {
-  id: 693134,
-  title: 'Dune: Part Two',
-  tag: 'Top 10 Weekly',
-  backdrop_path: '/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg',
-  poster_path: '/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
-  overview: 'Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family.',
-  vote_average: 8.2,
-  release_date: '2024-02-27',
-  runtime: 166,
-  genre_ids: [878, 12],
-  media_type: 'movie'
-};
+export default function HeroCarousel({ 
+  movies = [], 
+  onMoviePress,
+  badgeTitle = 'Trending Now'
+}) {
+  if (!movies || movies.length === 0) return null;
 
-export default function HeroCarousel({ movies = [], onMoviePress }) {
-  const insets = useSafeAreaInsets();
-  const topPadding = Math.max(insets.top, 14);
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
-  const scrollX = useRef(new RNAnimated.Value(0)).current;
   const isInteracting = useRef(false);
 
-  // Take top 10 weekly items
-  const data = movies.length > 0 ? movies.slice(0, 10) : [DEFAULT_BANNER];
+  // Take up to 10 curated hero items
+  const data = movies.slice(0, 10);
+  if (data.length === 0) return null;
 
-  // Auto-play interval (every 5 seconds)
+  // Auto-play interval
   useEffect(() => {
     if (data.length <= 1) return;
 
@@ -64,441 +59,371 @@ export default function HeroCarousel({ movies = [], onMoviePress }) {
           });
         } catch (e) {
           flatListRef.current?.scrollToOffset({
-            offset: next * SCREEN_WIDTH,
+            offset: next * SLIDE_WIDTH,
             animated: true
           });
         }
         return next;
       });
-    }, 5000);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [data.length]);
 
   const onMomentumScrollEnd = (e) => {
-    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    const index = Math.round(e.nativeEvent.contentOffset.x / SLIDE_WIDTH);
     setActiveIndex(index);
     isInteracting.current = false;
   };
 
-  const renderSlide = ({ item, index }) => {
-    const isTV = item.media_type === 'tv' ? true :
-                 item.media_type === 'movie' ? false :
-                 (Boolean(item.first_air_date) && !item.release_date && !item.title);
-    const titleText = item.title || item.name || 'Featured Title';
+  const renderSlide = ({ item }) => {
+    const titleText = item.title || item.name || 'John Wick';
     
-    // Resolve backdrop/poster URI
+    // Resolve backdrop/poster URI with reliable fallback
     let imageUri = 'https://image.tmdb.org/t/p/original/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg';
-    if (item.backdrop_path) {
+    if (item.image) {
+      imageUri = item.image;
+    } else if (item.backdrop_path) {
       imageUri = getBackdropUrl(item.backdrop_path);
     } else if (item.poster_path) {
       imageUri = getPosterUrl(item.poster_path);
-    } else if (item.image) {
-      imageUri = item.image;
     }
 
-    // 1. Rating
-    const rawRating = item.vote_average || 8.0;
-    const ratingText = rawRating > 0 ? rawRating.toFixed(1) : '8.0';
-
-    // 2. Year
     const dateStr = item.release_date || item.first_air_date || '';
-    const year = dateStr ? dateStr.split('-')[0] : '2024';
+    const year = item.year || (dateStr ? dateStr.split('-')[0] : '2014');
 
-    // 3. Duration / Seasons
-    let durationText = '2h 15m';
-    if (isTV) {
-      const seasons = item.number_of_seasons || 1;
-      durationText = seasons === 1 ? '1 Season' : `${seasons} Seasons`;
-    } else if (item.runtime) {
-      durationText = formatRuntime(item.runtime);
+    // Genre names formatted with bullet
+    let genreNames = item.genre_names;
+    if (!genreNames) {
+      const genreIds = item.genre_ids || (item.genres ? item.genres.map(g => typeof g === 'object' ? g.name : GENRE_MAP[g]) : []);
+      if (Array.isArray(genreIds) && genreIds.length > 0) {
+        genreNames = genreIds
+          .map(id => typeof id === 'string' ? id : GENRE_MAP[id])
+          .filter(Boolean)
+          .slice(0, 2)
+          .join('  •  ');
+      }
+    }
+    if (!genreNames) {
+      genreNames = 'Action  •  Thriller';
     }
 
-    // 4. Genres (up to 2)
-    let genreText = 'Action • Sci-Fi';
-    if (item.genres && Array.isArray(item.genres) && item.genres.length > 0) {
-      genreText = item.genres.slice(0, 2).map((g) => g.name).join(' • ');
-    } else if (item.genre_ids && Array.isArray(item.genre_ids) && item.genre_ids.length > 0) {
-      genreText = item.genre_ids
-        .slice(0, 2)
-        .map((id) => GENRE_MAP[id] || 'Drama')
-        .join(' • ');
-    }
+    // Synopsis / Overview text (compact 2 lines)
+    const overviewText = item.overview || 
+      (item.title === 'John Wick' 
+        ? 'An ex-hitman comes out of retirement to track down the people who killed his dog.'
+        : 'An exciting story unfolds as the journey takes an unexpected turn into high-stakes thrills.');
 
-    // 5. Dynamic Badge Text: "New Episode" for TV Series, "New Release" for Movies
-    const badgeText = item.tag || (isTV ? 'New Episode' : 'New Release');
+    const qualityText = item.quality || 'HD';
+    const ageRatingText = item.age_rating || '16+';
+    const currentBadge = item.badge || badgeTitle;
 
     return (
       <View style={styles.slideContainer}>
-        <ImageBackground
-          source={{ uri: imageUri }}
-          style={styles.backgroundImage}
-          resizeMode="cover"
+        <TouchableOpacity 
+          style={styles.cardContainer}
+          activeOpacity={0.94}
+          onPress={() => onMoviePress && onMoviePress(item)}
         >
+          {/* 1. Backdrop image layer */}
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.backgroundImage}
+            resizeMode="cover"
+          />
+
+          {/* 2. Full-bleed gradient overlay with explicit zIndex and bottom-pinning */}
           <LinearGradient
             colors={[
-              'rgba(9, 9, 11, 0.2)',
               'transparent',
-              'rgba(9, 9, 11, 0.45)',
-              'rgba(9, 9, 11, 0.88)',
-              '#09090b'
+              'rgba(15, 23, 42, 0.22)',
+              'rgba(15, 23, 42, 0.78)',
+              'rgba(10, 15, 30, 0.98)'
             ]}
-            locations={[0, 0.25, 0.55, 0.85, 1]}
+            locations={[0, 0.30, 0.62, 1.0]}
             style={styles.gradient}
           >
-            <View style={styles.slideContent}>
-              {/* Badge */}
-              <View style={styles.badgeContainer}>
-                <Ionicons name="checkmark-circle" size={scale(14)} color="#3fa9f5" style={styles.badgeIcon} />
-                <Text style={styles.badgeText}>{badgeText}</Text>
+            <View style={styles.contentOverlay}>
+              {/* 1. Red "Trending Now" Pill Badge at top-left */}
+              <View style={styles.badgePill}>
+                <Text style={styles.badgeText}>{currentBadge}</Text>
               </View>
 
-              {/* Title */}
-              <Text style={styles.titleText} numberOfLines={2}>
+              {/* 2. Featured movie or series title directly beneath badge */}
+              <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
                 {titleText}
               </Text>
 
-              {/* Rich Metadata Line: Rating • Type • Year • Duration • Genres */}
-              <View style={styles.metadataRow}>
-                {/* Rating Badge */}
-                <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={scale(12)} color="#eab308" />
-                  <Text style={styles.ratingText}>{ratingText}</Text>
+              {/* 3. One compact metadata row: Genre • Year | [HD] [16+] */}
+              <View style={styles.metaRow}>
+                <Text style={styles.metaGenresText}>{genreNames}</Text>
+                <Text style={styles.metaBullet}>•</Text>
+                <Text style={styles.metaYearText}>{year}</Text>
+
+                <Text style={styles.metaDivider}>|</Text>
+
+                <View style={styles.specBadge}>
+                  <Text style={styles.specBadgeText}>{qualityText}</Text>
                 </View>
 
-                {/* Media Type Badge (Movie / TV Series) */}
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeText}>{isTV ? 'TV Series' : 'Movie'}</Text>
+                <View style={styles.specBadge}>
+                  <Text style={styles.specBadgeText}>{ageRatingText}</Text>
                 </View>
-
-                {/* Release Year */}
-                <Text style={styles.metaDot}>•</Text>
-                <Text style={styles.metaText}>{year}</Text>
-
-                {/* Duration / Seasons */}
-                <Text style={styles.metaDot}>•</Text>
-                <Text style={styles.metaText}>{durationText}</Text>
-
-                {/* Genre */}
-                <Text style={styles.metaDot}>•</Text>
-                <Text style={styles.metaText} numberOfLines={1}>{genreText}</Text>
               </View>
 
-              {/* Action Buttons */}
+              {/* 4. Short description with a maximum of two lines */}
+              <Text style={styles.overviewText} numberOfLines={2} ellipsizeMode="tail">
+                {overviewText}
+              </Text>
+
+              {/* 5. One horizontal action row containing Play and My List buttons side by side */}
               <View style={styles.buttonRow}>
-                {/* Play Button */}
                 <TouchableOpacity 
-                  style={styles.playButton} 
+                  style={styles.playButton}
                   activeOpacity={0.85}
                   onPress={() => onMoviePress && onMoviePress(item)}
                 >
-                  <Ionicons name="play" size={scale(18)} color="#000" />
+                  <Ionicons name="play" size={scale(13.5)} color="#FFFFFF" />
                   <Text style={styles.playButtonText}>Play</Text>
                 </TouchableOpacity>
 
-                {/* More Info Button */}
                 <TouchableOpacity 
-                  style={styles.infoButton} 
-                  activeOpacity={0.85}
+                  style={styles.myListButton}
+                  activeOpacity={0.8}
                   onPress={() => onMoviePress && onMoviePress(item)}
                 >
-                  <Ionicons name="information-circle-outline" size={scale(20)} color="#fff" style={styles.infoIcon} />
-                  <Text style={styles.infoButtonText}>More Info</Text>
+                  <Ionicons name="add" size={scale(15.5)} color="#FFFFFF" />
+                  <Text style={styles.myListButtonText}>My List</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* 6. Carousel pagination dots positioned immediately beneath action row */}
+              {data.length > 1 && (
+                <View style={styles.paginationRow}>
+                  {data.map((_, idx) => (
+                    <View 
+                      key={idx} 
+                      style={[
+                        styles.dot, 
+                        idx === activeIndex ? styles.activeDot : styles.inactiveDot
+                      ]} 
+                    />
+                  ))}
+                </View>
+              )}
             </View>
           </LinearGradient>
-        </ImageBackground>
+        </TouchableOpacity>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      {/* Top NexPlay App Branding Header */}
-      <LinearGradient
-        colors={['rgba(9, 9, 11, 0.95)', 'rgba(9, 9, 11, 0.7)', 'transparent']}
-        locations={[0, 0.6, 1]}
-        style={[styles.brandingHeader, { paddingTop: topPadding }]}
-        pointerEvents="box-none"
-      >
-        <View style={styles.brandRow}>
-          {/* Master Cinematic Logo */}
-          <CinematicLogo size="sm" showTagline={false} showBadge={true} glow={true} />
-        </View>
-      </LinearGradient>
-
+    <View style={styles.wrapper}>
       <FlatList
         ref={flatListRef}
         data={data}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(item, idx) => (item.id ? item.id.toString() : idx.toString())}
+        keyExtractor={(item, index) => (item.id ? `hero-${item.id}` : `hero-idx-${index}`)}
         renderItem={renderSlide}
         onMomentumScrollEnd={onMomentumScrollEnd}
         onScrollBeginDrag={() => { isInteracting.current = true; }}
-        getItemLayout={(data, index) => ({
-          length: SCREEN_WIDTH,
-          offset: SCREEN_WIDTH * index,
-          index
-        })}
-        onScrollToIndexFailed={(info) => {
-          setTimeout(() => {
-            flatListRef.current?.scrollToOffset({
-              offset: info.index * SCREEN_WIDTH,
-              animated: true
-            });
-          }, 100);
-        }}
-        onScroll={RNAnimated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
       />
-
-      {/* Pagination Indicator Dots at the bottom */}
-      <View style={styles.paginationContainer} pointerEvents="none">
-        {data.map((_, i) => {
-          const isActive = i === activeIndex;
-          return (
-            <View 
-              key={i} 
-              style={[
-                styles.paginationDot,
-                isActive ? styles.paginationDotActive : styles.paginationDotInactive
-              ]}
-            />
-          );
-        })}
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.54,
-    backgroundColor: '#09090b',
-    position: 'relative',
+  wrapper: {
+    marginTop: verticalScale(2),
+    marginBottom: verticalScale(4),
   },
   slideContainer: {
-    width: SCREEN_WIDTH,
-    height: '100%',
-  },
-  backgroundImage: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'flex-end',
-  },
-  gradient: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingHorizontal: scale(16),
-    paddingBottom: verticalScale(22),
-  },
-  slideContent: {
-    alignItems: 'flex-start',
-    width: '100%',
-  },
-  badgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    paddingVertical: verticalScale(4),
-    paddingHorizontal: scale(10),
-    borderRadius: scale(20),
-    marginBottom: verticalScale(6),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  badgeIcon: {
-    marginRight: scale(5),
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: moderateScale(11),
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  titleText: {
-    color: '#ffffff',
-    fontSize: moderateScale(30),
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginBottom: verticalScale(8),
-    textShadowColor: 'rgba(0, 0, 0, 0.85)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  metadataRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    marginBottom: verticalScale(14),
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(234, 179, 8, 0.18)',
-    paddingVertical: verticalScale(2),
-    paddingHorizontal: scale(6),
-    borderRadius: scale(4),
-    borderWidth: 1,
-    borderColor: 'rgba(234, 179, 8, 0.4)',
-    marginRight: scale(6),
-  },
-  ratingText: {
-    color: '#fde047',
-    fontSize: moderateScale(11),
-    fontWeight: '800',
-    marginLeft: scale(3),
-  },
-  typeBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingVertical: verticalScale(2),
-    paddingHorizontal: scale(6),
-    borderRadius: scale(4),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    marginRight: scale(6),
-  },
-  typeText: {
-    color: '#e4e4e7',
-    fontSize: moderateScale(11),
-    fontWeight: '700',
-  },
-  metaDot: {
-    color: '#71717a',
-    fontSize: moderateScale(12),
-    marginHorizontal: scale(4),
-  },
-  metaText: {
-    color: '#d4d4d8',
-    fontSize: moderateScale(12),
-    fontWeight: '600',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: scale(12),
-  },
-  playButton: {
-    flex: 1,
-    flexDirection: 'row',
+    width: SLIDE_WIDTH,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    paddingVertical: verticalScale(10),
-    borderRadius: scale(8),
-    shadowColor: '#000',
+    paddingHorizontal: scale(16),
+  },
+  cardContainer: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: scale(16),
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
+    position: 'relative',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
     elevation: 6,
   },
-  playButtonText: {
-    color: '#000000',
-    fontSize: moderateScale(15),
-    fontWeight: '700',
-    marginLeft: scale(6),
-  },
-  infoButton: {
-    flex: 1.15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(120, 120, 128, 0.4)',
-    paddingVertical: verticalScale(10),
-    borderRadius: scale(8),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  infoButtonText: {
-    color: '#ffffff',
-    fontSize: moderateScale(15),
-    fontWeight: '600',
-    marginLeft: scale(6),
-  },
-  infoIcon: {
-    marginRight: scale(1),
-  },
-  paginationContainer: {
-    position: 'absolute',
-    bottom: verticalScale(6),
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: scale(5),
-  },
-  paginationDot: {
-    height: verticalScale(4),
-    borderRadius: scale(2),
-  },
-  paginationDotActive: {
-    width: scale(18),
-    backgroundColor: '#38bdf8',
-  },
-  paginationDotInactive: {
-    width: scale(5),
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-  },
-  brandingHeader: {
+  backgroundImage: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 25,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  gradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: 10,
+    elevation: 10,
+    justifyContent: 'flex-end',
     paddingHorizontal: scale(16),
-    paddingBottom: verticalScale(14),
+    paddingBottom: verticalScale(6),
+    paddingTop: verticalScale(10),
   },
-  brandRow: {
+  contentOverlay: {
+    width: '100%',
+  },
+  badgePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primary,
+    paddingHorizontal: scale(8),
+    height: verticalScale(22),
+    borderRadius: scale(6),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: verticalScale(3),
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  titleText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(21),
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    lineHeight: moderateScale(25),
+    marginBottom: verticalScale(2),
+  },
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginBottom: verticalScale(3),
   },
-  brandLeft: {
+  metaGenresText: {
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontSize: moderateScale(11.5),
+    fontWeight: '600',
+  },
+  metaBullet: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: moderateScale(10.5),
+    marginHorizontal: scale(4),
+  },
+  metaYearText: {
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontSize: moderateScale(11.5),
+    fontWeight: '600',
+  },
+  metaDivider: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontSize: moderateScale(10.5),
+    marginHorizontal: scale(6),
+    fontWeight: '300',
+  },
+  specBadge: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    paddingHorizontal: scale(4),
+    paddingVertical: verticalScale(1),
+    borderRadius: scale(3),
+    marginRight: scale(4),
+  },
+  specBadgeText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(8.5),
+    fontWeight: '700',
+  },
+  overviewText: {
+    color: 'rgba(255, 255, 255, 0.88)',
+    fontSize: moderateScale(10.5),
+    lineHeight: moderateScale(14.5),
+    fontWeight: '400',
+    marginBottom: verticalScale(6),
+  },
+  buttonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(8),
+    gap: scale(10),
+    marginBottom: verticalScale(2),
   },
-  brandLogoIcon: {
-    width: scale(26),
-    height: scale(26),
-    borderRadius: scale(7),
-    backgroundColor: '#38bdf8',
+  playButton: {
+    flex: 1,
+    minWidth: 0,
+    height: verticalScale(38),
+    backgroundColor: colors.primary,
+    borderRadius: scale(19),
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#38bdf8',
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
+    gap: scale(5),
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
     elevation: 4,
   },
-  brandTitleText: {
-    fontSize: moderateScale(21),
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: -0.4,
+  playButtonText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
-  brandHighlightText: {
-    color: '#38bdf8',
+  myListButton: {
+    flex: 1,
+    minWidth: 0,
+    height: verticalScale(38),
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderRadius: scale(19),
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.40)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(4),
   },
-  vipBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    borderColor: 'rgba(56, 189, 248, 0.45)',
-    borderWidth: 1,
-    borderRadius: scale(10),
-    paddingHorizontal: scale(6),
-    paddingVertical: verticalScale(2),
+  myListButtonText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(13),
+    fontWeight: '600',
   },
-  vipBadgeText: {
-    color: '#38bdf8',
-    fontSize: moderateScale(8.5),
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  }
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: verticalScale(5),
+    marginBottom: verticalScale(2),
+    gap: scale(5),
+  },
+  dot: {
+    borderRadius: scale(2),
+  },
+  activeDot: {
+    width: scale(16),
+    height: scale(4),
+    borderRadius: scale(2),
+    backgroundColor: colors.primary,
+  },
+  inactiveDot: {
+    width: scale(4),
+    height: scale(4),
+    borderRadius: scale(2),
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+  },
 });

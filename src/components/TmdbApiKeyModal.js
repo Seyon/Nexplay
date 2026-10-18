@@ -17,6 +17,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
 import AppSettings, { saveTmdbApiKey, getTmdbApiKey } from '../utils/AppSettings';
+import CinematicLogo from './CinematicLogo';
+import { colors } from '../config/theme';
 
 export default function TmdbApiKeyModal({
   visible,
@@ -57,7 +59,6 @@ export default function TmdbApiKeyModal({
     setIsSaving(true);
     setErrorMessage('');
     try {
-      // Validate key directly against TMDB
       try {
         const testRes = await fetch(`https://api.themoviedb.org/3/configuration?api_key=${encodeURIComponent(key)}`);
         if (testRes.status === 401) {
@@ -66,7 +67,7 @@ export default function TmdbApiKeyModal({
           return;
         }
       } catch (netErr) {
-        // In case of offline or local network issue, continue to save key
+        // Continue if offline
       }
 
       await saveTmdbApiKey(key);
@@ -117,56 +118,41 @@ export default function TmdbApiKeyModal({
             <View style={styles.card}>
               {/* Header: NexPlay logo + close button */}
               <View style={styles.headerRow}>
-                <View style={styles.logoRow}>
-                  <View style={styles.logoIcon}>
-                    <Ionicons name="play-forward" size={scale(16)} color="#38bdf8" />
-                  </View>
-                  <Text style={styles.logoText}>NexPlay</Text>
-                </View>
+                <CinematicLogo size="sm" darkText={true} />
                 <TouchableOpacity
                   style={styles.closeBtn}
                   activeOpacity={0.7}
                   onPress={handleLaterOrDismiss}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
-                  <Ionicons name="close" size={scale(22)} color="#94a3b8" />
+                  <Ionicons name="close" size={scale(22)} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
-              {/* Graphic: TMDB Capsule + Glowing Blue Key with Sparkles */}
+              {/* Graphic: TMDB Key Icon */}
               <View style={styles.graphicRow}>
-                <View style={styles.tmdbCapsule}>
-                  <Text style={styles.tmdbCapsuleText}>TMDB</Text>
-                  <View style={styles.tmdbIndicatorPill} />
-                </View>
-                <View style={styles.keyContainer}>
-                  <Ionicons name="key" size={scale(26)} color="#38bdf8" />
-                  <View style={styles.sparkleRow}>
-                    <View style={[styles.sparkleRay, { transform: [{ rotate: '-35deg' }] }]} />
-                    <View style={[styles.sparkleRay, { width: scale(8) }]} />
-                    <View style={[styles.sparkleRay, { transform: [{ rotate: '35deg' }] }]} />
-                  </View>
+                <View style={styles.keyIconCircle}>
+                  <Ionicons name="key" size={scale(24)} color={colors.primary} />
                 </View>
               </View>
 
               {/* Title */}
               <View style={styles.titleContainer}>
-                <Text style={styles.titleWhite}>Enter Your</Text>
-                <Text style={styles.titleBlue}>TMDB API Key</Text>
+                <Text style={styles.title}>Enter TMDB API Key</Text>
               </View>
 
               {/* Description */}
               <Text style={styles.description}>
-                To fetch movie and TV show details, please enter your TMDB API key. This helps us provide accurate metadata, posters and more.
+                To fetch movie and TV show details, posters, and recommendations, please enter your free TMDB API key.
               </Text>
 
               {/* Input Box */}
               <View style={[styles.inputBox, errorMessage ? styles.inputBoxError : null]}>
-                <Ionicons name="key-outline" size={scale(18)} color="#64748b" />
+                <Ionicons name="key-outline" size={scale(18)} color={colors.textMuted} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Enter TMDB API Key"
-                  placeholderTextColor="#64748b"
+                  placeholderTextColor={colors.textMuted}
                   value={apiKeyInput}
                   onChangeText={(val) => {
                     setApiKeyInput(val);
@@ -181,7 +167,7 @@ export default function TmdbApiKeyModal({
                     onPress={() => setApiKeyInput('')}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Ionicons name="close-circle" size={scale(16)} color="#64748b" />
+                    <Ionicons name="close-circle" size={scale(16)} color={colors.textMuted} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -196,9 +182,9 @@ export default function TmdbApiKeyModal({
                 activeOpacity={0.75}
                 onPress={handleOpenTmdbWebsite}
               >
-                <Ionicons name="open-outline" size={scale(15)} color="#38bdf8" />
-                <Text style={styles.linkText}>Get your TMDB API key</Text>
-                <Ionicons name="arrow-forward" size={scale(14)} color="#38bdf8" />
+                <Ionicons name="open-outline" size={scale(14)} color={colors.primary} />
+                <Text style={styles.linkText}>Get your free TMDB API key</Text>
+                <Ionicons name="arrow-forward" size={scale(13)} color={colors.primary} />
               </TouchableOpacity>
 
               {/* Buttons: Later & Save */}
@@ -218,7 +204,7 @@ export default function TmdbApiKeyModal({
                   disabled={isSaving}
                 >
                   {isSaving ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.saveBtnText}>Save</Text>
                   )}
@@ -235,209 +221,141 @@ export default function TmdbApiKeyModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 7, 18, 0.88)',
+    backgroundColor: 'rgba(0, 0, 0, 0.60)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: scale(16),
+    paddingHorizontal: scale(20),
   },
   keyboardAvoid: {
     width: '100%',
-    maxWidth: scale(380),
+    maxWidth: scale(360),
     alignItems: 'center',
   },
   card: {
     width: '100%',
-    backgroundColor: '#0a0f1d',
+    backgroundColor: '#FFFFFF',
     borderRadius: scale(24),
-    borderWidth: 1.2,
-    borderColor: 'rgba(56, 189, 248, 0.22)',
     paddingVertical: verticalScale(22),
     paddingHorizontal: scale(20),
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.7,
-    shadowRadius: 28,
-    elevation: 25,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 20,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: verticalScale(14),
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoIcon: {
-    width: scale(28),
-    height: scale(28),
-    borderRadius: scale(8),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: scale(8),
-  },
-  logoText: {
-    color: '#ffffff',
-    fontSize: moderateScale(19),
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    marginBottom: verticalScale(10),
   },
   closeBtn: {
     padding: scale(4),
   },
   graphicRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: verticalScale(12),
-    gap: scale(14),
+    marginVertical: verticalScale(10),
   },
-  tmdbCapsule: {
-    flexDirection: 'row',
+  keyIconCircle: {
+    width: scale(54),
+    height: scale(54),
+    borderRadius: scale(27),
+    backgroundColor: 'rgba(229, 9, 20, 0.10)',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#00d2ff',
-    borderRadius: scale(14),
-    paddingHorizontal: scale(10),
-    paddingVertical: verticalScale(4),
-    gap: scale(6),
-  },
-  tmdbCapsuleText: {
-    color: '#00d2ff',
-    fontWeight: '900',
-    fontSize: moderateScale(13),
-    letterSpacing: 1.2,
-  },
-  tmdbIndicatorPill: {
-    width: scale(26),
-    height: verticalScale(12),
-    borderRadius: scale(6),
-    backgroundColor: '#00d2ff',
-  },
-  keyContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sparkleRow: {
-    marginLeft: scale(4),
-    gap: scale(3),
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sparkleRay: {
-    width: scale(6),
-    height: scale(2),
-    borderRadius: scale(1),
-    backgroundColor: '#38bdf8',
   },
   titleContainer: {
     alignItems: 'center',
-    marginTop: verticalScale(4),
   },
-  titleWhite: {
-    color: '#ffffff',
-    fontSize: moderateScale(22),
+  title: {
+    color: colors.textPrimary,
+    fontSize: moderateScale(20),
     fontWeight: '800',
-    textAlign: 'center',
     letterSpacing: -0.3,
-  },
-  titleBlue: {
-    color: '#38bdf8',
-    fontSize: moderateScale(22),
-    fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: -0.3,
-    marginTop: verticalScale(2),
   },
   description: {
-    color: '#94a3b8',
+    color: colors.textSecondary,
     fontSize: moderateScale(13),
     lineHeight: verticalScale(19),
     textAlign: 'center',
-    marginTop: verticalScale(10),
-    paddingHorizontal: scale(6),
+    marginTop: verticalScale(8),
+    marginBottom: verticalScale(16),
   },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#070b14',
-    borderWidth: 1.2,
-    borderColor: '#1e293b',
-    borderRadius: scale(16),
-    paddingHorizontal: scale(14),
-    height: verticalScale(48),
-    marginTop: verticalScale(18),
+    backgroundColor: '#F3F4F6',
+    borderRadius: scale(14),
+    paddingHorizontal: scale(12),
+    height: verticalScale(44),
   },
   inputBoxError: {
-    borderColor: '#ef4444',
+    borderWidth: 1.5,
+    borderColor: colors.primary,
   },
   textInput: {
     flex: 1,
-    color: '#ffffff',
-    fontSize: moderateScale(14),
-    marginLeft: scale(10),
-    paddingVertical: 0,
+    color: colors.textPrimary,
+    fontSize: moderateScale(13),
+    marginLeft: scale(8),
+    fontWeight: '500',
   },
   errorText: {
-    color: '#ef4444',
+    color: colors.primary,
     fontSize: moderateScale(11.5),
-    textAlign: 'center',
-    marginTop: verticalScale(6),
+    fontWeight: '600',
+    marginTop: verticalScale(5),
+    marginLeft: scale(4),
   },
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: verticalScale(14),
-    marginBottom: verticalScale(16),
-    gap: scale(6),
+    gap: scale(5),
+    marginTop: verticalScale(12),
+    paddingVertical: verticalScale(4),
   },
   linkText: {
-    color: '#38bdf8',
-    fontSize: moderateScale(13.5),
-    fontWeight: '600',
+    color: colors.primary,
+    fontSize: moderateScale(12.5),
+    fontWeight: '700',
   },
   buttonRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(12),
-    marginTop: verticalScale(6),
+    marginTop: verticalScale(20),
+    gap: scale(10),
   },
   laterBtn: {
     flex: 1,
-    height: verticalScale(46),
-    borderRadius: scale(23),
-    backgroundColor: '#0c1322',
-    borderWidth: 1.2,
-    borderColor: '#1e293b',
+    height: verticalScale(44),
+    borderRadius: scale(22),
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   laterBtnText: {
-    color: '#cbd5e1',
-    fontSize: moderateScale(14.5),
+    color: colors.textSecondary,
+    fontSize: moderateScale(14),
     fontWeight: '700',
   },
   saveBtn: {
     flex: 1,
-    height: verticalScale(46),
-    borderRadius: scale(23),
-    backgroundColor: '#2563eb',
+    height: verticalScale(44),
+    borderRadius: scale(22),
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563eb',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
   saveBtnText: {
-    color: '#ffffff',
-    fontSize: moderateScale(15),
+    color: '#FFFFFF',
+    fontSize: moderateScale(14),
     fontWeight: '800',
   },
 });

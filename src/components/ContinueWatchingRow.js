@@ -1,58 +1,75 @@
 import React from 'react';
 import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { getPosterUrl } from '../utils/api';
+import { getBackdropUrl, getPosterUrl } from '../utils/api';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
+import { colors } from '../config/theme';
 
-export default function ContinueWatchingRow({ title, data, onMoviePress }) {
-  if (!data || data.length === 0) return null;
+export default function ContinueWatchingRow({ 
+  title = 'Continue Watching', 
+  data = [], 
+  onMoviePress, 
+  onSeeMore 
+}) {
+  if (!data || data.length === 0) {
+    return null;
+  }
+
+  const items = data;
 
   const renderItem = ({ item }) => {
-    const posterUri = getPosterUrl(item.poster_path || item.image);
+    let thumbnailUri = item.image;
+    if (!thumbnailUri && item.backdrop_path) {
+      thumbnailUri = getBackdropUrl(item.backdrop_path);
+    } else if (!thumbnailUri && item.poster_path) {
+      thumbnailUri = getPosterUrl(item.poster_path);
+    }
+    if (!thumbnailUri) {
+      thumbnailUri = 'https://image.tmdb.org/t/p/w500/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg';
+    }
+
     const itemTitle = item.title || item.name || '';
     const progress = item.progress || 50;
-    const rating = item.vote_average ? Number(item.vote_average).toFixed(1) : null;
+    const subtitle = item.subtitle || `${item.last_episode || 'S1 E1'}  •  ${item.time_left || '45m left'}`;
+    const quality = item.quality || 'HD';
 
     return (
       <TouchableOpacity 
         style={styles.cardContainer}
-        activeOpacity={0.8}
+        activeOpacity={0.84}
         onPress={() => onMoviePress && onMoviePress(item)}
       >
         <View style={styles.imageWrapper}>
           <Image 
-            source={{ uri: posterUri }} 
-            style={styles.posterImage}
+            source={{ uri: thumbnailUri }} 
+            style={styles.thumbnailImage}
             resizeMode="cover"
           />
 
-          {rating && (
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={scale(9)} color="#f59e0b" />
-              <Text style={styles.ratingText}>{rating}</Text>
-            </View>
-          )}
+          {/* Top-Right HD Badge */}
+          <View style={styles.hdBadge}>
+            <Text style={styles.hdText}>{quality}</Text>
+          </View>
 
-          {/* Bottom Dark Gradient Overlay */}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.92)']}
-            locations={[0, 0.5, 1]}
-            style={styles.gradientOverlay}
-          >
-            {/* Percentage Text on the bottom right */}
-            <Text style={styles.percentageText}>{progress}%</Text>
+          {/* Bottom-Left Circular Play Button Overlay */}
+          <View style={styles.playButtonCircle}>
+            <Ionicons name="play" size={scale(8)} color="#FFFFFF" style={{ marginLeft: scale(1) }} />
+          </View>
 
-            {/* Glowing Blue Progress Bar at the bottom */}
-            <View style={styles.progressBarBackground}>
-              <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
-            </View>
-          </LinearGradient>
+          {/* Horizontal Red Progress Track Bar at bottom */}
+          <View style={styles.progressBarBackground}>
+            <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+          </View>
         </View>
 
         {/* Title Below */}
-        <Text numberOfLines={2} style={styles.titleText}>
+        <Text numberOfLines={1} style={styles.titleText}>
           {itemTitle}
+        </Text>
+
+        {/* Subtitle / Episode & Time left */}
+        <Text numberOfLines={1} style={styles.subtitleText}>
+          {subtitle}
         </Text>
       </TouchableOpacity>
     );
@@ -60,9 +77,27 @@ export default function ContinueWatchingRow({ title, data, onMoviePress }) {
 
   return (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionHeader}>
+        <View style={styles.headerLeft}>
+          <View style={styles.verticalBar} />
+          <Text style={styles.sectionTitle}>{title}</Text>
+        </View>
+
+        {onSeeMore && (
+          <TouchableOpacity 
+            style={styles.seeAllButton} 
+            activeOpacity={0.7} 
+            onPress={onSeeMore}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.seeAllText}>See All</Text>
+            <Ionicons name="chevron-forward" size={scale(12)} color="#64748B" />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
-        data={data}
+        data={items}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, index) => (item.id ? `cw-${item.id}` : `cw-idx-${index}`)}
@@ -75,97 +110,119 @@ export default function ContinueWatchingRow({ title, data, onMoviePress }) {
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    marginVertical: verticalScale(14),
+    marginTop: verticalScale(8),
+    marginBottom: verticalScale(4),
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(16),
+    marginBottom: verticalScale(6),
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  verticalBar: {
+    width: scale(3.5),
+    height: verticalScale(15),
+    backgroundColor: colors.primary,
+    borderRadius: scale(1.5),
+    marginRight: scale(6),
   },
   sectionTitle: {
-    color: '#ffffff',
-    fontSize: moderateScale(20),
+    color: '#0F172A',
+    fontSize: moderateScale(15.5),
     fontWeight: '800',
-    paddingHorizontal: scale(16),
-    marginBottom: verticalScale(12),
     letterSpacing: -0.3,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(2),
+  },
+  seeAllText: {
+    color: '#64748B',
+    fontSize: moderateScale(11.5),
+    fontWeight: '500',
   },
   listContent: {
     paddingHorizontal: scale(16),
   },
   cardContainer: {
-    width: scale(115),
-    marginRight: scale(12),
+    width: scale(134),
+    marginRight: scale(10),
   },
   imageWrapper: {
-    width: scale(115),
-    height: verticalScale(168),
+    width: scale(134),
+    height: Math.round(scale(134) * 0.5625),
     borderRadius: scale(10),
     overflow: 'hidden',
-    backgroundColor: '#18181b',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#0F172A',
     position: 'relative',
     justifyContent: 'flex-end',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  posterImage: {
+  thumbnailImage: {
     width: '100%',
     height: '100%',
     position: 'absolute',
   },
-  gradientOverlay: {
-    width: '100%',
-    height: verticalScale(50),
-    justifyContent: 'flex-end',
-    paddingHorizontal: scale(8),
-    paddingBottom: verticalScale(6),
+  hdBadge: {
+    position: 'absolute',
+    top: scale(4),
+    right: scale(4),
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: scale(3.5),
+    paddingVertical: verticalScale(1),
+    borderRadius: scale(3),
+    zIndex: 2,
   },
-  percentageText: {
-    color: '#ffffff',
-    fontSize: moderateScale(10),
+  hdText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(8),
     fontWeight: '700',
-    textAlign: 'right',
-    marginBottom: verticalScale(3),
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+  },
+  playButtonCircle: {
+    position: 'absolute',
+    bottom: scale(6),
+    left: scale(6),
+    width: scale(20),
+    height: scale(20),
+    borderRadius: scale(10),
+    backgroundColor: 'rgba(0, 0, 0, 0.60)',
+    borderWidth: 1.1,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
   },
   progressBarBackground: {
     width: '100%',
-    height: verticalScale(3),
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: scale(2),
-    overflow: 'hidden',
+    height: verticalScale(2.5),
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    zIndex: 1,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#38bdf8',
-    borderRadius: scale(2),
-    shadowColor: '#38bdf8',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
+    backgroundColor: colors.primary,
   },
   titleText: {
-    color: '#a1a1aa',
-    fontSize: moderateScale(13),
-    fontWeight: '500',
-    marginTop: verticalScale(6),
-    lineHeight: moderateScale(16),
-  },
-  ratingBadge: {
-    position: 'absolute',
-    top: scale(6),
-    right: scale(6),
-    zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(9, 9, 11, 0.78)',
-    paddingHorizontal: scale(5),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(5),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    gap: scale(2.5),
-  },
-  ratingText: {
-    color: '#f9fafb',
-    fontSize: moderateScale(9),
+    color: '#0F172A',
+    fontSize: moderateScale(11.5),
     fontWeight: '700',
-  }
+    marginTop: verticalScale(4),
+    lineHeight: moderateScale(15),
+  },
+  subtitleText: {
+    color: '#64748B',
+    fontSize: moderateScale(10),
+    fontWeight: '500',
+    marginTop: verticalScale(1),
+  },
 });

@@ -1,16 +1,53 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
+import { colors } from '../config/theme';
 
+/**
+ * BottomTabBar
+ * Exact 1:1 match for reference screenshot:
+ * - Floating white pill dock with smooth drop shadow
+ * - 4 Tabs: Home, Movies, Series, My List
+ * - Active tab has elevated crimson red (#E50914) circle with white icon and red label
+ * - Inactive tabs have clean charcoal slate icon and label
+ */
 export default function BottomTabBar({ activeTab = 'Home', onTabPress }) {
+  const insets = useSafeAreaInsets();
+  const bottomMargin = Math.max(insets.bottom, 12);
+
   const tabs = [
-    { name: 'Home', iconActive: 'home', iconInactive: 'home-outline', label: 'Home' },
-    { name: 'Movies', iconActive: 'film', iconInactive: 'film-outline', label: 'Movies' },
-    { name: 'Series', aliases: ['TV Series', 'Series'], iconActive: 'tv', iconInactive: 'tv-outline', label: 'Series' },
-    { name: 'Live TV & Serials', aliases: ['TV Serials', 'Live TV & Serials'], iconActive: 'albums', iconInactive: 'albums-outline', label: 'Live & Serials' },
-    { name: 'Search', iconActive: 'search', iconInactive: 'search-outline', label: 'Search' },
+    { 
+      name: 'Home', 
+      label: 'Home', 
+      iconActive: 'home', 
+      iconInactive: 'home-outline',
+      iconType: 'ionicons'
+    },
+    { 
+      name: 'Movies', 
+      label: 'Movies', 
+      iconActive: 'film', 
+      iconInactive: 'film-outline',
+      iconType: 'ionicons'
+    },
+    { 
+      name: 'TV Series', 
+      label: 'TV Series', 
+      aliases: ['Series', 'TvSeries'],
+      iconActive: 'albums', 
+      iconInactive: 'albums-outline',
+      iconType: 'ionicons'
+    },
+    { 
+      name: 'TV Serials', 
+      label: 'TV Serials', 
+      aliases: ['My List', 'MyList', 'Serials', 'TvSerials'],
+      iconActive: 'tv', 
+      iconInactive: 'tv-outline',
+      iconType: 'ionicons'
+    },
   ];
 
   const isTabActive = (tab) => {
@@ -19,165 +56,141 @@ export default function BottomTabBar({ activeTab = 'Home', onTabPress }) {
     return false;
   };
 
+  const renderIcon = (tab, isActive) => {
+    const iconColor = isActive ? '#FFFFFF' : '#64748B';
+    const iconName = isActive ? tab.iconActive : tab.iconInactive;
+
+    if (tab.iconType === 'feather') {
+      return <Feather name={iconName} size={scale(isActive ? 22 : 21)} color={iconColor} />;
+    }
+    return <Ionicons name={iconName} size={scale(isActive ? 22 : 22)} color={iconColor} />;
+  };
+
   return (
-    <View style={styles.container} pointerEvents="box-none">
-      <View style={styles.glassContainer}>
-        {/* Glass reflection top highlight */}
-        <LinearGradient
-          colors={[
-            'rgba(255, 255, 255, 0.16)',
-            'rgba(255, 255, 255, 0.04)',
-            'rgba(10, 14, 24, 0.55)'
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-          pointerEvents="none"
-        />
+    <View style={[styles.floatingWrapper, { bottom: bottomMargin }]} pointerEvents="box-none">
+      <View style={styles.pillContainer}>
+        {tabs.map((tab) => {
+          const isActive = isTabActive(tab);
 
-        <View style={styles.tabBarPill}>
-          {tabs.map((tab) => {
-            const isActive = isTabActive(tab);
-            const iconName = isActive ? tab.iconActive : tab.iconInactive;
-            const tintColor = isActive ? '#38bdf8' : '#94a3b8';
-
+          if (isActive) {
             return (
-              <Pressable
+              <TouchableOpacity
                 key={tab.name}
-                style={({ pressed }) => [
-                  styles.tabButton,
-                  isActive ? styles.tabButtonActive : styles.tabButtonInactive,
-                  pressed && { opacity: 0.65 }
-                ]}
-                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                style={styles.activeTabButton}
+                activeOpacity={0.88}
+                hitSlop={{ top: 12, bottom: 8, left: 10, right: 10 }}
                 onPress={() => onTabPress && onTabPress(tab.name)}
               >
-                {/* 1. Fixed-height icon slot for vertical baseline alignment */}
-                <View style={styles.iconSlot}>
-                  <Ionicons
-                    name={iconName}
-                    size={scale(19)}
-                    color={tintColor}
-                  />
+                {/* Elevated Crimson Red Circle with White Icon */}
+                <View style={styles.raisedCircle}>
+                  {renderIcon(tab, true)}
                 </View>
 
-                {/* 2. Fixed-height label slot */}
-                <View style={styles.labelSlot}>
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit={true}
-                    minimumFontScale={0.75}
-                    style={[
-                      styles.tabLabel,
-                      { color: tintColor, fontWeight: isActive ? '700' : '500' }
-                    ]}
-                  >
-                    {tab.label}
-                  </Text>
-                </View>
-
-                {/* 3. Fixed-height indicator slot so layout never shifts */}
-                <View style={styles.indicatorSlot}>
-                  {isActive ? (
-                    <View style={styles.activeDot} />
-                  ) : (
-                    <View style={styles.inactivePlaceholder} />
-                  )}
-                </View>
-              </Pressable>
+                {/* Tab label in red */}
+                <Text numberOfLines={1} style={styles.activeTabLabel}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
             );
-          })}
-        </View>
+          }
+
+          // Inactive tab: clean slate outline icon and label
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              style={styles.tabButton}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={() => onTabPress && onTabPress(tab.name)}
+            >
+              <View style={styles.iconSlot}>
+                {renderIcon(tab, false)}
+              </View>
+
+              <Text numberOfLines={1} style={styles.inactiveTabLabel}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  floatingWrapper: {
     position: 'absolute',
-    bottom: verticalScale(14),
-    left: 0,
-    right: 0,
+    left: scale(20),
+    right: scale(20),
+    zIndex: 9999,
+    elevation: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: scale(14),
-    zIndex: 999,
   },
-  glassContainer: {
+  pillContainer: {
     width: '100%',
-    borderRadius: scale(40),
-    overflow: 'hidden',
-    backgroundColor: 'rgba(15, 19, 28, 0.88)',
-    borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
-    borderTopColor: 'rgba(255, 255, 255, 0.28)',
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.65,
-    shadowRadius: 18,
-    elevation: 25,
-  },
-  tabBarPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: verticalScale(7),
-    paddingHorizontal: scale(8),
-    minHeight: verticalScale(62),
+    justifyContent: 'space-around',
+    backgroundColor: '#FFFFFF',
+    borderRadius: scale(32),
+    height: verticalScale(60),
+    paddingHorizontal: scale(10),
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.10,
+    shadowRadius: 18,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: verticalScale(5),
-    paddingHorizontal: scale(3),
-    borderRadius: scale(20),
+    paddingVertical: verticalScale(4),
   },
-  tabButtonActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
-  },
-  tabButtonInactive: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'transparent',
+  activeTabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    top: -verticalScale(10),
   },
   iconSlot: {
-    height: scale(22),
+    height: scale(24),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  labelSlot: {
-    height: verticalScale(14),
+  raisedCircle: {
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
-    marginTop: verticalScale(2),
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.40,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
   },
-  tabLabel: {
-    fontSize: moderateScale(9.5),
+  activeTabLabel: {
+    fontSize: moderateScale(11),
     textAlign: 'center',
+    marginTop: verticalScale(3),
+    fontWeight: '700',
+    color: colors.primary,
     letterSpacing: -0.2,
   },
-  indicatorSlot: {
-    height: verticalScale(5),
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+  inactiveTabLabel: {
+    fontSize: moderateScale(11),
+    textAlign: 'center',
     marginTop: verticalScale(2),
-  },
-  activeDot: {
-    width: scale(12),
-    height: verticalScale(3),
-    borderRadius: scale(2),
-    backgroundColor: '#38bdf8',
-  },
-  inactivePlaceholder: {
-    width: scale(12),
-    height: verticalScale(3),
-    backgroundColor: 'transparent',
+    fontWeight: '500',
+    color: '#64748B',
+    letterSpacing: -0.2,
   },
 });

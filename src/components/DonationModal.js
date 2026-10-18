@@ -12,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
 import AppSettings, { setDontShowDonationAgain, recordDonationDismissed } from '../utils/AppSettings';
+import CinematicLogo from './CinematicLogo';
+import { colors } from '../config/theme';
 
 export default function DonationModal({
   visible,
@@ -20,7 +22,6 @@ export default function DonationModal({
   const [dontShowChecked, setDontShowChecked] = useState(false);
 
   const handleSupportUs = () => {
-    // Open donation link or show options
     Alert.alert(
       'Support NexPlay Development ❤️',
       'Thank you for loving NexPlay! You can support us through any of the options below to help keep our high-speed scrapers and infrastructure ad-free.',
@@ -81,19 +82,14 @@ export default function DonationModal({
         <View style={styles.card}>
           {/* Header Row: NexPlay logo + close button */}
           <View style={styles.headerRow}>
-            <View style={styles.logoRow}>
-              <View style={styles.logoIcon}>
-                <Ionicons name="play-forward" size={scale(16)} color="#38bdf8" />
-              </View>
-              <Text style={styles.logoText}>NexPlay</Text>
-            </View>
+            <CinematicLogo size="sm" darkText={true} />
             <TouchableOpacity
               style={styles.closeBtn}
               activeOpacity={0.7}
               onPress={handleClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="close" size={scale(22)} color="#94a3b8" />
+              <Ionicons name="close" size={scale(22)} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -108,8 +104,7 @@ export default function DonationModal({
 
           {/* Title */}
           <View style={styles.titleContainer}>
-            <Text style={styles.titleWhite}>Support</Text>
-            <Text style={styles.titleBlue}>NexPlay</Text>
+            <Text style={styles.title}>Support NexPlay</Text>
           </View>
 
           {/* Description */}
@@ -128,7 +123,7 @@ export default function DonationModal({
               activeOpacity={0.85}
               onPress={handleSupportUs}
             >
-              <Ionicons name="heart" size={scale(18)} color="#ffffff" style={{ marginRight: scale(8) }} />
+              <Ionicons name="heart" size={scale(18)} color="#FFFFFF" style={{ marginRight: scale(8) }} />
               <Text style={styles.supportBtnText}>Support Us</Text>
             </TouchableOpacity>
 
@@ -149,8 +144,8 @@ export default function DonationModal({
           >
             <Ionicons
               name={dontShowChecked ? 'checkbox' : 'square-outline'}
-              size={scale(16)}
-              color={dontShowChecked ? '#38bdf8' : '#64748b'}
+              size={scale(17)}
+              color={dontShowChecked ? colors.primary : colors.textMuted}
             />
             <Text style={[styles.dontShowText, dontShowChecked && styles.dontShowTextActive]}>
               Don't show again
@@ -165,26 +160,24 @@ export default function DonationModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 7, 18, 0.88)',
+    backgroundColor: 'rgba(0, 0, 0, 0.60)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: scale(16),
+    paddingHorizontal: scale(20),
   },
   card: {
     width: '100%',
-    maxWidth: scale(380),
-    backgroundColor: '#0a0f1d',
+    maxWidth: scale(360),
+    backgroundColor: '#FFFFFF',
     borderRadius: scale(24),
-    borderWidth: 1.2,
-    borderColor: 'rgba(56, 189, 248, 0.22)',
     paddingVertical: verticalScale(22),
     paddingHorizontal: scale(20),
     alignItems: 'center',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.7,
-    shadowRadius: 28,
-    elevation: 25,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 20,
   },
   headerRow: {
     width: '100%',
@@ -193,33 +186,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: verticalScale(6),
   },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoIcon: {
-    width: scale(28),
-    height: scale(28),
-    borderRadius: scale(8),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: scale(8),
-  },
-  logoText: {
-    color: '#ffffff',
-    fontSize: moderateScale(19),
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
   closeBtn: {
     padding: scale(4),
   },
   illustrationContainer: {
-    width: scale(150),
-    height: scale(150),
+    width: scale(140),
+    height: scale(140),
     borderRadius: scale(20),
     overflow: 'hidden',
     marginVertical: verticalScale(8),
@@ -235,73 +207,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: verticalScale(4),
   },
-  titleWhite: {
-    color: '#ffffff',
-    fontSize: moderateScale(24),
+  title: {
+    color: colors.textPrimary,
+    fontSize: moderateScale(22),
     fontWeight: '800',
     textAlign: 'center',
     letterSpacing: -0.3,
   },
-  titleBlue: {
-    color: '#38bdf8',
-    fontSize: moderateScale(24),
-    fontWeight: '900',
-    textAlign: 'center',
-    letterSpacing: -0.3,
-    marginTop: verticalScale(1),
-  },
   description: {
-    color: '#94a3b8',
+    color: colors.textSecondary,
     fontSize: moderateScale(13),
     lineHeight: verticalScale(19),
     textAlign: 'center',
-    marginTop: verticalScale(10),
+    marginTop: verticalScale(8),
     paddingHorizontal: scale(8),
   },
   subtext: {
-    color: '#cbd5e1',
-    fontSize: moderateScale(13.5),
-    fontWeight: '600',
+    color: colors.primary,
+    fontSize: moderateScale(13),
+    fontWeight: '700',
     textAlign: 'center',
     marginTop: verticalScale(10),
   },
   buttonStack: {
     width: '100%',
-    marginTop: verticalScale(20),
+    marginTop: verticalScale(18),
     gap: verticalScale(10),
   },
   supportBtn: {
     width: '100%',
-    height: verticalScale(48),
-    borderRadius: scale(24),
-    backgroundColor: '#2563eb',
+    height: verticalScale(46),
+    borderRadius: scale(23),
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563eb',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
   supportBtnText: {
-    color: '#ffffff',
-    fontSize: moderateScale(15),
+    color: '#FFFFFF',
+    fontSize: moderateScale(14.5),
     fontWeight: '800',
   },
   maybeLaterBtn: {
     width: '100%',
-    height: verticalScale(48),
-    borderRadius: scale(24),
-    backgroundColor: '#0c1322',
-    borderWidth: 1.2,
-    borderColor: '#1e293b',
+    height: verticalScale(46),
+    borderRadius: scale(23),
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   maybeLaterBtnText: {
-    color: '#cbd5e1',
-    fontSize: moderateScale(14.5),
+    color: colors.textSecondary,
+    fontSize: moderateScale(14),
     fontWeight: '700',
   },
   dontShowRow: {
@@ -312,11 +274,12 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(4),
   },
   dontShowText: {
-    color: '#64748b',
+    color: colors.textMuted,
     fontSize: moderateScale(12),
     fontWeight: '500',
   },
   dontShowTextActive: {
-    color: '#38bdf8',
+    color: colors.primary,
+    fontWeight: '600',
   }
 });
