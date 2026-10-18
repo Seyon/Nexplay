@@ -139,6 +139,12 @@ if ($buildSuccess) {
     if (Test-Path $arm32Apk)     { Copy-Item $arm32Apk $nexplayArm32 -Force }
     if (Test-Path $arm64Apk)     { Copy-Item $arm64Apk $nexplayArm64 -Force }
 
+    $distDir = Join-Path $stitchPath "dist"
+    if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir -Force | Out-Null }
+    if (Test-Path $universalApk) { Copy-Item $universalApk (Join-Path $distDir "NexPlay-Universal.apk") -Force }
+    if (Test-Path $arm32Apk)     { Copy-Item $arm32Apk (Join-Path $distDir "NexPlay-armeabi-v7a.apk") -Force }
+    if (Test-Path $arm64Apk)     { Copy-Item $arm64Apk (Join-Path $distDir "NexPlay-arm64-v8a.apk") -Force }
+
     Write-Host ""
     Write-Host "=== COMPILED $buildTypeCap.ToUpper() APKS (TOTAL 3) ===" -ForegroundColor Green
 
