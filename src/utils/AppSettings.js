@@ -21,6 +21,7 @@ let _settings = {
   dontShowDonationAgain: false,
   donationDismissedCount: 0,
   lastDonationShownTime: 0,
+  watchHistory: [],
 };
 
 let _isInitialized = false;
@@ -244,6 +245,36 @@ export const recordDonationDismissed = async () => {
 };
 
 /**
+ * Get current watch history / continue watching items
+ */
+export const getWatchHistory = () => {
+  return Array.isArray(_settings.watchHistory) ? _settings.watchHistory : [];
+};
+
+/**
+ * Save / update item in continue watching history
+ */
+export const saveWatchProgress = async (item, progress = 45, episodeInfo = null) => {
+  if (!item || !item.id) return;
+  const history = Array.isArray(_settings.watchHistory) ? [..._settings.watchHistory] : [];
+  const existingIdx = history.findIndex(h => h.id === item.id);
+  const entry = {
+    ...item,
+    progress: Math.min(100, Math.max(5, Math.round(progress))),
+    subtitle: episodeInfo || item.subtitle || (item.media_type === 'tv' ? 'Episode In Progress' : '45m left'),
+    last_watched: Date.now(),
+  };
+  if (existingIdx >= 0) {
+    history.splice(existingIdx, 1);
+  }
+  history.unshift(entry);
+  _settings.watchHistory = history.slice(0, 15);
+  await persistSettings();
+  notifyListeners('WATCH_HISTORY_UPDATED', { watchHistory: _settings.watchHistory });
+  return _settings.watchHistory;
+};
+
+/**
  * Get current settings snapshot
  */
 export const getSettings = () => ({ ..._settings });
@@ -267,6 +298,9 @@ export default {
   getDontShowDonationAgain,
   setDontShowDonationAgain,
   recordDonationDismissed,
+  getWatchHistory,
+  saveWatchProgress,
   getSettings,
   subscribeSettings,
 };
+

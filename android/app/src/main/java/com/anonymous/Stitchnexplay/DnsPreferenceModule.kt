@@ -51,6 +51,7 @@ class DnsPreferenceModule(reactContext: ReactApplicationContext) : ReactContextB
           .putString(KEY_CUSTOM_URL, customUrl)
           .putBoolean(KEY_ENABLED, enabled)
           .apply()
+        DohFallbackDns.clearCache()
       } catch (e: Exception) {
         // Ignore SharedPreferences write error
       }

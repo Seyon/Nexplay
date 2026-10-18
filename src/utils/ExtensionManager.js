@@ -7,6 +7,7 @@ import {
   findBestMatch, 
   cleanTitleKeywords, 
   normalizeString,
+  getAudioTier,
   getAudioRichnessScore
 } from './ScraperEngine.js';
 
@@ -216,10 +217,25 @@ class ExtensionManagerService {
     }
 
     allMatches.sort((a, b) => {
-      // Audio richness priority: Multi Audio (Tamil, Telugu, Hindi, English, etc.) prioritized over Dual Audio
       const aAudio = getAudioRichnessScore(a.match?.title || '');
       const bAudio = getAudioRichnessScore(b.match?.title || '');
-      if (Math.abs(a.matchScore - b.matchScore) < 0.15 && aAudio !== bAudio) {
+      const aTier = getAudioTier(a.match?.title || '');
+      const bTier = getAudioTier(b.match?.title || '');
+
+      // Server 3 (Movies4u): Strictly look for Multi Audio or Indian languages (Hindi, Tamil, Telugu, English, Malayalam, Kannada),
+      // fallback to Dual Audio (e.g. Hindi English), fallback to single audio English or any other languages.
+      if (activeProvider === 'movies4u') {
+        if (aTier !== bTier) {
+          return aTier - bTier; // Tier 1 < Tier 2 < Tier 3
+        }
+        if (aAudio !== bAudio) {
+          return bAudio - aAudio;
+        }
+        return b.matchScore - a.matchScore;
+      }
+
+      // Default providers (HDHub4u, 4KHDHub): Audio richness priority when match scores are close
+      if (Math.abs(a.matchScore - b.matchScore) < 0.25 && aAudio !== bAudio) {
         return bAudio - aAudio;
       }
       return b.matchScore - a.matchScore;

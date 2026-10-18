@@ -100,41 +100,112 @@ function extractSeasonNumbers(str) {
   return Array.from(seasons);
 }
 
+/**
+ * Detects the Audio Tier of a title or bridge label:
+ * - Tier 1: Multi Audio OR releases containing Indian languages
+ *   (Hindi, Tamil, Telugu, English, Malayalam, Kannada) or 3+ languages
+ * - Tier 2: Dual Audio (e.g. Hindi English, Dual Audio)
+ * - Tier 3: Single Audio English, other single language, or fallback
+ */
+export function getAudioTier(text) {
+  const t = (text || '').toLowerCase();
+  
+  const hasMultiKeyword = t.includes('multi audio') || 
+                           t.includes('multi-audio') || 
+                           t.includes('multiaudio') || 
+                           /\bmulti\b/i.test(t) ||
+                           t.includes('org multi');
+
+  const languages = [
+    'hindi', 'tamil', 'telugu', 'english', 'malayalam', 'kannada'
+  ];
+  const matchedLangs = languages.filter(l => {
+    const regex = new RegExp(`\\b${l}\\b|${l}-|-${l}`, 'i');
+    return regex.test(t);
+  });
+
+  const otherLangs = ['bengali', 'marathi', 'punjabi', 'gujarati', 'urdu', 'odia', 'bhojpuri', 'korean', 'japanese', 'spanish', 'french'];
+  const matchedOther = otherLangs.filter(l => new RegExp(`\\b${l}\\b`, 'i').test(t));
+  const totalLangCount = matchedLangs.length + matchedOther.length;
+
+  const hasDualKeyword = t.includes('dual audio') || 
+                          t.includes('dual-audio') || 
+                          t.includes('dualaudio') || 
+                          /\bdual\b/i.test(t);
+
+  const isDualHindiEnglish = (
+    (/\bhindi\b/i.test(t) && (/\beng(?:lish)?\b/i.test(t))) ||
+    /\b(?:hin|hindi)[-_\s+]+(?:eng|english)\b/i.test(t) ||
+    /\b(?:eng|english)[-_\s+]+(?:hin|hindi)\b/i.test(t)
+  );
+
+  const hasRegionalSouth = ['tamil', 'telugu', 'malayalam', 'kannada'].some(l => t.includes(l));
+
+  // Tier 1: Multi Audio or combinations with South Indian / Indian regional languages
+  if (
+    hasMultiKeyword || 
+    totalLangCount >= 3 || 
+    (hasRegionalSouth && (t.includes('hindi') || t.includes('english') || matchedLangs.length >= 2)) ||
+    matchedLangs.length >= 3
+  ) {
+    return 1;
+  }
+
+  // Tier 2: Dual Audio (e.g. Hindi English)
+  if (hasDualKeyword || (isDualHindiEnglish && totalLangCount === 2) || (totalLangCount === 2 && !hasRegionalSouth)) {
+    return 2;
+  }
+
+  // South Indian regional single language release
+  if (hasRegionalSouth) {
+    return 1;
+  }
+
+  // Tier 3: Single audio English or other languages
+  return 3;
+}
+
 export function getAudioRichnessScore(text) {
   const t = (text || '').toLowerCase();
-  let score = 0;
+  const tier = getAudioTier(t);
+
   const languages = [
-    'tamil', 'telugu', 'malayalam', 'kannada',
-    'hindi', 'english', 'bengali', 'marathi',
-    'punjabi', 'gujarati', 'urdu', 'odia', 'bhojpuri'
+    'hindi', 'tamil', 'telugu', 'english', 'malayalam', 'kannada'
   ];
   let langCount = 0;
   for (const lang of languages) {
-    if (t.includes(lang)) {
-      langCount++;
-      score += 250;
-    }
+    if (t.includes(lang)) langCount++;
   }
-  if (t.includes('multi audio') || t.includes('multi-audio') || /\bmulti\b/i.test(t)) {
-    score += 1000;
-  }
-  // High priority when South Indian regional languages (Tamil, Telugu, Malayalam, Kannada) are available
   const southLangs = ['tamil', 'telugu', 'malayalam', 'kannada'];
   const southCount = southLangs.filter(l => t.includes(l)).length;
-  if (southCount >= 2) {
-    score += 1500;
-  } else if (southCount === 1) {
-    score += 600;
+
+  if (tier === 1) {
+    let score = 10000;
+    if (t.includes('multi audio') || t.includes('multi-audio') || /\bmulti\b/i.test(t)) {
+      score += 2000;
+    }
+    score += (langCount * 500);
+    score += (southCount * 600);
+    return score;
   }
 
-  if (langCount >= 4) {
-    score += 2000; // Complete multi-audio release (e.g. Hindi + English + Tamil + Telugu + Malayalam + Kannada)
-  } else if (langCount >= 3) {
-    score += 1000;
-  } else if (t.includes('dual audio') || t.includes('dual')) {
-    score += 100;
+  if (tier === 2) {
+    let score = 5000;
+    if (t.includes('dual audio') || t.includes('dual-audio') || /\bdual\b/i.test(t)) {
+      score += 1000;
+    }
+    score += (langCount * 200);
+    return score;
   }
-  return score;
+
+  // Tier 3: Single audio
+  if (t.includes('english') || /\beng\b/i.test(t)) {
+    return 2000;
+  }
+  if (t.includes('hindi') || /\bhin\b/i.test(t)) {
+    return 1500;
+  }
+  return 1000;
 }
 
 /**
@@ -2865,6 +2936,8 @@ export {
   normalizeString,
   cleanTitleKeywords,
   parseMediaBridges,
+  getAudioTier,
+  getAudioRichnessScore,
   getStreamPriority as getPriority,
   selectBestStreamCandidate as selectBestCandidate
 };

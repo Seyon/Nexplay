@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, Component } from 'react';
-import { View, ScrollView, ActivityIndicator, Text, BackHandler, StyleSheet, Platform, ToastAndroid, TouchableOpacity } from 'react-native';
+import { View, ScrollView, ActivityIndicator, Text, BackHandler, StyleSheet, Platform, ToastAndroid, TouchableOpacity, Animated, Easing, AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Ionicons } from '@expo/vector-icons';
+import { scale, verticalScale, moderateScale } from './src/utils/responsive';
+import { colors } from './src/config/theme';
 
 // Top-level Crash-Protection Error Boundary
 class ErrorBoundary extends Component {
@@ -27,12 +29,12 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <SafeAreaProvider style={styles.darkBackground}>
+        <SafeAreaProvider style={styles.mainBackground}>
           <View style={styles.errorBoundaryContainer}>
-            <Ionicons name="film-outline" size={scale(56)} color="#38bdf8" />
-            <Text style={styles.errorBoundaryTitle}>NexPlay Cinema</Text>
+            <Ionicons name="film-outline" size={scale(56)} color={colors.primary} />
+            <Text style={styles.errorBoundaryTitle}>NexPlay</Text>
             <Text style={styles.errorBoundarySubtitle}>
-              An unexpected display glitch occurred. Tap below to resume your cinema experience.
+              An unexpected display glitch occurred. Tap below to resume your entertainment experience.
             </Text>
             <TouchableOpacity style={styles.errorBoundaryButton} activeOpacity={0.8} onPress={this.handleRetry}>
               <Text style={styles.errorBoundaryButtonText}>Resume NexPlay</Text>
@@ -46,17 +48,19 @@ class ErrorBoundary extends Component {
 }
 
 // Components
+import AppHeader from './src/components/AppHeader';
 import HeroCarousel from './src/components/HeroCarousel';
 import MovieRow from './src/components/MovieRow';
-import TopTenRow from './src/components/TopTenRow';
 import ContinueWatchingRow from './src/components/ContinueWatchingRow';
+import TopTenRow from './src/components/TopTenRow';
 import BottomTabBar from './src/components/BottomTabBar';
 import MovieDetailScreen from './src/components/MovieDetailScreen';
 import CategoryDetailScreen from './src/components/CategoryDetailScreen';
-import SearchScreen from './src/components/SearchScreen';
 import MoviesScreen from './src/components/MoviesScreen';
 import TvSeriesScreen from './src/components/TvSeriesScreen';
 import TvSerialsScreen from './src/components/TvSerialsScreen';
+import DownloadsScreen from './src/components/DownloadsScreen';
+import SearchScreen from './src/components/SearchScreen';
 import AccountScreen from './src/components/AccountScreen';
 
 // Utilities & Fetch helpers
@@ -64,116 +68,107 @@ import {
   fetchTrendingMovies, 
   fetchPopularMovies, 
   fetchWeeklyTrendingMovies,
-  fetchSciFiMovies,
+  fetchPopularTvSeries,
   fetchActionAdventureMovies,
-  fetchThrillerHorrorMovies,
-  fetchTamilMovies,
-  fetchHindiMovies,
-  fetchWithRetry
+  fetchCrimeMysteryMovies,
+  fetchSciFiFantasyMovies,
+  fetchRomanceDramaMovies,
+  fetchComedyMovies,
+  fetchAnimationAnimeMovies,
+  fetchClassicsMovies,
+  fetchNewReleases,
+  fetchTopRatedMovies,
+  fetchIndianCinema,
+  fetchKoreanInternationalSeries,
+  fetchAwardWinningMovies,
+  fetchHistoricalWarMovies,
+  fetchHorrorSupernaturalMovies,
+  fetchDocumentaries,
+  fetchFamilyKidsMovies,
 } from './src/utils/api';
-import { TMDB_BASE_URL } from './src/config/tmdb';
-import AppSettings, {
+import { resolveHeroLineup, getCachedHeroLineup } from './src/utils/HeroManager';
+import {
   initSettings,
-  getTmdbApiKey,
   hasTmdbApiKey,
   getDontShowDonationAgain,
-  subscribeSettings
+  subscribeSettings,
+  getWatchHistory,
 } from './src/utils/AppSettings';
 import TmdbApiKeyModal from './src/components/TmdbApiKeyModal';
 import DonationModal from './src/components/DonationModal';
-import { scale, verticalScale, moderateScale } from './src/utils/responsive';
+import CinematicSplashScreen from './src/components/CinematicSplashScreen';
 import { requestAppPermissions } from './src/utils/permissions';
 import { ProviderUpdateManager } from './src/utils/ProviderUpdateManager';
-
-const INITIAL_FALLBACK_MOVIES = [
-  {
-    id: 693134,
-    title: 'Dune: Part Two',
-    overview: 'Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family.',
-    poster_path: '/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
-    backdrop_path: '/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg',
-    vote_average: 8.2,
-    release_date: '2024-02-27',
-    runtime: 166,
-    genre_ids: [878, 12],
-    media_type: 'movie',
-    tag: 'New Release'
-  },
-  {
-    id: 872585,
-    title: 'Oppenheimer',
-    overview: 'The story of J. Robert Oppenheimer’s role in the development of the atomic bomb during World War II.',
-    poster_path: '/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
-    backdrop_path: '/rLb2cw69zbTXGIxG06GqC5QZ87b.jpg',
-    vote_average: 8.1,
-    release_date: '2023-07-19',
-    runtime: 180,
-    genre_ids: [18, 36],
-    media_type: 'movie',
-    tag: 'New Release'
-  },
-  {
-    id: 792307,
-    title: 'Poor Things',
-    overview: 'Brought back to life by an unorthodox scientist, a young woman runs off on a whirlwind adventure across the continents.',
-    poster_path: '/kCGlIMHnOm8JPXq3rXM6c5wMxcT.jpg',
-    backdrop_path: '/bQS43HSLZzMjZkcHJz4fUgQ1Ky5.jpg',
-    vote_average: 7.8,
-    release_date: '2023-12-07',
-    runtime: 141,
-    genre_ids: [878, 10749],
-    media_type: 'movie',
-    tag: 'New Release'
-  },
-  {
-    id: 466420,
-    title: 'Killers of the Flower Moon',
-    overview: 'When oil is discovered in 1920s Oklahoma under Osage Nation land, the Osage people are murdered one by one.',
-    poster_path: '/dB6Krk806zeqd0YNp2ngQ9zXteH.jpg',
-    backdrop_path: '/1X7vZh9R9DHCKG7CRZ8zs15599Z.jpg',
-    vote_average: 7.5,
-    release_date: '2023-10-18',
-    runtime: 206,
-    genre_ids: [80, 18],
-    media_type: 'movie',
-    tag: 'New Release'
-  },
-  {
-    id: 666277,
-    title: 'Past Lives',
-    overview: 'Nora and Hae Sung, two deeply connected childhood friends, are wrest apart after Nora’s family emigrates from South Korea.',
-    poster_path: '/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg',
-    backdrop_path: '/5YZbUmjbMa3ClvSW1Wj3D6XGolb.jpg',
-    vote_average: 7.9,
-    release_date: '2023-06-02',
-    runtime: 106,
-    genre_ids: [18, 10749],
-    media_type: 'movie',
-    tag: 'New Release'
-  }
-];
+import { HERO_ITEMS, TRENDING_NOW, TOP_TEN } from './src/data/mockData';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Home');
   const [tabHistory, setTabHistory] = useState(['Home']);
   const [loading, setLoading] = useState(true);
-  const [weeklyTop10, setWeeklyTop10] = useState([]);
-  const [trendingMovies, setTrendingMovies] = useState([]);
-  const [popularMovies, setPopularMovies] = useState([]);
-  const [scifiMovies, setScifiMovies] = useState([]);
+  const [showIntro, setShowIntro] = useState(true);
+  const [isTmdbReady, setIsTmdbReady] = useState(false);
+
+  // 1-14 Recommended Primary Home Screen Categories
+  const [weeklyTop10, setWeeklyTop10] = useState(HERO_ITEMS);
+  const [trendingMovies, setTrendingMovies] = useState(TRENDING_NOW);
+  const [continueWatching, setContinueWatching] = useState([]);
+  const [popularMovies, setPopularMovies] = useState(TOP_TEN);
+  const [popularSeries, setPopularSeries] = useState([]);
   const [actionAdventureMovies, setActionAdventureMovies] = useState([]);
-  const [thrillerHorrorMovies, setThrillerHorrorMovies] = useState([]);
-  const [tamilMovies, setTamilMovies] = useState([]);
-  const [hindiMovies, setHindiMovies] = useState([]);
-  const [continueWatchingMovies, setContinueWatchingMovies] = useState([]);
+  const [crimeMysteryMovies, setCrimeMysteryMovies] = useState([]);
+  const [scifiFantasyMovies, setScifiFantasyMovies] = useState([]);
+  const [romanceDramaMovies, setRomanceDramaMovies] = useState([]);
+  const [comedyMovies, setComedyMovies] = useState([]);
+  const [animationAnimeMovies, setAnimationAnimeMovies] = useState([]);
+  const [classicsMovies, setClassicsMovies] = useState([]);
+  const [newReleases, setNewReleases] = useState([]);
+  const [topRatedMovies, setTopRatedMovies] = useState([]);
+
+  // Deep Scroll Discovery Lineup (Section 2: More categories to keep scrolling)
+  const [indianCinemaMovies, setIndianCinemaMovies] = useState([]);
+  const [koreanSeries, setKoreanSeries] = useState([]);
+  const [awardWinningMovies, setAwardWinningMovies] = useState([]);
+  const [historicalWarMovies, setHistoricalWarMovies] = useState([]);
+  const [horrorMovies, setHorrorMovies] = useState([]);
+  const [documentaryMovies, setDocumentaryMovies] = useState([]);
+  const [familyKidsMovies, setFamilyKidsMovies] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [navigationStack, setNavigationStack] = useState([]);
-  const [isTvSerialsDetailOpen, setIsTvSerialsDetailOpen] = useState(false);
   const [hasTmdbKey, setHasTmdbKey] = useState(false);
   const [showTmdbModal, setShowTmdbModal] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
+  const [homeLayoutReady, setHomeLayoutReady] = useState(false);
   const lastBackPressRef = useRef(0);
+
+  // Home screen smooth reveal animation values
+  const homeFadeAnim = useRef(new Animated.Value(0)).current;
+  const homeScaleAnim = useRef(new Animated.Value(0.97)).current;
+  const homeTranslateY = useRef(new Animated.Value(14)).current;
+
+  // Called the exact instant launch screen starts fading out
+  const handleRevealStart = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(homeFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        useNativeDriver: true,
+      }),
+      Animated.timing(homeScaleAnim, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        useNativeDriver: true,
+      }),
+      Animated.timing(homeTranslateY, {
+        toValue: 0,
+        duration: 500,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [homeFadeAnim, homeScaleAnim, homeTranslateY]);
 
   // Tab Press Handler: record tab history
   const handleTabPress = (tab) => {
@@ -206,11 +201,9 @@ export default function App() {
     setSelectedCategory(category);
   }, []);
 
-
-
-  // Backward Navigation Handler (Movie B -> Movie A -> Category -> Screen / Tab -> Home -> Exit)
+  // Backward Navigation Handler
   const handleBack = useCallback(() => {
-    // 1. If inside nested movie/series details (Movie B -> Movie A)
+    // 1. If inside nested movie/series details
     if (navigationStack.length > 0) {
       const prevMovie = navigationStack[navigationStack.length - 1];
       setNavigationStack((prev) => prev.slice(0, prev.length - 1));
@@ -227,7 +220,7 @@ export default function App() {
       setSelectedCategory(null);
       return true;
     }
-    // 4. If on a non-Home tab (e.g. Movies, TV Series, Search, Account) -> navigate back through tab history to Home
+    // 4. If on a non-Home tab/screen -> navigate back through tab history to Home
     if (activeTab !== 'Home') {
       const newHistory = [...tabHistory];
       newHistory.pop();
@@ -249,7 +242,7 @@ export default function App() {
     return true;
   }, [navigationStack, selectedMovie, selectedCategory, activeTab, tabHistory]);
 
-  // System / Android Hardware Back Button Listener & Auto-Rotate Default
+  // Hardware Back Button Listener & Orientation Unlock
   useEffect(() => {
     ScreenOrientation.unlockAsync().catch(() => {});
 
@@ -262,103 +255,87 @@ export default function App() {
   }, [handleBack]);
 
   useEffect(() => {
-    // Request Android required permissions on initial launch
-    requestAppPermissions();
-    // Initialize OTA Scraper & Provider Dynamic Update Manager from GitHub
     ProviderUpdateManager.init({ autoCheck: true });
 
     async function loadData() {
+      // 3. Load Continue Watching from stored playback history
+      setContinueWatching(getWatchHistory());
+
       if (!hasTmdbApiKey()) {
-        setWeeklyTop10([]);
-        setTrendingMovies([]);
-        setPopularMovies([]);
-        setScifiMovies([]);
+        setWeeklyTop10(HERO_ITEMS);
+        setTrendingMovies(TRENDING_NOW);
+        setPopularMovies(TOP_TEN);
+        setPopularSeries([]);
         setActionAdventureMovies([]);
-        setThrillerHorrorMovies([]);
-        setTamilMovies([]);
-        setHindiMovies([]);
-        setContinueWatchingMovies([]);
+        setCrimeMysteryMovies([]);
+        setScifiFantasyMovies([]);
+        setRomanceDramaMovies([]);
+        setComedyMovies([]);
+        setAnimationAnimeMovies([]);
+        setClassicsMovies([]);
+        setNewReleases([]);
+        setTopRatedMovies([]);
+        setIndianCinemaMovies([]);
+        setKoreanSeries([]);
+        setAwardWinningMovies([]);
+        setHistoricalWarMovies([]);
+        setHorrorMovies([]);
+        setDocumentaryMovies([]);
+        setFamilyKidsMovies([]);
         setLoading(false);
+        setIsTmdbReady(true);
         return;
       }
       try {
-        const [weekly, trending, popular, scifi, actionAdv, thrillerHorror, tamil, hindi] = await Promise.all([
+        // Fast Phase 1: High priority top rows for rapid launch screen reveal
+        const [
+          weekly,
+          trending, 
+          popularM, 
+          popularS,
+        ] = await Promise.all([
           fetchWeeklyTrendingMovies(),
           fetchTrendingMovies(),
           fetchPopularMovies(),
-          fetchSciFiMovies(),
-          fetchActionAdventureMovies(),
-          fetchThrillerHorrorMovies(),
-          fetchTamilMovies(),
-          fetchHindiMovies()
+          fetchPopularTvSeries(),
         ]);
         
-        const currentKey = getTmdbApiKey();
-        const headers = { 'Accept': 'application/json' };
+        const heroList = await resolveHeroLineup(trending, weekly);
+        setWeeklyTop10(heroList.length > 0 ? heroList : (trending || []));
+        setTrendingMovies(trending || []);
+        setPopularMovies(popularM || []);
+        setPopularSeries(popularS || []);
 
-        // Enrich the top 10 weekly items with runtime, seasons, and vote averages
-        const weeklySource = weekly.length > 0 ? weekly : trending;
-        const detailedWeekly = await Promise.all(
-          weeklySource.slice(0, 10).map(async (item) => {
-            try {
-              if (currentKey) {
-                const isTVShow = item.media_type === 'tv' ? true :
-                                 item.media_type === 'movie' ? false :
-                                 (Boolean(item.first_air_date) && !item.release_date && !item.title);
-                if (isTVShow) {
-                  const res = await fetchWithRetry(`${TMDB_BASE_URL}/tv/${item.id}`, { headers });
-                  if (res && res.ok) {
-                    const details = await res.json();
-                    return { 
-                      ...item, 
-                      media_type: 'tv',
-                      number_of_seasons: details.number_of_seasons,
-                      tag: 'New Episode'
-                    };
-                  }
-                } else {
-                  const res = await fetchWithRetry(`${TMDB_BASE_URL}/movie/${item.id}`, { headers });
-                  if (res && res.ok) {
-                    const details = await res.json();
-                    return { 
-                      ...item, 
-                      media_type: 'movie',
-                      runtime: details.runtime,
-                      tag: 'New Release'
-                    };
-                  }
-                }
-              }
-            } catch (err) {
-              console.warn(`Failed fetching detailed info for TMDB ID: ${item.id}`, err);
-            }
-            const isTV = item.media_type === 'tv' ? true :
-                         item.media_type === 'movie' ? false :
-                         (Boolean(item.first_air_date) && !item.release_date && !item.title);
-            return { ...item, media_type: isTV ? 'tv' : 'movie', tag: isTV ? 'New Episode' : 'New Release' };
-          })
-        );
+        // Immediately signal layout readiness for smooth launch screen reveal
+        setLoading(false);
+        setIsTmdbReady(true);
 
-        setWeeklyTop10(detailedWeekly.length > 0 ? detailedWeekly : []);
-        setTrendingMovies(trending.length > 0 ? trending : []);
-        setPopularMovies(popular.length > 0 ? popular : []);
-        setScifiMovies(scifi.length > 0 ? scifi : []);
-        setActionAdventureMovies(actionAdv.length > 0 ? actionAdv : []);
-        setThrillerHorrorMovies(thrillerHorror.length > 0 ? thrillerHorror : []);
-        setTamilMovies(tamil.length > 0 ? tamil : []);
-        setHindiMovies(hindi.length > 0 ? hindi : []);
-        
-        // Build progress objects for Continue Watching row using a subset of items
-        const cwSource = trending.length > 0 ? trending : [];
-        const continueWatching = cwSource.slice(1, 6).map((movie, idx) => ({
-          ...movie,
-          progress: idx === 0 ? 80 : idx === 1 ? 50 : idx === 2 ? 50 : idx === 3 ? 50 : 65
-        }));
-        setContinueWatchingMovies(continueWatching);
+        // Async Phase 2: Fetch discovery categories concurrently in background without blocking launch
+        Promise.all([
+          fetchActionAdventureMovies().then(d => setActionAdventureMovies(d || [])),
+          fetchCrimeMysteryMovies().then(d => setCrimeMysteryMovies(d || [])),
+          fetchSciFiFantasyMovies().then(d => setScifiFantasyMovies(d || [])),
+          fetchRomanceDramaMovies().then(d => setRomanceDramaMovies(d || [])),
+          fetchComedyMovies().then(d => setComedyMovies(d || [])),
+          fetchAnimationAnimeMovies().then(d => setAnimationAnimeMovies(d || [])),
+          fetchClassicsMovies().then(d => setClassicsMovies(d || [])),
+          fetchNewReleases().then(d => setNewReleases(d || [])),
+          fetchTopRatedMovies().then(d => setTopRatedMovies(d || [])),
+          fetchIndianCinema().then(d => setIndianCinemaMovies(d || [])),
+          fetchKoreanInternationalSeries().then(d => setKoreanSeries(d || [])),
+          fetchAwardWinningMovies().then(d => setAwardWinningMovies(d || [])),
+          fetchHistoricalWarMovies().then(d => setHistoricalWarMovies(d || [])),
+          fetchHorrorSupernaturalMovies().then(d => setHorrorMovies(d || [])),
+          fetchDocumentaries().then(d => setDocumentaryMovies(d || [])),
+          fetchFamilyKidsMovies().then(d => setFamilyKidsMovies(d || [])),
+        ]).catch(err => {
+          console.warn('[HomeFeed] Discovery rows background fetch error:', err);
+        });
       } catch (error) {
         console.error("Error loading movies from TMDB:", error);
       } finally {
         setLoading(false);
+        setIsTmdbReady(true);
       }
     }
 
@@ -369,24 +346,27 @@ export default function App() {
       setHasTmdbKey(keySet);
 
       if (!keySet) {
-        // First install / first run: mandatory prompt for TMDB API key
         setLoading(false);
-        setShowTmdbModal(true);
+        setIsTmdbReady(true);
       } else {
-        // Key exists: load data immediately
+        getCachedHeroLineup().then((cached) => {
+          if (cached && cached.length > 0) {
+            setWeeklyTop10(cached);
+          }
+        });
         loadData();
-        // Check donation popup
-        if (!getDontShowDonationAgain()) {
-          setTimeout(() => {
-            setShowDonationModal(true);
-          }, 2000);
-        }
       }
     })();
 
-    // Listen for settings changes (saving or deleting TMDB key)
+    const safetyTimer = setTimeout(() => {
+      setIsTmdbReady(true);
+      setLoading(false);
+    }, 5000);
+
     const unsub = subscribeSettings(({ eventType }) => {
-      if (eventType === 'TMDB_KEY_SAVED') {
+      if (eventType === 'WATCH_HISTORY_UPDATED') {
+        setContinueWatching(getWatchHistory());
+      } else if (eventType === 'TMDB_KEY_SAVED') {
         setHasTmdbKey(true);
         setShowTmdbModal(false);
         loadData();
@@ -397,42 +377,61 @@ export default function App() {
         }
       } else if (eventType === 'TMDB_KEY_DELETED') {
         setHasTmdbKey(false);
-        // Clear all cached media data - strictly do not fetch or use deleted key
-        setWeeklyTop10([]);
-        setTrendingMovies([]);
-        setPopularMovies([]);
-        setScifiMovies([]);
+        setWeeklyTop10(HERO_ITEMS);
+        setTrendingMovies(TRENDING_NOW);
+        setPopularMovies(TOP_TEN);
+        setPopularSeries([]);
         setActionAdventureMovies([]);
-        setThrillerHorrorMovies([]);
-        setTamilMovies([]);
-        setHindiMovies([]);
-        setContinueWatchingMovies([]);
+        setCrimeMysteryMovies([]);
+        setScifiFantasyMovies([]);
+        setRomanceDramaMovies([]);
+        setComedyMovies([]);
+        setAnimationAnimeMovies([]);
+        setClassicsMovies([]);
+        setNewReleases([]);
+        setTopRatedMovies([]);
+        setIndianCinemaMovies([]);
+        setKoreanSeries([]);
+        setAwardWinningMovies([]);
+        setHistoricalWarMovies([]);
+        setHorrorMovies([]);
+        setDocumentaryMovies([]);
+        setFamilyKidsMovies([]);
+      }
+    });
+
+    const appStateSub = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        setContinueWatching(getWatchHistory());
+        if (hasTmdbApiKey()) {
+          loadData();
+        }
       }
     });
 
     return () => {
+      clearTimeout(safetyTimer);
       if (unsub) unsub();
+      if (appStateSub) appStateSub.remove();
     };
   }, []);
 
-  if (loading) {
-    return (
-      <SafeAreaProvider style={styles.darkBackground}>
-        <View style={styles.loadingContainer}>
-          <StatusBar style="light" />
-          <ActivityIndicator size="large" color="#3fa9f5" />
-          <Text style={styles.loadingText}>Loading NexPlay...</Text>
-        </View>
-      </SafeAreaProvider>
-    );
-  }
-
   return (
     <ErrorBoundary>
-      <SafeAreaProvider style={styles.darkBackground}>
-        <View style={styles.mainContainer}>
-          <StatusBar style="light" translucent backgroundColor="transparent" />
-
+      <SafeAreaProvider style={styles.mainBackground}>
+        <Animated.View 
+          style={[
+            styles.mainContainer,
+            showIntro ? {
+              opacity: homeFadeAnim,
+              transform: [
+                { scale: homeScaleAnim },
+                { translateY: homeTranslateY },
+              ],
+            } : null,
+          ]}
+        >
+          <StatusBar style="dark" translucent backgroundColor="transparent" />
 
           {selectedMovie ? (
             <MovieDetailScreen 
@@ -447,253 +446,389 @@ export default function App() {
               onMoviePress={handleMoviePress}
             />
           ) : (
-          <View style={styles.screenWrapper}>
-            {/* 1. HOME TAB */}
-            {activeTab === 'Home' && (
-              <ScrollView 
-                bounces={true}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-              >
-                {/* Missing TMDB API Key Banner */}
-                {!hasTmdbKey && (
-                  <TouchableOpacity
-                    style={styles.tmdbMissingBanner}
-                    activeOpacity={0.85}
-                    onPress={() => setShowTmdbModal(true)}
+            <View style={styles.screenWrapper}>
+              {/* 1. HOME TAB */}
+              {activeTab === 'Home' && (
+                <View 
+                  style={styles.tabContainer}
+                  onLayout={() => setHomeLayoutReady(true)}
+                >
+                  {/* Image 2 Screen 2 Top Header */}
+                  <AppHeader
+                    type="home"
+                    onSearchPress={() => handleTabPress('Search')}
+                    onAccountPress={() => handleTabPress('Account')}
+                  />
+
+                  <ScrollView 
+                    bounces={true}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    onLayout={() => setHomeLayoutReady(true)}
                   >
-                    <View style={styles.tmdbMissingLeft}>
-                      <View style={styles.tmdbMissingIconCircle}>
-                        <Ionicons name="key" size={scale(18)} color="#38bdf8" />
-                      </View>
-                      <View style={{ flex: 1, marginLeft: scale(10) }}>
-                        <Text style={styles.tmdbMissingTitle}>TMDB API Key Required</Text>
-                        <Text style={styles.tmdbMissingSubtitle}>Tap here to enter your key & load movies</Text>
-                      </View>
-                    </View>
-                    <View style={styles.tmdbMissingBtn}>
-                      <Text style={styles.tmdbMissingBtnText}>Enter Key</Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
-
-                {/* Animated Weekly Top 10 Hero Carousel with Ratings, Duration, Year & Genres */}
-                {weeklyTop10.length > 0 && (
-                  <HeroCarousel 
-                    movies={weeklyTop10.length > 0 ? weeklyTop10 : trendingMovies} 
-                    onMoviePress={handleMoviePress}
-                  />
-                )}
-
-                {/* Empty State when no TMDB Key */}
-                {!hasTmdbKey && weeklyTop10.length === 0 && (
-                  <View style={styles.emptyTmdbCard}>
-                    <Ionicons name="film-outline" size={scale(48)} color="#38bdf8" />
-                    <Text style={styles.emptyTmdbTitle}>No TMDB API Key Configured</Text>
-                    <Text style={styles.emptyTmdbDesc}>
-                      NexPlay requires your personal TMDB API key to fetch movie posters, descriptions, and trending lists.
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.emptyTmdbBtn}
-                      activeOpacity={0.85}
-                      onPress={() => setShowTmdbModal(true)}
-                    >
-                      <Ionicons name="key" size={scale(16)} color="#ffffff" style={{ marginRight: scale(6) }} />
-                      <Text style={styles.emptyTmdbBtnText}>Enter TMDB API Key</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {/* Dynamic Categories List */}
-                <View style={styles.categoriesContainer}>
-                  {/* 1. Trending Now */}
-                  <MovieRow 
-                    title="Trending Now" 
-                    categoryKey="trending_all"
-                    data={trendingMovies} 
-                    onMoviePress={handleMoviePress} 
-                    onSeeMore={handleSeeMore}
-                  />
-                  
-                  {/* 2. Top 10 in your Country with Glowing Outlined Rank Numbers */}
-                  <TopTenRow 
-                    title="Top 10 in your Country" 
-                    data={popularMovies} 
-                    onMoviePress={handleMoviePress} 
-                  />
-
-                  {/* 3. Sci-Fi */}
-                  {scifiMovies.length > 0 && (
-                    <MovieRow 
-                      title="Sci-Fi" 
-                      categoryKey="scifi_movies"
-                      data={scifiMovies} 
-                      onMoviePress={handleMoviePress} 
-                      onSeeMore={handleSeeMore}
+                    {/* 1. Featured Hero Carousel */}
+                    <HeroCarousel 
+                      movies={weeklyTop10 && weeklyTop10.length > 0 ? weeklyTop10 : HERO_ITEMS} 
+                      onMoviePress={handleMoviePress}
                     />
-                  )}
 
-                  {/* 4. Action & Adventure */}
-                  {actionAdventureMovies.length > 0 && (
-                    <MovieRow 
-                      title="Action & Adventure" 
-                      categoryKey="action_adventure_movies"
-                      data={actionAdventureMovies} 
-                      onMoviePress={handleMoviePress} 
-                      onSeeMore={handleSeeMore}
-                    />
-                  )}
+                    {/* 2. Trending Now */}
+                    {trendingMovies && trendingMovies.length > 0 && (
+                      <MovieRow 
+                        title="Trending Now" 
+                        categoryKey="trending_all"
+                        data={trendingMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
 
-                  {/* 5. Thriller & Horror */}
-                  {thrillerHorrorMovies.length > 0 && (
-                    <MovieRow 
-                      title="Thriller & Horror" 
-                      categoryKey="thriller_horror_movies"
-                      data={thrillerHorrorMovies} 
-                      onMoviePress={handleMoviePress} 
-                      onSeeMore={handleSeeMore}
-                    />
-                  )}
+                    {/* 3. Continue Watching (Recently played content with progress, hidden when empty) */}
+                    {continueWatching && continueWatching.length > 0 && (
+                      <ContinueWatchingRow 
+                        title="Continue Watching" 
+                        data={continueWatching} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={() => handleTabPress('Downloads')}
+                      />
+                    )}
 
-                  {/* 6. Tamil Tentkotta */}
-                  {tamilMovies.length > 0 && (
-                    <MovieRow 
-                      title="Tamil Tentkotta" 
-                      categoryKey="tamil_movies"
-                      data={tamilMovies} 
-                      onMoviePress={handleMoviePress} 
-                      onSeeMore={handleSeeMore}
-                    />
-                  )}
+                    {/* 4. Popular Movies */}
+                    {popularMovies && popularMovies.length > 0 && (
+                      <MovieRow 
+                        title="Popular Movies" 
+                        categoryKey="popular_movies"
+                        data={popularMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
 
-                  {/* 4. Hindi Movies */}
-                  {hindiMovies.length > 0 && (
-                    <MovieRow 
-                      title="Hindi Movies" 
-                      categoryKey="hindi_movies"
-                      data={hindiMovies} 
-                      onMoviePress={handleMoviePress} 
-                      onSeeMore={handleSeeMore}
-                    />
-                  )}
-                  
-                  {/* 5. Continue Watching with Progress Indicators */}
-                  <ContinueWatchingRow 
-                    title="Continue Watching" 
-                    data={continueWatchingMovies} 
-                    onMoviePress={handleMoviePress} 
-                  />
+                    {/* 5. Popular Series */}
+                    {popularSeries && popularSeries.length > 0 && (
+                      <MovieRow 
+                        title="Popular Series" 
+                        categoryKey="popular_tv"
+                        data={popularSeries} 
+                        showSeasons={true}
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 6. Action & Adventure */}
+                    {actionAdventureMovies && actionAdventureMovies.length > 0 && (
+                      <MovieRow 
+                        title="Action & Adventure" 
+                        categoryKey="action_adventure_movies"
+                        data={actionAdventureMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 7. Crime, Mystery & Thriller */}
+                    {crimeMysteryMovies && crimeMysteryMovies.length > 0 && (
+                      <MovieRow 
+                        title="Crime, Mystery & Thriller" 
+                        categoryKey="crime_mystery_thriller"
+                        data={crimeMysteryMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 8. Sci-Fi & Fantasy */}
+                    {scifiFantasyMovies && scifiFantasyMovies.length > 0 && (
+                      <MovieRow 
+                        title="Sci-Fi & Fantasy" 
+                        categoryKey="scifi_fantasy_movies"
+                        data={scifiFantasyMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 9. Romance & Drama */}
+                    {romanceDramaMovies && romanceDramaMovies.length > 0 && (
+                      <MovieRow 
+                        title="Romance & Drama" 
+                        categoryKey="romance_drama_movies"
+                        data={romanceDramaMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 10. Comedy & Feel-Good */}
+                    {comedyMovies && comedyMovies.length > 0 && (
+                      <MovieRow 
+                        title="Comedy & Feel-Good" 
+                        categoryKey="comedy_movies"
+                        data={comedyMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 11. Animation & Anime */}
+                    {animationAnimeMovies && animationAnimeMovies.length > 0 && (
+                      <MovieRow 
+                        title="Animation & Anime" 
+                        categoryKey="animation_anime"
+                        data={animationAnimeMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 12. Classics & All-Time Favorites */}
+                    {classicsMovies && classicsMovies.length > 0 && (
+                      <MovieRow 
+                        title="Classics & All-Time Favorites" 
+                        categoryKey="classics_movies"
+                        data={classicsMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 13. New Releases */}
+                    {newReleases && newReleases.length > 0 && (
+                      <MovieRow 
+                        title="New Releases" 
+                        categoryKey="new_releases"
+                        data={newReleases} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* 14. Top Rated */}
+                    {topRatedMovies && topRatedMovies.length > 0 && (
+                      <MovieRow 
+                        title="Top Rated" 
+                        categoryKey="top_rated_movies"
+                        data={topRatedMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* ==================== 2. More categories to keep scrolling ==================== */}
+
+                    {/* Indian Cinema (Tamil, Telugu, Hindi, Malayalam, Kannada) */}
+                    {indianCinemaMovies && indianCinemaMovies.length > 0 && (
+                      <MovieRow 
+                        title="Indian Cinema" 
+                        categoryKey="indian_cinema"
+                        data={indianCinemaMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* Korean Dramas & International Series */}
+                    {koreanSeries && koreanSeries.length > 0 && (
+                      <MovieRow 
+                        title="Korean Dramas & International Series" 
+                        categoryKey="korean_international_series"
+                        data={koreanSeries} 
+                        showSeasons={true}
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* Award-Winning Movies */}
+                    {awardWinningMovies && awardWinningMovies.length > 0 && (
+                      <MovieRow 
+                        title="Award-Winning Movies" 
+                        categoryKey="award_winning_movies"
+                        data={awardWinningMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* Historical & War */}
+                    {historicalWarMovies && historicalWarMovies.length > 0 && (
+                      <MovieRow 
+                        title="Historical & War" 
+                        categoryKey="historical_war_movies"
+                        data={historicalWarMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* Horror & Supernatural */}
+                    {horrorMovies && horrorMovies.length > 0 && (
+                      <MovieRow 
+                        title="Horror & Supernatural" 
+                        categoryKey="horror_supernatural_movies"
+                        data={horrorMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* Documentaries */}
+                    {documentaryMovies && documentaryMovies.length > 0 && (
+                      <MovieRow 
+                        title="Documentaries" 
+                        categoryKey="documentary_movies"
+                        data={documentaryMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+
+                    {/* Family & Kids */}
+                    {familyKidsMovies && familyKidsMovies.length > 0 && (
+                      <MovieRow 
+                        title="Family & Kids" 
+                        categoryKey="family_kids_movies"
+                        data={familyKidsMovies} 
+                        onMoviePress={handleMoviePress} 
+                        onSeeMore={handleSeeMore}
+                      />
+                    )}
+                  </ScrollView>
                 </View>
-              </ScrollView>
-            )}
+              )}
 
-            {/* 2. MOVIES TAB */}
-            {activeTab === 'Movies' && (
-              <MoviesScreen 
-                onMoviePress={handleMoviePress} 
-                onSeeMore={handleSeeMore}
-              />
-            )}
-
-            {/* 3. SERIES TAB */}
-            {(activeTab === 'Series' || activeTab === 'TV Series') && (
-              <TvSeriesScreen 
-                onMoviePress={handleMoviePress} 
-                onSeeMore={handleSeeMore}
-              />
-            )}
-
-            {/* 4. LIVE TV & SERIALS TAB */}
-            {(activeTab === 'Live TV & Serials' || activeTab === 'TV Serials') && (
-              <TvSerialsScreen 
-                onMoviePress={handleMoviePress} 
-                onSeeMore={handleSeeMore}
-                onDetailStateChange={setIsTvSerialsDetailOpen}
-              />
-            )}
-
-            {/* 4. SEARCH TAB */}
-            {activeTab === 'Search' && (
-              <SearchScreen onMoviePress={handleMoviePress} />
-            )}
-
-            {/* 5. ACCOUNT TAB */}
-            {activeTab === 'Account' && (
-              <AccountScreen />
-            )}
-
-            {/* Top-Right Account Profile Button */}
-            {!isTvSerialsDetailOpen && (
-              <TouchableOpacity
-                style={[
-                  styles.topAccountBtn,
-                  activeTab === 'Account' && styles.topAccountBtnActive
-                ]}
-                activeOpacity={0.8}
-                onPress={() => activeTab === 'Account' ? handleTabPress('Home') : handleTabPress('Account')}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Ionicons
-                  name={activeTab === 'Account' ? 'person' : 'person-outline'}
-                  size={scale(17)}
-                  color={activeTab === 'Account' ? '#38bdf8' : '#ffffff'}
+              {/* 2. MOVIES TAB (Image 2 Screen 3) */}
+              {activeTab === 'Movies' && (
+                <MoviesScreen 
+                  onMoviePress={handleMoviePress} 
+                  onSeeMore={handleSeeMore}
+                  onBack={() => handleTabPress('Home')}
+                  onSearchPress={() => handleTabPress('Search')}
                 />
-              </TouchableOpacity>
-            )}
+              )}
 
-            {/* Floating Glassmorphic Bottom Navigation Bar */}
-            <BottomTabBar 
-              activeTab={activeTab} 
-              onTabPress={handleTabPress} 
-            />
+              {/* 3. SERIES TAB (Image 2 Screen 4) */}
+              {(activeTab === 'Series' || activeTab === 'TV Series') && (
+                <TvSeriesScreen 
+                  onMoviePress={handleMoviePress} 
+                  onSeeMore={handleSeeMore}
+                  onBack={() => handleTabPress('Home')}
+                  onSearchPress={() => handleTabPress('Search')}
+                />
+              )}
 
-            {/* TMDB API Key First-Run & Management Modal */}
-            <TmdbApiKeyModal
-              visible={showTmdbModal}
-              onClose={() => setShowTmdbModal(false)}
-              onKeySaved={() => {
-                setShowTmdbModal(false);
-              }}
-            />
+              {/* 4. TV SERIALS TAB (Attached Reference Design) */}
+              {(activeTab === 'TV Serials' || activeTab === 'My List' || activeTab === 'TvSerials' || activeTab === 'Serials') && (
+                <TvSerialsScreen 
+                  onMoviePress={handleMoviePress} 
+                  onSearchPress={() => handleTabPress('Search')}
+                  onAccountPress={() => handleTabPress('Account')}
+                  onBack={() => handleTabPress('Home')}
+                />
+              )}
 
-            {/* Support NexPlay / Donation Modal */}
-            <DonationModal
-              visible={showDonationModal}
-              onClose={() => setShowDonationModal(false)}
-            />
-          </View>
+              {/* 5. DOWNLOADS TAB (Image 2 Screen 9) */}
+              {activeTab === 'Downloads' && (
+                <DownloadsScreen 
+                  onMoviePress={handleMoviePress}
+                  onSettingsPress={() => setShowTmdbModal(true)}
+                />
+              )}
+
+              {/* 6. SEARCH SCREEN (Image 2 Screen 8) */}
+              {activeTab === 'Search' && (
+                <SearchScreen 
+                  onMoviePress={handleMoviePress} 
+                  onBack={() => handleBack()}
+                />
+              )}
+
+              {/* 7. ACCOUNT SCREEN (Image 2 Screen 7) */}
+              {activeTab === 'Account' && (
+                <AccountScreen 
+                  onBack={() => handleBack()}
+                  onNavigateTab={(tab) => handleTabPress(tab)}
+                />
+              )}
+
+              {/* Docked White Bottom Navigation Bar (Image 2) */}
+              <BottomTabBar 
+                activeTab={activeTab} 
+                onTabPress={handleTabPress} 
+              />
+
+              {/* TMDB API Key First-Run & Management Modal */}
+              <TmdbApiKeyModal
+                visible={showTmdbModal && !showIntro}
+                onClose={() => setShowTmdbModal(false)}
+                onKeySaved={() => {
+                  setShowTmdbModal(false);
+                }}
+              />
+
+              {/* Support NexPlay / Donation Modal */}
+              <DonationModal
+                visible={showDonationModal && !showIntro}
+                onClose={() => setShowDonationModal(false)}
+              />
+            </View>
+          )}
+        </Animated.View>
+
+        {/* Studio Launch Screen (Image 1) */}
+        {showIntro && (
+          <CinematicSplashScreen 
+            onFinish={() => {
+              setShowIntro(false);
+              requestAppPermissions();
+            }} 
+            onRevealStart={handleRevealStart}
+            isDataReady={isTmdbReady && homeLayoutReady} 
+          />
         )}
-      </View>
-    </SafeAreaProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }
 
 const styles = StyleSheet.create({
-  darkBackground: {
+  mainBackground: {
     flex: 1,
-    backgroundColor: '#09090b',
+    backgroundColor: '#FFFFFF',
   },
   mainContainer: {
     flex: 1,
-    backgroundColor: '#09090b',
+    backgroundColor: '#FFFFFF',
+  },
+  screenWrapper: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    position: 'relative',
+  },
+  tabContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    paddingBottom: verticalScale(110),
   },
   errorBoundaryContainer: {
     flex: 1,
-    backgroundColor: '#09090b',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: scale(32),
   },
   errorBoundaryTitle: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: moderateScale(22),
     fontWeight: '800',
     marginTop: verticalScale(16),
     letterSpacing: 0.5,
   },
   errorBoundarySubtitle: {
-    color: '#94a3b8',
+    color: colors.textSecondary,
     fontSize: moderateScale(13),
     fontWeight: '400',
     textAlign: 'center',
@@ -701,13 +836,13 @@ const styles = StyleSheet.create({
     lineHeight: moderateScale(20),
   },
   errorBoundaryButton: {
-    backgroundColor: '#0284c7',
+    backgroundColor: colors.primary,
     paddingHorizontal: scale(24),
     paddingVertical: verticalScale(12),
     borderRadius: scale(14),
     marginTop: verticalScale(24),
-    shadowColor: '#38bdf8',
-    shadowOpacity: 0.4,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 4,
   },
@@ -717,115 +852,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  screenWrapper: {
-    flex: 1,
-    backgroundColor: '#09090b',
-    position: 'relative',
-  },
-  scrollContent: {
-    paddingBottom: verticalScale(110),
-  },
-  categoriesContainer: {
-    marginTop: verticalScale(-8),
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#09090b',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    color: '#71717a',
-    fontSize: 12,
-    marginTop: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  accountContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: scale(24),
-  },
-  accountCard: {
-    alignItems: 'center',
-    backgroundColor: '#18181b',
-    padding: scale(28),
-    borderRadius: scale(20),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.10)',
-    width: '100%',
-  },
-  accountTitle: {
-    color: '#f9fafb',
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 12,
-  },
-  accountSubtitle: {
-    color: '#9ca3af',
-    fontSize: 12,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  accountBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.20)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#38bdf8',
-  },
-  accountBadgeText: {
-    color: '#38bdf8',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  topAccountBtn: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight ? StatusBar.currentHeight + 8 : verticalScale(34)) : verticalScale(44),
-    right: scale(16),
-    zIndex: 998,
-    width: scale(38),
-    height: scale(38),
-    borderRadius: scale(19),
-    backgroundColor: 'rgba(15, 23, 42, 0.82)',
-    borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.22)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  topAccountBtnActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.22)',
-    borderColor: '#38bdf8',
-    shadowColor: '#38bdf8',
-    shadowOpacity: 0.5,
-  },
   tmdbMissingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    backgroundColor: '#FFF1F2',
     borderWidth: 1.2,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderColor: '#FECDD3',
     borderRadius: scale(14),
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(10),
     marginHorizontal: scale(16),
     marginTop: verticalScale(10),
     marginBottom: verticalScale(14),
-    shadowColor: '#38bdf8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
   },
   tmdbMissingLeft: {
     flexDirection: 'row',
@@ -836,22 +875,22 @@ const styles = StyleSheet.create({
     width: scale(34),
     height: scale(34),
     borderRadius: scale(17),
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: 'rgba(229, 9, 20, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   tmdbMissingTitle: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: moderateScale(13.5),
     fontWeight: '700',
   },
   tmdbMissingSubtitle: {
-    color: '#94a3b8',
+    color: colors.textSecondary,
     fontSize: moderateScale(11),
     marginTop: verticalScale(1),
   },
   tmdbMissingBtn: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingHorizontal: scale(12),
     paddingVertical: verticalScale(6),
     borderRadius: scale(14),
@@ -868,20 +907,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(28),
     marginHorizontal: scale(16),
     marginTop: verticalScale(20),
-    backgroundColor: 'rgba(18, 18, 24, 0.65)',
+    backgroundColor: '#F9FAFB',
     borderRadius: scale(20),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E5E7EB',
   },
   emptyTmdbTitle: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: moderateScale(17),
     fontWeight: '800',
     marginTop: verticalScale(14),
     textAlign: 'center',
   },
   emptyTmdbDesc: {
-    color: '#94a3b8',
+    color: colors.textSecondary,
     fontSize: moderateScale(12.5),
     lineHeight: verticalScale(18),
     textAlign: 'center',
@@ -891,15 +930,15 @@ const styles = StyleSheet.create({
   emptyTmdbBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingHorizontal: scale(20),
     height: verticalScale(42),
     borderRadius: scale(21),
-    shadowColor: '#2563eb',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 6,
   },
   emptyTmdbBtnText: {
     color: '#ffffff',

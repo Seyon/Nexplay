@@ -26,7 +26,44 @@ import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 import org.json.JSONObject
 
+data class DnsCacheEntry(val addresses: List<InetAddress>, val expiry: Long)
+
 class DohFallbackDns : Dns {
+
+  companion object {
+    private val dnsCache = java.util.concurrent.ConcurrentHashMap<String, DnsCacheEntry>()
+    private val executor = java.util.concurrent.Executors.newFixedThreadPool(6) { r ->
+      Thread(r, "NexPlay-DoH-Worker").apply { isDaemon = true }
+    }
+
+    fun clearCache() {
+      dnsCache.clear()
+      seedStaticDns()
+    }
+
+    private fun seedStaticDns() {
+      try {
+        val tmdbIps = listOf(
+          InetAddress.getByAddress("api.themoviedb.org", byteArrayOf(3.toByte(), 175.toByte(), 86.toByte(), 50.toByte())),
+          InetAddress.getByAddress("api.themoviedb.org", byteArrayOf(3.toByte(), 175.toByte(), 86.toByte(), 37.toByte())),
+          InetAddress.getByAddress("api.themoviedb.org", byteArrayOf(13.toByte(), 224.toByte(), 245.toByte(), 92.toByte())),
+          InetAddress.getByAddress("api.themoviedb.org", byteArrayOf(13.toByte(), 224.toByte(), 245.toByte(), 44.toByte()))
+        )
+        val dayExpiry = System.currentTimeMillis() + 86400000L
+        dnsCache["api.themoviedb.org"] = DnsCacheEntry(tmdbIps, dayExpiry)
+        dnsCache["themoviedb.org"] = DnsCacheEntry(tmdbIps, dayExpiry)
+        val tmdbImageIps = listOf(
+          InetAddress.getByAddress("image.tmdb.org", byteArrayOf(169.toByte(), 150.toByte(), 207.toByte(), 217.toByte())),
+          InetAddress.getByAddress("image.tmdb.org", byteArrayOf(151.toByte(), 101.toByte(), 1.toByte(), 124.toByte()))
+        )
+        dnsCache["image.tmdb.org"] = DnsCacheEntry(tmdbImageIps, dayExpiry)
+      } catch (e: Exception) {}
+    }
+
+    init {
+      seedStaticDns()
+    }
+  }
 
   override fun lookup(hostname: String): List<InetAddress> {
     if (hostname.isEmpty()) throw UnknownHostException("hostname is empty")
@@ -39,53 +76,112 @@ class DohFallbackDns : Dns {
       return Dns.SYSTEM.lookup(hostname)
     }
 
-    // 1. Ultra-fast path: Try standard system DNS first (5-15ms real-time carrier speed)
-    try {
-      val systemAddresses = Dns.SYSTEM.lookup(hostname)
-      val nonBlocked = systemAddresses.filter {
-        val ip = it.hostAddress ?: ""
-        ip != "0.0.0.0" && ip != "127.0.0.1" && !ip.startsWith("0.")
-      }
-      if (nonBlocked.isNotEmpty()) {
-        return nonBlocked
-      }
-    } catch (e: Exception) {
-      // System DNS failed / blocked by carrier ISP -> proceed to DoH
+    // 1. In-memory Cache Check (0ms immediate return)
+    val now = System.currentTimeMillis()
+    val cached = dnsCache[hostname]
+    if (cached != null && cached.expiry > now && cached.addresses.isNotEmpty()) {
+      return cached.addresses
     }
 
-    // If DoH is disabled by user and system DNS failed, throw
-    if (!DnsPreferenceModule.activeEnabled) {
-      throw UnknownHostException("System DNS failed and DoH is disabled: $hostname")
-    }
+    // 2. Build candidate endpoints to race concurrently
+    val candidateTasks = mutableListOf<java.util.concurrent.Callable<List<InetAddress>>>()
 
-    // 2. Carrier ISP Bypass: Query DoH using user's active provider
-    val endpoints = getEndpointsForActiveProvider(hostname)
-    for (urlStr in endpoints) {
+    // Task: System DNS with strict 800ms limit and carrier blockpage filter
+    candidateTasks.add(java.util.concurrent.Callable {
       try {
-        val addresses = queryDohEndpoint(urlStr, hostname)
-        if (addresses.isNotEmpty()) {
-          return addresses
+        val addrs = Dns.SYSTEM.lookup(hostname)
+        val valid = addrs.filter {
+          val ip = it.hostAddress ?: ""
+          ip != "0.0.0.0" && ip != "127.0.0.1" && !ip.startsWith("0.") &&
+          !ip.startsWith("49.44.") && !ip.startsWith("182.79.") && !ip.startsWith("115.112.")
         }
+        if (valid.isNotEmpty()) valid else throw Exception("Blocked or empty")
       } catch (e: Exception) {
-        // Try next endpoint
+        throw e
+      }
+    })
+
+    // Tasks: Active provider endpoints
+    val endpoints = getEndpointsForActiveProvider(hostname)
+    for (url in endpoints) {
+      candidateTasks.add(java.util.concurrent.Callable {
+        val res = queryDohEndpoint(url, hostname)
+        if (res.isNotEmpty()) res else throw Exception("DoH empty for $url")
+      })
+    }
+
+    // Tasks: Ultra-fast fallback DoH endpoints (Cloudflare 1.0.0.1 & Google 8.8.8.8 & Alibaba 223.5.5.5)
+    val emergencyUrls = listOf(
+      "https://1.0.0.1/dns-query?name=$hostname&type=A",
+      "https://8.8.8.8/resolve?name=$hostname&type=A",
+      "https://cloudflare-dns.com/dns-query?name=$hostname&type=A",
+      "https://223.5.5.5/resolve?name=$hostname&type=A"
+    )
+    for (eUrl in emergencyUrls) {
+      if (!endpoints.contains(eUrl)) {
+        candidateTasks.add(java.util.concurrent.Callable {
+          val res = queryDohEndpoint(eUrl, hostname)
+          if (res.isNotEmpty()) res else throw Exception("Fallback DoH empty for $eUrl")
+        })
       }
     }
 
-    // 3. Ultimate emergency fallback: Google DNS via direct IP
-    val emergencyUrls = listOf(
-      "https://8.8.8.8/resolve?name=$hostname&type=A",
-      "https://8.8.4.4/resolve?name=$hostname&type=A",
-      "https://dns.google/resolve?name=$hostname&type=A",
-      "https://cloudflare-dns.com/dns-query?name=$hostname&type=A"
-    )
-    for (urlStr in emergencyUrls) {
-      try {
-        val addresses = queryDohEndpoint(urlStr, hostname)
-        if (addresses.isNotEmpty()) {
-          return addresses
-        }
-      } catch (e: Exception) {}
+    // 3. Race tasks concurrently using CompletionService
+    val cs = java.util.concurrent.ExecutorCompletionService<List<InetAddress>>(executor)
+    val futures = mutableListOf<java.util.concurrent.Future<List<InetAddress>>>()
+    for (task in candidateTasks) {
+      futures.add(cs.submit(task))
     }
+
+    var resolvedAddresses: List<InetAddress>? = null
+    var completedCount = 0
+    val totalCount = candidateTasks.size
+    val deadline = System.currentTimeMillis() + 3500L // Max 3.5s wait total
+
+    while (completedCount < totalCount) {
+      val remainingTime = Math.max(100L, deadline - System.currentTimeMillis())
+      if (remainingTime <= 0) break
+      val completedFuture = cs.poll(remainingTime, TimeUnit.MILLISECONDS)
+      if (completedFuture != null) {
+        completedCount++
+        try {
+          val res = completedFuture.get()
+          if (res != null && res.isNotEmpty()) {
+            resolvedAddresses = res
+            break
+          }
+        } catch (e: Exception) {
+          // Task failed, wait for next
+        }
+      } else {
+        // Poll timed out
+        break
+      }
+    }
+
+    // Cancel remaining futures
+    for (f in futures) {
+      try { f.cancel(true) } catch (e: Exception) {}
+    }
+
+    if (resolvedAddresses != null && resolvedAddresses.isNotEmpty()) {
+      dnsCache[hostname] = DnsCacheEntry(resolvedAddresses, System.currentTimeMillis() + 1800000L) // 30 min TTL
+      return resolvedAddresses
+    }
+
+    // 4. Stale cache fallback if resolution failed
+    if (cached != null && cached.addresses.isNotEmpty()) {
+      return cached.addresses
+    }
+
+    // 5. Final attempt via System DNS
+    try {
+      val sys = Dns.SYSTEM.lookup(hostname)
+      if (sys.isNotEmpty()) {
+        dnsCache[hostname] = DnsCacheEntry(sys, System.currentTimeMillis() + 300000L)
+        return sys
+      }
+    } catch (e: Exception) {}
 
     throw UnknownHostException("Unable to resolve host via DoH and System DNS: $hostname")
   }

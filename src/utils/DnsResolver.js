@@ -359,12 +359,13 @@ export const resolveDomain = async (domain) => {
     }
   }
 
-  // 2. Global Fallback endpoints (Google -> Cloudflare -> Adguard)
+  // 2. Global Fallback endpoints (Cloudflare 1.0.0.1 -> Google 8.8.8.8 -> Alibaba 223.5.5.5 -> Adguard)
   const fallbackEndpoints = [
+    'https://1.0.0.1/dns-query',
     'https://8.8.8.8/resolve',
     'https://dns.google/resolve',
-    'https://1.1.1.1/dns-query',
     'https://cloudflare-dns.com/dns-query',
+    'https://223.5.5.5/resolve',
     'https://8.8.4.4/resolve',
     'https://94.140.14.14/resolve'
   ].filter((url) => !primaryEndpoints.includes(url));
@@ -410,7 +411,9 @@ export const resolveUrlWithDoh = async (url) => {
     }
 
     const resolvedIp = await resolveDomain(originalHostname);
-    if (resolvedIp && resolvedIp !== originalHostname) {
+    // For HTTPS, native OkHttp DohFallbackDns handles encrypted TLS DNS resolution natively.
+    // Rewriting the URL to an IP on HTTPS breaks OkHttp TLS certificate verification.
+    if (resolvedIp && resolvedIp !== originalHostname && urlObj.protocol === 'http:') {
       urlObj.hostname = resolvedIp;
       return {
         url: urlObj.toString(),
@@ -419,6 +422,13 @@ export const resolveUrlWithDoh = async (url) => {
         ip: resolvedIp
       };
     }
+
+    return {
+      url,
+      headers: {},
+      originalHost: originalHostname,
+      ip: resolvedIp || originalHostname
+    };
   } catch (err) {
     // If URL parsing fails, return original
   }

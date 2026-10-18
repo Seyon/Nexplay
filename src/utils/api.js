@@ -74,8 +74,8 @@ const headers = {
   'Accept': 'application/json'
 };
 
-// Fetch with Retry, Timeout, and Direct-IP DoH ISP Bypass fallback
-export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 800) => {
+// Fetch with Retry & Timeout utilizing native OkHttp DoH engine
+export const fetchWithRetry = async (url, options = {}, retries = 2, delay = 400) => {
   let targetUrl = url;
 
   // Intercept and handle TMDB requests dynamically
@@ -99,7 +99,7 @@ export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 800
 
   for (let i = 0; i < retries; i++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     try {
       const res = await fetch(targetUrl, {
         ...options,
@@ -113,21 +113,6 @@ export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 800
       if (res && res.ok) return res;
     } catch (err) {
       clearTimeout(timeoutId);
-      try {
-        const dohResolved = await resolveUrlWithDoh(url);
-        if (dohResolved && dohResolved.url && dohResolved.url !== url) {
-          const dohRes = await fetch(dohResolved.url, {
-            ...options,
-            headers: {
-              'Accept': 'application/json',
-              ...(options.headers || {}),
-              ...(dohResolved.headers || {})
-            }
-          });
-          if (dohRes && dohRes.ok) return dohRes;
-        }
-      } catch (e) {}
-
       if (i === retries - 1) {
         return null;
       }
@@ -297,6 +282,19 @@ export const fetchWeeklyTrendingMoviesOnly = async () => {
   }
 };
 
+// Fetch Daily Trending Movies Only
+export const fetchDailyTrendingMoviesOnly = async () => {
+  try {
+    const response = await fetchWithRetry(`${TMDB_BASE_URL}/trending/movie/day?api_key=${TMDB_API_KEY}`, { headers });
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching daily trending movies:', error);
+    return [];
+  }
+};
+
 // Fetch Top Rated Movies
 export const fetchTopRatedMovies = async () => {
   try {
@@ -326,39 +324,295 @@ export const fetchSciFiMovies = async () => {
   }
 };
 
-// Fetch Action & Adventure Movies
-export const fetchActionAdventureMovies = async () => {
+// Fetch Pure Action Movies (Genre 28)
+export const fetchActionMovies = async () => {
   try {
     const response = await fetchWithRetry(
-      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=28,12&sort_by=popularity.desc&page=1`,
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=28&sort_by=popularity.desc&page=1`,
       { headers }
     );
     if (!response || !response.ok) return [];
     const data = await response.json();
     return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
   } catch (error) {
-    console.warn('Error fetching action & adventure movies:', error);
+    console.warn('Error fetching action movies:', error);
     return [];
   }
 };
-export const fetchActionMovies = fetchActionAdventureMovies;
+export const fetchActionAdventureMovies = fetchActionMovies;
 
-// Fetch Thriller & Horror Movies
-export const fetchThrillerHorrorMovies = async () => {
+// Fetch Epic Adventure Movies (Genre 12)
+export const fetchAdventureMovies = async () => {
   try {
     const response = await fetchWithRetry(
-      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=53,27&sort_by=popularity.desc&page=1`,
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=12&sort_by=popularity.desc&page=1`,
       { headers }
     );
     if (!response || !response.ok) return [];
     const data = await response.json();
     return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
   } catch (error) {
-    console.warn('Error fetching thriller & horror movies:', error);
+    console.warn('Error fetching adventure movies:', error);
     return [];
   }
 };
-export const fetchHorrorMovies = fetchThrillerHorrorMovies;
+
+// Fetch Edge-of-Seat Thriller Movies (Genre 53)
+export const fetchThrillerMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=53&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching thriller movies:', error);
+    return [];
+  }
+};
+export const fetchThrillerHorrorMovies = fetchThrillerMovies;
+
+// Fetch Spine-Chilling Horror Movies (Genre 27)
+export const fetchHorrorMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=27&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching horror movies:', error);
+    return [];
+  }
+};
+
+// Fetch Comedy & Entertainment Movies (Genre 35)
+export const fetchComedyMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=35&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching comedy movies:', error);
+    return [];
+  }
+};
+
+// Fetch Crime, Mystery & Thriller Movies (Genres 80, 9648, 53)
+export const fetchCrimeMysteryMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=80,9648,53&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching crime mystery thriller movies:', error);
+    return [];
+  }
+};
+
+// Fetch Sci-Fi & Fantasy Movies (Genres 878, 14)
+export const fetchSciFiFantasyMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=878,14&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching sci-fi fantasy movies:', error);
+    return [];
+  }
+};
+
+// Fetch Romance & Emotional Drama Movies (Genres 10749, 18)
+export const fetchRomanceDramaMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=10749,18&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching romance drama movies:', error);
+    return [];
+  }
+};
+
+// Fetch Animation & Anime Movies (Genre 16)
+export const fetchAnimationAnimeMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=16&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching animation anime movies:', error);
+    return [];
+  }
+};
+
+// Fetch Classics & All-Time Favorites
+export const fetchClassicsMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&vote_average.gte=8.0&vote_count.gte=1000&primary_release_date.lte=2012-01-01&sort_by=vote_average.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching classics movies:', error);
+    return [];
+  }
+};
+
+// Fetch New Releases (Now Playing in Theaters / Digital)
+export const fetchNewReleases = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching new releases:', error);
+    return [];
+  }
+};
+
+// Fetch Indian Cinema (Tamil, Telugu, Hindi, Malayalam, Kannada)
+export const fetchIndianCinema = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_original_language=ta|hi|te|ml|kn&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching Indian cinema:', error);
+    return [];
+  }
+};
+
+// Fetch Korean Dramas & International Series
+export const fetchKoreanInternationalSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_original_language=ko|ja|es|fr&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching Korean & international series:', error);
+    return [];
+  }
+};
+
+// Fetch Award-Winning Movies
+export const fetchAwardWinningMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&vote_average.gte=7.8&vote_count.gte=2500&sort_by=vote_average.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching award winning movies:', error);
+    return [];
+  }
+};
+
+// Fetch Historical & War Movies (Genres 36, 10752)
+export const fetchHistoricalWarMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=36,10752&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching historical war movies:', error);
+    return [];
+  }
+};
+
+// Fetch Horror & Supernatural Movies (Genres 27, 9648)
+export const fetchHorrorSupernaturalMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=27,9648&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching horror supernatural movies:', error);
+    return [];
+  }
+};
+
+// Fetch Documentaries (Genre 99)
+export const fetchDocumentaries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=99&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching documentaries:', error);
+    return [];
+  }
+};
+
+// Fetch Family & Kids Movies (Genres 10751, 16)
+export const fetchFamilyKidsMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=10751,16&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  } catch (error) {
+    console.warn('Error fetching family kids movies:', error);
+    return [];
+  }
+};
 
 // ==================== TV SERIES SECTION ENDPOINTS ====================
 
@@ -371,6 +625,19 @@ export const fetchWeeklyTrendingTvSeries = async () => {
     return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
   } catch (error) {
     console.warn('Error fetching weekly trending TV series:', error);
+    return [];
+  }
+};
+
+// Fetch Daily Trending TV Series Only
+export const fetchTrendingTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(`${TMDB_BASE_URL}/trending/tv/day?api_key=${TMDB_API_KEY}`, { headers });
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching daily trending TV series:', error);
     return [];
   }
 };
@@ -434,22 +701,55 @@ export const fetchActionAdventureTvSeries = async () => {
 };
 export const fetchActionSciFiTvSeries = fetchActionAdventureTvSeries;
 
-// Fetch Thriller & Horror / Mystery & Crime TV Series
-export const fetchThrillerHorrorTvSeries = async () => {
+// Fetch Dark Crime & Suspense Mystery Thriller TV Series (Genres 80, 9648)
+export const fetchCrimeMysteryTvSeries = async () => {
   try {
     const response = await fetchWithRetry(
-      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=9648,80&sort_by=popularity.desc&page=1`,
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=80,9648&sort_by=popularity.desc&page=1`,
       { headers }
     );
     if (!response || !response.ok) return [];
     const data = await response.json();
     return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
   } catch (error) {
-    console.warn('Error fetching thriller & horror TV series:', error);
+    console.warn('Error fetching crime & thriller TV series:', error);
     return [];
   }
 };
-export const fetchCrimeDramaTvSeries = fetchThrillerHorrorTvSeries;
+export const fetchThrillerHorrorTvSeries = fetchCrimeMysteryTvSeries;
+export const fetchCrimeDramaTvSeries = fetchCrimeMysteryTvSeries;
+
+// Fetch Supernatural & Horror TV Series (Genres 9648, 10765)
+export const fetchHorrorTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=9648,10765&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching horror TV series:', error);
+    return [];
+  }
+};
+
+// Fetch Binge-Worthy Comedy TV Series (Genre 35)
+export const fetchComedyTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=35&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching comedy TV series:', error);
+    return [];
+  }
+};
 
 // Fetch Tamil TV Series
 export const fetchTamilTvSeries = async () => {
@@ -483,6 +783,118 @@ export const fetchHindiTvSeries = async () => {
   }
 };
 
+
+// Fetch Compelling Drama TV Series (Genre 18)
+export const fetchDramaTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=18&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching drama TV series:', error);
+    return [];
+  }
+};
+
+// Fetch Animation & Anime TV Series (Genre 16)
+export const fetchAnimationAnimeTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching animation anime TV series:', error);
+    return [];
+  }
+};
+
+// Fetch Classics & All-Time Favorite TV Series
+export const fetchClassicsTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&vote_average.gte=8.0&vote_count.gte=300&first_air_date.lte=2016-01-01&sort_by=vote_average.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching classics TV series:', error);
+    return [];
+  }
+};
+
+// Fetch New Episodes & On The Air Series
+export const fetchNewEpisodesTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/tv/on_the_air?api_key=${TMDB_API_KEY}&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching on the air TV series:', error);
+    return [];
+  }
+};
+
+// Fetch Historical, War & Politics Series (Genre 10768)
+export const fetchHistoricalWarTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=10768&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching historical war TV series:', error);
+    return [];
+  }
+};
+
+// Fetch Docuseries & Documentaries (Genre 99)
+export const fetchDocuseries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=99&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching docuseries:', error);
+    return [];
+  }
+};
+
+// Fetch Kids & Family TV Series (Genre 10762)
+export const fetchKidsFamilyTvSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=10762&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv' }));
+  } catch (error) {
+    console.warn('Error fetching kids family TV series:', error);
+    return [];
+  }
+};
 
 // Fetch Indian TV Serials (Daily Soaps & Television Dramas)
 export const fetchIndianTvSerials = async () => {
@@ -618,13 +1030,29 @@ export const fetchCategoryMedia = async (categoryKey, page = 1) => {
       case 'scifi_movies':
         url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=878&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
         break;
-      case 'action_adventure_movies':
       case 'action_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=28&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'adventure_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=12&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'action_adventure_movies':
         url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=28,12&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
         break;
-      case 'thriller_horror_movies':
+      case 'thriller_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=53&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
+        break;
       case 'horror_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=27&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'thriller_horror_movies':
         url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=53,27&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'comedy_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=35&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'crime_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=80&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=5`;
         break;
       case 'tamil_movies':
         url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_original_language=ta&sort_by=primary_release_date.desc&page=${page}&vote_count.gte=2`;
@@ -648,9 +1076,16 @@ export const fetchCategoryMedia = async (categoryKey, page = 1) => {
       case 'action_scifi_tv':
         url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=10759&sort_by=first_air_date.desc&page=${page}&vote_count.gte=3`;
         break;
+      case 'thriller_tv':
       case 'thriller_horror_tv':
       case 'crime_drama_tv':
-        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=9648,80&sort_by=first_air_date.desc&page=${page}&vote_count.gte=3`;
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=80,9648&sort_by=first_air_date.desc&page=${page}&vote_count.gte=3`;
+        break;
+      case 'horror_tv':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=9648,10765&sort_by=first_air_date.desc&page=${page}&vote_count.gte=3`;
+        break;
+      case 'comedy_tv':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=35&sort_by=first_air_date.desc&page=${page}&vote_count.gte=3`;
         break;
       case 'tamil_tv':
         url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_original_language=ta&sort_by=first_air_date.desc&page=${page}`;
@@ -660,6 +1095,76 @@ export const fetchCategoryMedia = async (categoryKey, page = 1) => {
         break;
       case 'top_rated_tv':
         url = `${TMDB_BASE_URL}/tv/top_rated?api_key=${TMDB_API_KEY}&page=${page}`;
+        break;
+      case 'crime_mystery_thriller':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=80,9648,53&sort_by=popularity.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'scifi_fantasy_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=878,14&sort_by=popularity.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'romance_drama_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=10749,18&sort_by=popularity.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'animation_anime':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=16&sort_by=popularity.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'classics_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&vote_average.gte=8.0&vote_count.gte=1000&primary_release_date.lte=2012-01-01&sort_by=vote_average.desc&page=${page}`;
+        break;
+      case 'new_releases':
+        url = `${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&page=${page}`;
+        break;
+      case 'indian_cinema':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_original_language=ta|hi|te|ml|kn&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'korean_international_series':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_original_language=ko|ja|es|fr&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'award_winning_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&vote_average.gte=7.8&vote_count.gte=2500&sort_by=vote_average.desc&page=${page}`;
+        break;
+      case 'historical_war_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=36,10752&sort_by=popularity.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'horror_supernatural_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=27,9648&sort_by=popularity.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'documentary_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=99&sort_by=popularity.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'family_kids_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=10751,16&sort_by=popularity.desc&page=${page}&vote_count.gte=5`;
+        break;
+      case 'drama_tv':
+      case 'drama_series':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=18&sort_by=first_air_date.desc&page=${page}&vote_count.gte=3`;
+        break;
+      case 'animation_anime_tv':
+      case 'animation_anime_series':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&sort_by=first_air_date.desc&page=${page}&vote_count.gte=3`;
+        break;
+      case 'classics_tv':
+      case 'classics_series':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&vote_average.gte=8.0&vote_count.gte=300&first_air_date.lte=2016-01-01&sort_by=vote_average.desc&page=${page}`;
+        break;
+      case 'new_episodes_tv':
+      case 'on_the_air_series':
+        url = `${TMDB_BASE_URL}/tv/on_the_air?api_key=${TMDB_API_KEY}&page=${page}`;
+        break;
+      case 'historical_war_tv':
+      case 'historical_war_series':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=10768&sort_by=popularity.desc&page=${page}&vote_count.gte=3`;
+        break;
+      case 'docuseries_tv':
+      case 'docuseries':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=99&sort_by=popularity.desc&page=${page}&vote_count.gte=3`;
+        break;
+      case 'kids_family_tv':
+      case 'kids_family_series':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=10762&sort_by=popularity.desc&page=${page}&vote_count.gte=3`;
+        break;
+      case 'indian_tv_serials':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_origin_country=IN&sort_by=popularity.desc&page=${page}`;
         break;
       default:
         url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&sort_by=primary_release_date.desc&page=${page}`;
