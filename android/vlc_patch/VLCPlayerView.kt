@@ -473,7 +473,16 @@ class VLCPlayerView(context: ThemedReactContext) :
         val targetMs = Math.max(0L, timeMs)
         try {
             Log.d(TAG, "seekTo: targetMs=$targetMs, length=${player.length}")
-            player.time = targetMs
+            val durationMs = player.length
+            // Fast keyframe seek: seeks immediately without stalling decoding intermediate frames
+            val seekRes = player.setTime(targetMs, true)
+            if (seekRes == -1L && durationMs > 0L) {
+                val pos = (targetMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+                player.setPosition(pos, true)
+            }
+            if (!player.isPlaying) {
+                player.play()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error in seekTo", e)
         }

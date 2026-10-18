@@ -2936,8 +2936,6 @@ export {
   normalizeString,
   cleanTitleKeywords,
   parseMediaBridges,
-  getAudioTier,
-  getAudioRichnessScore,
   getStreamPriority as getPriority,
   selectBestStreamCandidate as selectBestCandidate
 };
