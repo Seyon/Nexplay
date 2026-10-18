@@ -461,8 +461,8 @@ export class Movies4uClient {
         const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
         const isSeries = /\b(?:season|s\d+|series|complete all episodes)\b/i.test(rawTitle);
         const streamingLinks = [];
-        // 1. Extract Watch Online embed player (m4uplay.store)
-        const watchOnlineMatch = html.match(/href=["'](https?:\/\/m4uplay\.store\/file\/[a-zA-Z0-9]+)["']/i);
+        // 1. Extract Watch Online embed player (m4uplay.*)
+        const watchOnlineMatch = html.match(/href=["'](https?:\/\/m4uplay\.[a-z0-9.-]+\/file\/[a-zA-Z0-9]+)["']/i);
         if (watchOnlineMatch) {
             streamingLinks.push({
                 quality: this.detectQuality(rawTitle) || '1080p',
@@ -476,8 +476,8 @@ export class Movies4uClient {
                 mimeType: 'application/vnd.apple.mpegurl'
             });
         }
-        // 2. Extract Download Links / Quality Bridges (m4ulinks.site)
-        const sectionRegex = /<h4[^>]*>([\s\S]*?)<\/h4>\s*(?:<div[^>]*>)?\s*<a[^>]+href=["'](https?:\/\/m4ulinks\.site\/number\/\d+)["']/gi;
+        // 2. Extract Download Links / Quality Bridges (m4ulinks.*)
+        const sectionRegex = /<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>\s*(?:<div[^>]*>)?\s*<a[^>]+href=["'](https?:\/\/m4ulinks\.[a-z0-9.-]+\/number\/\d+)["']/gi;
         let sMatch;
         const bridgeList = [];
         while ((sMatch = sectionRegex.exec(html)) !== null) {
@@ -495,6 +495,14 @@ export class Movies4uClient {
             const sizeMatch = label.match(/\[([\d.]+\s*(?:GB|MB)(?:\/[Ee])?)\]/i);
             const size = sizeMatch ? sizeMatch[1] : undefined;
             bridgeList.push({ label, quality, size, bridgeUrl });
+        }
+        if (bridgeList.length === 0) {
+            const genericMatches = [...html.matchAll(/<a[^>]+href=["'](https?:\/\/m4ulinks\.[a-z0-9.-]+\/number\/\d+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+            for (const [_, bridgeUrl, rawLabel] of genericMatches) {
+                const label = rawLabel.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || rawTitle;
+                const quality = this.detectQuality(label) || '1080p';
+                bridgeList.push({ label, quality, bridgeUrl });
+            }
         }
         if (!isSeries) {
             // Group and rank bridge URLs by audio richness first (Multi Audio > Dual Audio > Single Audio)

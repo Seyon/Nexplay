@@ -993,28 +993,6 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     setIsBuffering(true);
     isBufferingRef.current = true;
 
-    // Offline local media check (Direct offline playback without internet)
-    if (movie?.isOffline && movie?.localFileUri) {
-      console.log(`[MovieDetailScreen] ⚡ Playing offline downloaded media file: ${movie.localFileUri}`);
-      setIsResolving(false);
-      isResolvingRef.current = false;
-      setHasStartedPlayback(true);
-      setControlsVisible(true);
-      resetControlsTimeout();
-      if (player) {
-        try {
-          await player.replaceAsync({
-            uri: movie.localFileUri,
-            contentType: 'auto'
-          });
-          player.play();
-          setIsPlaying(true);
-        } catch (err) {
-          console.warn('[MovieDetailScreen] Error playing offline file:', err);
-        }
-      }
-      return;
-    }
 
     const targetSeason = episode?.seasonNumber || selectedSeason || 1;
     const targetEpisodeNum = episode?.episodeNumber || 1;
@@ -4278,26 +4256,6 @@ const detailStyles = StyleSheet.create({
     color: '#111827',
     fontSize: moderateScale(14),
     fontWeight: '700',
-  },
-  // Quick Actions matching Screen 6: [+ My List], [Download], [Share]
-  quickActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: verticalScale(10),
-    marginBottom: verticalScale(14),
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  quickActionBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: verticalScale(4),
-  },
-  quickActionText: {
-    color: '#4B5563',
-    fontSize: moderateScale(11.5),
-    fontWeight: '600',
   },
   // Support NexPlay Banner matching Screen 6
   supportBannerCard: {

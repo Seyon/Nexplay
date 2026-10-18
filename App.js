@@ -59,7 +59,6 @@ import CategoryDetailScreen from './src/components/CategoryDetailScreen';
 import MoviesScreen from './src/components/MoviesScreen';
 import TvSeriesScreen from './src/components/TvSeriesScreen';
 import TvSerialsScreen from './src/components/TvSerialsScreen';
-import DownloadsScreen from './src/components/DownloadsScreen';
 import SearchScreen from './src/components/SearchScreen';
 import AccountScreen from './src/components/AccountScreen';
 
@@ -489,7 +488,7 @@ export default function App() {
                         title="Continue Watching" 
                         data={continueWatching} 
                         onMoviePress={handleMoviePress} 
-                        onSeeMore={() => handleTabPress('Downloads')}
+                        onSeeMore={() => handleSeeMore('continue_watching', 'Continue Watching')}
                       />
                     )}
 
@@ -728,13 +727,6 @@ export default function App() {
                 />
               )}
 
-              {/* 5. DOWNLOADS TAB (Image 2 Screen 9) */}
-              {activeTab === 'Downloads' && (
-                <DownloadsScreen 
-                  onMoviePress={handleMoviePress}
-                  onSettingsPress={() => setShowTmdbModal(true)}
-                />
-              )}
 
               {/* 6. SEARCH SCREEN (Image 2 Screen 8) */}
               {activeTab === 'Search' && (
