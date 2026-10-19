@@ -50,7 +50,18 @@ import { saveWatchProgress } from '../utils/AppSettings';
 function sanitizePlayableUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
   let url = rawUrl.trim();
+  // Unescape accidental double-encoding of AWS/Cloudflare signatures (%252F -> %2F, etc.)
+  while (url.includes('%25')) {
+    url = url.replace(/%25([0-9a-fA-F]{2})/g, '%$1');
+  }
   if (url.includes('X-Amz-') || url.includes('cloudflarestorage.com') || url.includes('r2.dev')) {
+    if (url.includes(' ')) {
+      url = url.replace(/ /g, '%20');
+    }
+    return url;
+  }
+  // If URL already contains percent-encoded sequences, avoid re-encoding
+  if (/%[0-9a-fA-F]{2}/.test(url)) {
     if (url.includes(' ')) {
       url = url.replace(/ /g, '%20');
     }
@@ -410,19 +421,19 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     };
   }, [isPlaying, hasStartedPlayback]);
 
-  // Adaptive Recovery Watchdog: if playback initiated but 0 frames rendered after 30s and not actively buffering
+  // Adaptive Recovery Watchdog: if playback initiated but 0 frames rendered after 12s
   useEffect(() => {
     if (!hasStartedPlayback || isResolving || playbackError) return;
     const watchdogTimer = setTimeout(() => {
-      if (!hasFirstFrameRendered && !isBufferingRef.current && currentTimeRef.current <= 0 && isMounted.current) {
-        console.warn(`[MovieDetailScreen] Stream stalled: 0 frames rendered after 30s on Server ${activeServer}.`);
+      if (!hasFirstFrameRendered && currentTimeRef.current <= 0 && isMounted.current) {
+        console.warn(`[MovieDetailScreen] Stream stalled: 0 frames rendered after 12s on Server ${activeServer}.`);
         setPlaybackError({
-          title: 'Stream Unreachable',
-          message: `Server ${activeServer} connection returned no video/audio. Switching to an alternate server is recommended.`,
+          title: 'Stream Slow or Unreachable',
+          message: `Server ${activeServer} connection returned no video. Switching to an alternate server is recommended.`,
           server: activeServer
         });
       }
-    }, 30000);
+    }, 12000);
     return () => clearTimeout(watchdogTimer);
   }, [hasStartedPlayback, isResolving, hasFirstFrameRendered, activeServer, currentSourceUri, playbackError]);
   useEffect(() => {
@@ -810,10 +821,14 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const vlcSource = useMemo(() => {
     if (!currentSourceUri) return undefined;
     const mediaOptions = [
-      ':network-caching=3000',
-      ':file-caching=3000',
-      ':live-caching=3000',
+      ':network-caching=1000',
+      ':file-caching=1000',
+      ':live-caching=1000',
       ':http-reconnect=true',
+      ':clock-jitter=0',
+      ':clock-synchro=0',
+      ':drop-late-frames',
+      ':skip-frames',
       ':no-sub-autodetect-file',
       ':no-stats'
     ];
@@ -832,6 +847,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
 
     return {
       uri: currentSourceUri,
+      isNetwork: true,
+      autoplay: true,
       hwDecoderEnabled: VLCHardwareDecoder?.Full ?? 2,
       mediaOptions,
       initOptions
@@ -1142,6 +1159,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
           player.replace(safeInitialLink, streamHeaders);
           setIsPlaying(true);
           player.play();
+          setTimeout(() => {
+            if (isMounted.current && isPlayingRef.current) {
+              try {
+                vlcPlayerRef.current?.play();
+              } catch (_) {}
+            }
+          }, 300);
         } catch (playerErr) {
           console.warn("[MovieDetailScreen] VLC player error:", playerErr);
         }
@@ -1210,6 +1234,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       player.replace(safeStreamUrl, currentHeaders);
       setIsPlaying(true);
       player.play();
+      setTimeout(() => {
+        if (isMounted.current && isPlayingRef.current) {
+          try {
+            vlcPlayerRef.current?.play();
+          } catch (_) {}
+        }
+      }, 300);
     } catch (e) {
       console.warn("[MovieDetailScreen] playResolvedLink error:", e);
     }
@@ -1908,6 +1939,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               if (event?.duration && event.duration > 0) {
                 setDuration(event.duration);
               }
+              if (isPlayingRef.current) {
+                try {
+                  vlcPlayerRef.current?.play();
+                } catch (_) {}
+              }
             }}
             onProgress={(event) => {
               if (isScrubbingRef.current) return;
@@ -1985,6 +2021,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               isBufferingRef.current = buffering;
               if (!buffering) {
                 isSeekingRef.current = false;
+                setHasFirstFrameRendered(true);
               }
             }}
             onTracks={(tracks) => {

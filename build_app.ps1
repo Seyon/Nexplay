@@ -70,7 +70,11 @@ $vlcPatchDir = Join-Path $stitchPath "android\vlc_patch"
 $vlcTargetDir = Join-Path $stitchPath "node_modules\@lunarr\vlc-player\android\src\main\java\com\lunarr\vlcplayer"
 if ((Test-Path $vlcPatchDir) -and (Test-Path $vlcTargetDir)) {
     Get-ChildItem -Path $vlcPatchDir -File | ForEach-Object {
-        Copy-Item $_.FullName (Join-Path $vlcTargetDir $_.Name) -Force
+        if ($_.Name -eq "proguard-rules.pro") {
+            Copy-Item $_.FullName (Join-Path $stitchPath "node_modules\@lunarr\vlc-player\android\proguard-rules.pro") -Force
+        } else {
+            Copy-Item $_.FullName (Join-Path $vlcTargetDir $_.Name) -Force
+        }
     }
     Write-Host "Applied custom VLC native patches from android\vlc_patch." -ForegroundColor Green
 }

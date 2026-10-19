@@ -671,11 +671,32 @@ var ClientUtils = class {
 
   static sanitizeStreamUrl(url) {
     if (!url || typeof url !== 'string' || !url.startsWith('http')) return url;
-    const trimmed = url.trim();
+    let trimmed = url.trim();
+    // If accidentally double-encoded (%252F, %253B, etc.), unescape the double-percent first
+    while (trimmed.includes('%25')) {
+      trimmed = trimmed.replace(/%25([0-9a-fA-F]{2})/g, '%$1');
+    }
+    // Preserves AWS/Cloudflare R2 presigned URLs (%2F in credentials must NOT become %252F)
+    if (trimmed.includes('X-Amz-') || trimmed.includes('cloudflarestorage.com') || trimmed.includes('r2.dev')) {
+      if (trimmed.includes(' ')) {
+        trimmed = trimmed.replace(/ /g, '%20');
+      }
+      return trimmed;
+    }
+    // If URL already contains percent-encoded sequences, do not re-encode
+    if (/%[0-9a-fA-F]{2}/.test(trimmed)) {
+      if (trimmed.includes(' ')) {
+        trimmed = trimmed.replace(/ /g, '%20');
+      }
+      return trimmed;
+    }
     try {
-      return encodeURI(decodeURI(trimmed));
+      if (trimmed.includes(' ') || trimmed.includes('[') || trimmed.includes(']')) {
+        return encodeURI(decodeURI(trimmed));
+      }
+      return trimmed;
     } catch (_) {
-      return encodeURI(trimmed);
+      return trimmed.replace(/ /g, '%20');
     }
   }
 

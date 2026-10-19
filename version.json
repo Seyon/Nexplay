@@ -2,14 +2,46 @@
   "major": 1,
   "minor": 8,
   "patch": 27,
-  "issue": 0,
-  "build": 175,
-  "updateType": "patch",
+  "issue": 5,
+  "build": 179,
+  "updateType": "bugfix",
   "timestamp": "20261018",
-  "versionName": "1.8.27.0.175-patch.20261018",
-  "versionCode": 2070175,
-  "lastSuccessfulBuild": "2026-10-18T19:04:17.468Z",
+  "versionName": "1.8.27.5.179-bugfix.20261018",
+  "versionCode": 2070179,
+  "lastSuccessfulBuild": "2026-10-19T05:15:56.400Z",
   "history": [
+    {
+      "versionName": "1.8.27.5.179-bugfix.20261018",
+      "versionCode": 2070179,
+      "updateType": "bugfix",
+      "build": 179,
+      "note": "Optimize VLC stream startup buffer and enable smooth HTTP 206 seek",
+      "builtAt": "2026-10-19T05:15:56.400Z"
+    },
+    {
+      "versionName": "1.8.27.4.178-bugfix.20261018",
+      "versionCode": 2070178,
+      "updateType": "bugfix",
+      "build": 178,
+      "note": "Fix player infinite loading and optimize VLC streaming buffer latency",
+      "builtAt": "2026-10-19T05:05:12.140Z"
+    },
+    {
+      "versionName": "1.8.27.3.177-bugfix.20261018",
+      "versionCode": 2070177,
+      "updateType": "bugfix",
+      "build": 177,
+      "note": "Fix LibVLC ProGuard rules and Cloudflare R2 presigned URL signature encoding",
+      "builtAt": "2026-10-19T04:32:54.740Z"
+    },
+    {
+      "versionName": "1.8.27.2.176-bugfix.20261018",
+      "versionCode": 2070176,
+      "updateType": "bugfix",
+      "build": 176,
+      "note": "Fix LibVLC ProGuard stripping in release build to prevent playback crash",
+      "builtAt": "2026-10-19T04:21:56.210Z"
+    },
     {
       "versionName": "1.8.27.0.175-patch.20261018",
       "versionCode": 2070175,
@@ -377,38 +409,6 @@
       "build": 130,
       "note": "Step 1 server buttons Step 2 all serials dropdown Step 3 date picker in-screen player",
       "builtAt": "2026-09-26T15:28:17.037Z"
-    },
-    {
-      "versionName": "1.4.0.0.129-minor.20260926",
-      "versionCode": 1400129,
-      "updateType": "minor",
-      "build": 129,
-      "note": "Inside TV serials date picker decryptor sandbox and multi-server navbar",
-      "builtAt": "2026-09-26T15:09:01.537Z"
-    },
-    {
-      "versionName": "1.3.0.0.128-minor.20260926",
-      "versionCode": 1300128,
-      "updateType": "minor",
-      "build": 128,
-      "note": "TV Serials navbar UI UX mobile design",
-      "builtAt": "2026-09-26T14:48:43.425Z"
-    },
-    {
-      "versionName": "1.1.8.12.125-bugfix.20260925",
-      "versionCode": 1180125,
-      "updateType": "bugfix",
-      "build": 125,
-      "note": "Debug build with seek diagnostics",
-      "builtAt": "2026-09-26T03:48:13.384Z"
-    },
-    {
-      "versionName": "1.1.8.10.123-bugfix.20260925",
-      "versionCode": 1180123,
-      "updateType": "bugfix",
-      "build": 123,
-      "note": "Debug build with seek diagnostics",
-      "builtAt": "2026-09-26T03:27:33.317Z"
     }
   ]
 }
