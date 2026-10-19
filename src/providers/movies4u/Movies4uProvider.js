@@ -261,6 +261,9 @@ export function sortBridgesByFidelity(bridges) {
         else if (/\b(480p)\b/i.test(text)) score += 50;
 
         // Strict Audio Richness Priority: Multi Audio (Tamil, Telugu, Hindi, English, Malayalam, Kannada) decisively beats Dual Audio
+        const tier = getAudioTier(b.label || text);
+        if (tier === 1) score += 100000;
+        else if (tier === 2) score += 50000;
         score += getAudioRichnessScore(b.label || text);
 
         const targetKeywords = ['hevc', 'hdr', 'hdr10', 'hdr10+', 'sdr', 'dv', 'dolby vision', 'x265', 'x264', 'h.265', 'h.264', '10bit', '10-bit', 'atmos', 'dts', 'ddp5.1', 'web-dl', 'bluray', 'remux'];
@@ -476,13 +479,13 @@ export class Movies4uClient {
                 mimeType: 'application/vnd.apple.mpegurl'
             });
         }
-        // 2. Extract Download Links / Quality Bridges (m4ulinks.*)
-        const sectionRegex = /<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>\s*(?:<div[^>]*>)?\s*<a[^>]+href=["'](https?:\/\/m4ulinks\.[a-z0-9.-]+\/number\/\d+)["']/gi;
+        // 2. Extract Download Links / Quality Bridges (m4ulinks.*) strictly without swallowing other headings
+        const sectionRegex = /<h[1-6][^>]*>((?:(?!<\/?h[1-6])[\s\S])*?)<\/h[1-6]>((?:(?!<h[1-6])[\s\S])*?)<a[^>]+href=["'](https?:\/\/m4ulinks\.[a-z0-9.-]+\/number\/\d+)["']/gi;
         let sMatch;
         const bridgeList = [];
         while ((sMatch = sectionRegex.exec(html)) !== null) {
             const label = sMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-            const bridgeUrl = sMatch[2];
+            const bridgeUrl = sMatch[3];
             const lowerLabel = label.toLowerCase();
             const lowerBridge = bridgeUrl.toLowerCase();
             if (
@@ -505,25 +508,79 @@ export class Movies4uClient {
             }
         }
         if (!isSeries) {
-            // Group and rank bridge URLs by audio richness first (Multi Audio > Dual Audio > Single Audio)
-            const bridgeAudioMap = new Map();
+            // Group bridge items by bridgeUrl and compute accurate audio fidelity tier & richness score
+            const bridgesByUrl = new Map();
             for (const b of bridgeList) {
-                const currentScore = bridgeAudioMap.get(b.bridgeUrl) || 0;
-                const itemScore = getAudioRichnessScore(b.label || '');
-                if (itemScore > currentScore) {
-                    bridgeAudioMap.set(b.bridgeUrl, itemScore);
+                if (!bridgesByUrl.has(b.bridgeUrl)) {
+                    bridgesByUrl.set(b.bridgeUrl, []);
                 }
+                bridgesByUrl.get(b.bridgeUrl).push(b);
             }
 
-            const uniqueBridgeUrls = Array.from(new Set(bridgeList.map(b => b.bridgeUrl)))
-                .sort((a, b) => (bridgeAudioMap.get(b) || 0) - (bridgeAudioMap.get(a) || 0));
+            const bridgeInfoMap = new Map();
+            for (const [bUrl, items] of bridgesByUrl.entries()) {
+                let totalScore = 0;
+                let multiAudioCount = 0;
+                let has1080pMulti = false;
+                let hasImaxDual = false;
+
+                for (const item of items) {
+                    const score = getAudioRichnessScore(item.label || '');
+                    const tier = getAudioTier(item.label || '');
+                    totalScore += score;
+                    if (tier === 1) multiAudioCount++;
+                    const lLower = (item.label || '').toLowerCase();
+                    if ((lLower.includes('1080p') || lLower.includes('fhd')) && tier === 1) {
+                        has1080pMulti = true;
+                    }
+                    if (lLower.includes('imax') && (tier === 2 || lLower.includes('dual') || (lLower.includes('hindi') && lLower.includes('english')))) {
+                        hasImaxDual = true;
+                    }
+                }
+
+                const avgScore = totalScore / items.length;
+                const multiRatio = multiAudioCount / items.length;
+
+                // Priority:
+                // Tier 1: True Multi Audio bridge (majority of items are Multi Audio OR 1080p is Multi Audio)
+                // Tier 2: Dual Audio / IMAX fallback bridge
+                // Tier 3: Single audio / other
+                let overallTier = 3;
+                if (multiRatio >= 0.5 || has1080pMulti) {
+                    overallTier = 1;
+                } else if (hasImaxDual || items.some(i => getAudioTier(i.label) === 2)) {
+                    overallTier = 2;
+                }
+
+                let compositeScore = 0;
+                if (overallTier === 1) compositeScore += 100000;
+                else if (overallTier === 2) compositeScore += 50000;
+                compositeScore += (multiRatio * 10000);
+                compositeScore += avgScore;
+
+                bridgeInfoMap.set(bUrl, {
+                    overallTier,
+                    compositeScore,
+                    multiRatio,
+                    avgScore
+                });
+            }
+
+            const uniqueBridgeUrls = Array.from(bridgesByUrl.keys())
+                .sort((a, b) => {
+                    const aInfo = bridgeInfoMap.get(a) || {};
+                    const bInfo = bridgeInfoMap.get(b) || {};
+                    return (bInfo.compositeScore || 0) - (aInfo.compositeScore || 0);
+                });
 
             for (const bUrl of uniqueBridgeUrls) {
                 try {
                     const hubLinks = await this.extractHubCloudFromBridge(bUrl, '1080p', fetcher);
-                    const audioScore = bridgeAudioMap.get(bUrl) || 0;
+                    const bInfo = bridgeInfoMap.get(bUrl) || {};
                     for (const hl of hubLinks) {
-                        hl.audioScore = audioScore;
+                        hl.audioScore = bInfo.compositeScore || 0;
+                        hl.audioTier = bInfo.overallTier || 3;
+                        hl.bridgeUrl = bUrl;
                     }
                     streamingLinks.push(...hubLinks);
                 } catch (_) {}
@@ -752,8 +809,12 @@ export class Movies4uClient {
             // Resolve all available qualities in parallel for maximum speed and complete quality availability
             const qualityPromises = Object.entries(qualityBuckets).map(async ([qKey, bucket]) => {
                 if (!bucket || bucket.length === 0) return null;
-                // Prefer Multi Audio (Tamil + Telugu + Hindi + English + Malayalam + Kannada) > Dual Audio, then HubCloud / direct streams
+                // Strictly prioritize Multi Audio (Tier 1) > Dual Audio / IMAX (Tier 2) > Single Audio (Tier 3)
                 const sortedBucket = [...bucket].sort((a, b) => {
+                    const aTier = a.audioTier ?? 3;
+                    const bTier = b.audioTier ?? 3;
+                    if (aTier !== bTier) return aTier - bTier;
+
                     const aAudio = a.audioScore ?? getAudioRichnessScore(a.label || a.server || '');
                     const bAudio = b.audioScore ?? getAudioRichnessScore(b.label || b.server || '');
                     if (aAudio !== bAudio) return bAudio - aAudio;
@@ -765,12 +826,20 @@ export class Movies4uClient {
                     return 0;
                 });
                 const bucketCandidates = [];
-                for (const cand of sortedBucket.slice(0, 3)) {
+                for (const cand of sortedBucket.slice(0, 4)) {
                     try {
                         const resolved = await this.resolveStream(cand.url, qKey, fetcher);
                         for (const primary of resolved) {
                             const check = await this.verifyMediaStream(primary.url, primary.headers);
                             if (check.isLive) {
+                                const urlLower = decodeURIComponent(primary.url || '').toLowerCase();
+                                const isUrlMulti = urlLower.includes('multi.audio') || urlLower.includes('multi-audio') || urlLower.includes('multi_audio') || urlLower.includes('multiaudio');
+                                const isUrlDual = urlLower.includes('hindi-english') || urlLower.includes('hindi.5.1-english') || (urlLower.includes('hindi') && urlLower.includes('english') && !isUrlMulti);
+
+                                let resolvedTier = cand.audioTier || 3;
+                                if (isUrlMulti) resolvedTier = 1;
+                                else if (isUrlDual) resolvedTier = 2;
+
                                 bucketCandidates.push({
                                     quality: qKey === '4k' ? '4K' : (qKey === '1080p' ? '1080p' : '720p'),
                                     url: primary.url,
@@ -778,20 +847,32 @@ export class Movies4uClient {
                                     mimeType: primary.mimeType || primaryMime,
                                     server: primary.server || (qKey === '4k' ? 'Server 3 (Movies4u 4K Direct)' : 'Server 3 (Movies4u)'),
                                     priority: primary.priority ?? getStreamPriority(primary.url, primary.server),
-                                    supports206: check.supports206
+                                    supports206: check.supports206,
+                                    audioTier: resolvedTier,
+                                    audioScore: cand.audioScore || 0
                                 });
-                                if (check.supports206 && (primary.priority ?? getStreamPriority(primary.url, primary.server)) === 1) {
+
+                                // Early exit ONLY if verified 206 Tier 1 (Multi Audio) Cloudflare R2 stream is found
+                                if (resolvedTier === 1 && check.supports206 && (primary.priority ?? getStreamPriority(primary.url, primary.server)) === 1) {
                                     break;
                                 }
                             }
                         }
-                        if (bucketCandidates.some(c => c.supports206 && c.priority === 1)) {
+                        if (bucketCandidates.some(c => c.audioTier === 1 && c.supports206 && c.priority === 1)) {
                             break;
                         }
                     } catch (_) {}
                 }
                 if (bucketCandidates.length > 0) {
                     bucketCandidates.sort((a, b) => {
+                        const aTier = a.audioTier ?? 3;
+                        const bTier = b.audioTier ?? 3;
+                        if (aTier !== bTier) return aTier - bTier; // Tier 1 Multi Audio always wins!
+
+                        const aAudio = a.audioScore ?? 0;
+                        const bAudio = b.audioScore ?? 0;
+                        if (aAudio !== bAudio) return bAudio - aAudio;
+
                         if (a.supports206 && !b.supports206) return -1;
                         if (!a.supports206 && b.supports206) return 1;
                         return a.priority - b.priority;
@@ -818,9 +899,11 @@ export class Movies4uClient {
 
             const bestCandidate = selectBestStreamCandidate(liveCandidates);
             if (bestCandidate) {
-                const best1080 = liveCandidates.find(c => (c.quality === '1080p' || c.quality === '1080') && c.supports206 !== false);
-                const primaryCandidate = (qualities['1080p'] && best1080) ? best1080 : bestCandidate;
-                const primaryUrl = (qualities['1080p'] && best1080) ? qualities['1080p'] : bestCandidate.url;
+                const multiCandidates = liveCandidates.filter(c => c.audioTier === 1);
+                const pool = multiCandidates.length > 0 ? multiCandidates : liveCandidates;
+                const best1080 = pool.find(c => (c.quality === '1080p' || c.quality === '1080') && c.supports206 !== false);
+                const primaryCandidate = best1080 || selectBestStreamCandidate(pool) || bestCandidate;
+                const primaryUrl = primaryCandidate.url;
                 const isHls = primaryUrl.includes('.m3u8');
                 return {
                     title: details.title,
@@ -830,7 +913,7 @@ export class Movies4uClient {
                     qualitySizes,
                     headers: primaryCandidate.headers || primaryHeaders,
                     mimeType: isHls ? 'application/vnd.apple.mpegurl' : (primaryCandidate.mimeType || primaryMime),
-                    quality: (primaryUrl === qualities['1080p']) ? '1080p' : (primaryCandidate.quality || '1080p'),
+                    quality: primaryCandidate.quality || '1080p',
                     server: primaryCandidate.server || 'Server 3 (Movies4u)',
                     supports206: primaryCandidate.supports206 ?? true,
                     thumbnail: details.thumbnail
@@ -875,6 +958,14 @@ export class Movies4uClient {
                                 for (const candidateStream of resolved) {
                                     const check = await this.verifyMediaStream(candidateStream.url, candidateStream.headers);
                                     if (check.isLive) {
+                                        const urlLower = decodeURIComponent(candidateStream.url || '').toLowerCase();
+                                        const isUrlMulti = urlLower.includes('multi.audio') || urlLower.includes('multi-audio') || urlLower.includes('multi_audio') || urlLower.includes('multiaudio');
+                                        const isUrlDual = urlLower.includes('hindi-english') || urlLower.includes('hindi.5.1-english') || (urlLower.includes('hindi') && urlLower.includes('english') && !isUrlMulti);
+
+                                        let resolvedTier = getAudioTier(bridge.label || '');
+                                        if (isUrlMulti) resolvedTier = 1;
+                                        else if (isUrlDual) resolvedTier = 2;
+
                                         epCandidates.push({
                                             quality: qKey === '4k' ? '4K' : (qKey === '1080p' ? '1080p' : '720p'),
                                             url: candidateStream.url,
@@ -882,20 +973,26 @@ export class Movies4uClient {
                                             mimeType: candidateStream.mimeType || 'video/x-matroska',
                                             server: candidateStream.server || (qKey === '4k' ? 'Server 3 (Movies4u 4K Direct)' : 'Server 3 (Movies4u)'),
                                             priority: candidateStream.priority ?? getStreamPriority(candidateStream.url, candidateStream.server),
-                                            supports206: check.supports206
+                                            supports206: check.supports206,
+                                            audioTier: resolvedTier,
+                                            audioScore: getAudioRichnessScore(bridge.label || '')
                                         });
-                                        if (check.supports206 && (candidateStream.priority ?? getStreamPriority(candidateStream.url, candidateStream.server)) === 1) {
+                                        if (resolvedTier === 1 && check.supports206 && (candidateStream.priority ?? getStreamPriority(candidateStream.url, candidateStream.server)) === 1) {
                                             break;
                                         }
                                     }
                                 }
-                                if (epCandidates.some(c => c.supports206 && c.priority === 1)) {
+                                if (epCandidates.some(c => c.audioTier === 1 && c.supports206 && c.priority === 1)) {
                                     break;
                                 }
                             } catch (_) {}
                         }
                         if (epCandidates.length > 0) {
                             epCandidates.sort((a, b) => {
+                                const aTier = a.audioTier ?? 3;
+                                const bTier = b.audioTier ?? 3;
+                                if (aTier !== bTier) return aTier - bTier;
+
                                 if (a.supports206 && !b.supports206) return -1;
                                 if (!a.supports206 && b.supports206) return 1;
                                 return a.priority - b.priority;
