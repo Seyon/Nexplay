@@ -1,15 +1,31 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 27,
-  "issue": 5,
-  "build": 179,
-  "updateType": "bugfix",
-  "timestamp": "20261018",
-  "versionName": "1.8.27.5.179-bugfix.20261018",
-  "versionCode": 2070179,
-  "lastSuccessfulBuild": "2026-10-19T05:15:56.400Z",
+  "patch": 29,
+  "issue": 0,
+  "build": 181,
+  "updateType": "patch",
+  "timestamp": "20261022",
+  "versionName": "1.8.29.0.181-patch.20261022",
+  "versionCode": 2090181,
+  "lastSuccessfulBuild": "2026-10-22T16:40:23.824Z",
   "history": [
+    {
+      "versionName": "1.8.29.0.181-patch.20261022",
+      "versionCode": 2090181,
+      "updateType": "patch",
+      "build": 181,
+      "note": "HD launch screen replacement",
+      "builtAt": "2026-10-22T16:40:23.824Z"
+    },
+    {
+      "versionName": "1.8.28.0.180-patch.20261019",
+      "versionCode": 2080180,
+      "updateType": "patch",
+      "build": 180,
+      "note": "Implement Continue Watching feature across movies and TV series",
+      "builtAt": "2026-10-19T18:30:47.275Z"
+    },
     {
       "versionName": "1.8.27.5.179-bugfix.20261018",
       "versionCode": 2070179,
@@ -393,22 +409,6 @@
       "build": 132,
       "note": "VLC player UI UX and updated server 1 and 2 metadata formats",
       "builtAt": "2026-09-27T05:06:36.881Z"
-    },
-    {
-      "versionName": "1.6.0.0.131-minor.20260926",
-      "versionCode": 1600131,
-      "updateType": "minor",
-      "build": 131,
-      "note": "TV Serials home catalog restored and individual detailed screen with below camera hole player",
-      "builtAt": "2026-09-26T15:44:16.997Z"
-    },
-    {
-      "versionName": "1.5.0.0.130-minor.20260926",
-      "versionCode": 1500130,
-      "updateType": "minor",
-      "build": 130,
-      "note": "Step 1 server buttons Step 2 all serials dropdown Step 3 date picker in-screen player",
-      "builtAt": "2026-09-26T15:28:17.037Z"
     }
   ]
 }

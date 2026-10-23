@@ -154,6 +154,10 @@ class ExtensionManagerService {
         targetYear ? `${cleanTitle} ${targetYear}` : cleanTitle,
         cleanTitle
       ];
+      if (targetYear) {
+        if (digitTitle !== cleanTitle) candidateQueries.push(`${digitTitle} ${targetYear}`);
+        if (mainTitle !== cleanTitle && mainTitle.length >= 3) candidateQueries.push(`${mainTitle} ${targetYear}`);
+      }
       if (digitTitle !== cleanTitle) candidateQueries.push(digitTitle);
       if (wordTitle !== cleanTitle) candidateQueries.push(wordTitle);
       if (mainTitle !== cleanTitle && mainTitle.length >= 3) candidateQueries.push(mainTitle);
@@ -222,14 +226,17 @@ class ExtensionManagerService {
       const aTier = getAudioTier(a.match?.title || '');
       const bTier = getAudioTier(b.match?.title || '');
 
-      // Server 3 (Movies4u): Strictly look for Multi Audio or Indian languages (Hindi, Tamil, Telugu, English, Malayalam, Kannada),
-      // fallback to Dual Audio (e.g. Hindi English), fallback to single audio English or any other languages.
+      // Server 3 (Movies4u): When candidate match scores are close (within 0.35),
+      // prioritize Multi Audio or Indian languages (Hindi, Tamil, Telugu, English, Malayalam, Kannada),
+      // then Dual Audio (e.g. Hindi English), then single audio.
       if (activeProvider === 'movies4u') {
-        if (aTier !== bTier) {
-          return aTier - bTier; // Tier 1 < Tier 2 < Tier 3
-        }
-        if (aAudio !== bAudio) {
-          return bAudio - aAudio;
+        if (Math.abs(a.matchScore - b.matchScore) < 0.35) {
+          if (aTier !== bTier) {
+            return aTier - bTier; // Tier 1 < Tier 2 < Tier 3
+          }
+          if (aAudio !== bAudio) {
+            return bAudio - aAudio;
+          }
         }
         return b.matchScore - a.matchScore;
       }

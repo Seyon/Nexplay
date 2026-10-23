@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import HeroCarousel from './HeroCarousel';
 import MovieRow from './MovieRow';
+import ContinueWatchingRow from './ContinueWatchingRow';
 import TopTenRow from './TopTenRow';
 import AppHeader from './AppHeader';
 import {
@@ -36,7 +37,8 @@ import {
 import { resolveMoviesHeroLineup } from '../utils/HeroManager';
 import { verticalScale, scale, moderateScale } from '../utils/responsive';
 import { colors } from '../config/theme';
-import { subscribeSettings, hasTmdbApiKey } from '../utils/AppSettings';
+import { subscribeSettings, hasTmdbApiKey, getWatchHistory } from '../utils/AppSettings';
+import { subscribePlaybackProgress } from '../utils/PlaybackProgressManager';
 
 const CATEGORY_TABS = [
   { id: 'all', label: 'All' },
@@ -57,6 +59,7 @@ export default function MoviesScreen({ onMoviePress, onSeeMore, onBack, onSearch
   const [loading, setLoading] = useState(true);
 
   // 14 Categories (Movies Only)
+  const [continueWatchingMovies, setContinueWatchingMovies] = useState([]);
   const [heroMovies, setHeroMovies] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [popularMovies, setPopularMovies] = useState([]);
@@ -142,19 +145,41 @@ export default function MoviesScreen({ onMoviePress, onSeeMore, onBack, onSearch
   useEffect(() => {
     isMountedRef.current = true;
     loadAllMoviesData();
+
+    const syncContinueWatching = () => {
+      const all = getWatchHistory();
+      const filtered = Array.isArray(all) ? all.filter(item => item.media_type !== 'tv' && !item.season && !item.episode) : [];
+      setContinueWatchingMovies(filtered);
+    };
+    syncContinueWatching();
+
     const unsub = subscribeSettings(({ eventType }) => {
       if (eventType === 'TMDB_KEY_SAVED') {
         loadAllMoviesData();
+      } else if (eventType === 'WATCH_HISTORY_UPDATED') {
+        syncContinueWatching();
       }
     });
+
+    const unsubProgress = subscribePlaybackProgress(({ eventType }) => {
+      if (eventType === 'WATCH_HISTORY_UPDATED') {
+        syncContinueWatching();
+      }
+    });
+
     const appStateSub = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active' && hasTmdbApiKey()) {
-        loadAllMoviesData();
+      if (nextAppState === 'active') {
+        syncContinueWatching();
+        if (hasTmdbApiKey()) {
+          loadAllMoviesData();
+        }
       }
     });
+
     return () => {
       isMountedRef.current = false;
       if (unsub) unsub();
+      if (unsubProgress) unsubProgress();
       if (appStateSub) appStateSub.remove();
     };
   }, [loadAllMoviesData]);
@@ -236,6 +261,16 @@ export default function MoviesScreen({ onMoviePress, onSeeMore, onBack, onSearch
             movies={heroMovies}
             onMoviePress={onMoviePress}
             badgeTitle="Featured Movie"
+          />
+        )}
+
+        {/* Continue Watching for Movies */}
+        {activeCategory === 'all' && continueWatchingMovies.length > 0 && (
+          <ContinueWatchingRow
+            title="Continue Watching"
+            data={continueWatchingMovies}
+            onMoviePress={onMoviePress}
+            onSeeMore={() => onSeeMore && onSeeMore({ key: 'continue_watching', title: 'Continue Watching', data: continueWatchingMovies })}
           />
         )}
 

@@ -93,6 +93,10 @@ import {
   subscribeSettings,
   getWatchHistory,
 } from './src/utils/AppSettings';
+import {
+  initPlaybackProgressManager,
+  subscribePlaybackProgress,
+} from './src/utils/PlaybackProgressManager';
 import TmdbApiKeyModal from './src/components/TmdbApiKeyModal';
 import DonationModal from './src/components/DonationModal';
 import CinematicSplashScreen from './src/components/CinematicSplashScreen';
@@ -338,9 +342,12 @@ export default function App() {
       }
     }
 
-    // Startup flow: initialize settings, check TMDB API key
+    // Startup flow: initialize settings & playback progress, check TMDB API key
     (async () => {
-      await initSettings();
+      await Promise.all([
+        initSettings(),
+        initPlaybackProgressManager(),
+      ]);
       const keySet = hasTmdbApiKey();
       setHasTmdbKey(keySet);
 
@@ -399,6 +406,12 @@ export default function App() {
       }
     });
 
+    const unsubProgress = subscribePlaybackProgress(({ eventType }) => {
+      if (eventType === 'WATCH_HISTORY_UPDATED') {
+        setContinueWatching(getWatchHistory());
+      }
+    });
+
     const appStateSub = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         setContinueWatching(getWatchHistory());
@@ -411,6 +424,7 @@ export default function App() {
     return () => {
       clearTimeout(safetyTimer);
       if (unsub) unsub();
+      if (unsubProgress) unsubProgress();
       if (appStateSub) appStateSub.remove();
     };
   }, []);
@@ -488,7 +502,7 @@ export default function App() {
                         title="Continue Watching" 
                         data={continueWatching} 
                         onMoviePress={handleMoviePress} 
-                        onSeeMore={() => handleSeeMore('continue_watching', 'Continue Watching')}
+                        onSeeMore={() => handleSeeMore({ key: 'continue_watching', title: 'Continue Watching', data: continueWatching })}
                       />
                     )}
 

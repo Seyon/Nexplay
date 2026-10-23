@@ -1,15 +1,17 @@
 import React from 'react';
-import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getBackdropUrl, getPosterUrl } from '../utils/api';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
 import { colors } from '../config/theme';
+import { removeFromContinueWatching } from '../utils/PlaybackProgressManager';
 
 export default function ContinueWatchingRow({ 
   title = 'Continue Watching', 
   data = [], 
   onMoviePress, 
-  onSeeMore 
+  onSeeMore,
+  onRemoveItem
 }) {
   if (!data || data.length === 0) {
     return null;
@@ -17,20 +19,59 @@ export default function ContinueWatchingRow({
 
   const items = data;
 
+  const handlePromptRemove = (item) => {
+    const itemTitle = item.title || item.name || 'this title';
+    Alert.alert(
+      'Remove from Continue Watching?',
+      `Do you want to remove "${itemTitle}" from your Continue Watching list?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            if (onRemoveItem) {
+              onRemoveItem(item);
+            } else {
+              await removeFromContinueWatching(item.id);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const resolveThumbnailUri = (item) => {
+    if (!item) return getPosterUrl(null);
+
+    // 1. Prioritize poster_path (especially for movies to show correct poster)
+    if (item.poster_path && typeof item.poster_path === 'string') {
+      return getPosterUrl(item.poster_path);
+    }
+    // 2. If item.image is set (full URL or relative TMDB path)
+    if (item.image && typeof item.image === 'string') {
+      if (item.image.startsWith('http')) {
+        return item.image;
+      }
+      return getPosterUrl(item.image);
+    }
+    // 3. Fallback to backdrop_path
+    if (item.backdrop_path && typeof item.backdrop_path === 'string') {
+      return getBackdropUrl(item.backdrop_path);
+    }
+    return getPosterUrl(null);
+  };
+
   const renderItem = ({ item }) => {
-    let thumbnailUri = item.image;
-    if (!thumbnailUri && item.backdrop_path) {
-      thumbnailUri = getBackdropUrl(item.backdrop_path);
-    } else if (!thumbnailUri && item.poster_path) {
-      thumbnailUri = getPosterUrl(item.poster_path);
-    }
-    if (!thumbnailUri) {
-      thumbnailUri = 'https://image.tmdb.org/t/p/w500/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg';
-    }
+    const thumbnailUri = resolveThumbnailUri(item);
 
     const itemTitle = item.title || item.name || '';
-    const progress = item.progress || 50;
-    const subtitle = item.subtitle || `${item.last_episode || 'S1 E1'}  •  ${item.time_left || '45m left'}`;
+    const progress = Math.min(100, Math.max(1, typeof item.progress === 'number' ? Math.round(item.progress) : 50));
+    const isTV = item.media_type === 'tv' || Boolean(item.last_episode || item.season || item.episode);
+    const subtitle = item.subtitle || (isTV 
+      ? `${item.last_episode || (item.season && item.episode ? `S${item.season} E${item.episode}` : 'S1 E1')}${item.time_left ? `  •  ${item.time_left}` : ''}`
+      : (item.time_left || 'In Progress')
+    );
     const quality = item.quality || 'HD';
 
     return (
@@ -38,6 +79,8 @@ export default function ContinueWatchingRow({
         style={styles.cardContainer}
         activeOpacity={0.84}
         onPress={() => onMoviePress && onMoviePress(item)}
+        onLongPress={() => handlePromptRemove(item)}
+        delayLongPress={500}
       >
         <View style={styles.imageWrapper}>
           <Image 
@@ -50,6 +93,19 @@ export default function ContinueWatchingRow({
           <View style={styles.hdBadge}>
             <Text style={styles.hdText}>{quality}</Text>
           </View>
+
+          {/* Top-Left Quick Remove Button */}
+          <TouchableOpacity
+            style={styles.removeButtonCircle}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={(e) => {
+              e.stopPropagation();
+              handlePromptRemove(item);
+            }}
+          >
+            <Ionicons name="close" size={scale(9)} color="#FFFFFF" />
+          </TouchableOpacity>
 
           {/* Bottom-Left Circular Play Button Overlay */}
           <View style={styles.playButtonCircle}>
@@ -187,6 +243,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: moderateScale(8),
     fontWeight: '700',
+  },
+  removeButtonCircle: {
+    position: 'absolute',
+    top: scale(4),
+    left: scale(4),
+    width: scale(16),
+    height: scale(16),
+    borderRadius: scale(8),
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    borderWidth: 0.8,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   playButtonCircle: {
     position: 'absolute',

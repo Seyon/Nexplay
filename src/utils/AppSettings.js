@@ -22,6 +22,8 @@ let _settings = {
   donationDismissedCount: 0,
   lastDonationShownTime: 0,
   watchHistory: [],
+  playbackProgress: {},
+  universalQuality: '1080p',
 };
 
 let _isInitialized = false;
@@ -91,6 +93,9 @@ export const initSettings = async () => {
           tmdbApiKey: (parsed.tmdbApiKey || '').trim(),
           hasConfiguredTmdbKey: Boolean(parsed.tmdbApiKey && parsed.tmdbApiKey.trim().length >= 8),
           dontShowDonationAgain: Boolean(parsed.dontShowDonationAgain),
+          universalQuality: ['720p', '1080p', '4K', '4k'].includes(parsed.universalQuality)
+            ? (parsed.universalQuality === '4k' ? '4K' : parsed.universalQuality)
+            : '1080p',
         };
       } catch (err) {
         console.warn('[AppSettings] Corrupted settings JSON:', err);
@@ -274,6 +279,46 @@ export const saveWatchProgress = async (item, progress = 45, episodeInfo = null)
   return _settings.watchHistory;
 };
 
+export const setWatchHistory = async (newHistory) => {
+  _settings.watchHistory = Array.isArray(newHistory) ? newHistory : [];
+  await persistSettings();
+  notifyListeners('WATCH_HISTORY_UPDATED', { watchHistory: _settings.watchHistory });
+  return _settings.watchHistory;
+};
+
+export const updatePlaybackProgressSettings = async (progressMap) => {
+  if (progressMap && typeof progressMap === 'object') {
+    _settings.playbackProgress = {
+      ...(_settings.playbackProgress || {}),
+      ...progressMap
+    };
+    await persistSettings();
+  }
+};
+
+/**
+ * Get the current Universal Video Quality setting ('720p' | '1080p' | '4K')
+ */
+export const getUniversalQuality = () => {
+  const q = _settings.universalQuality;
+  if (q === '720p' || q === '1080p' || q === '4K' || q === '4k') {
+    return q === '4k' ? '4K' : q;
+  }
+  return '1080p';
+};
+
+/**
+ * Set and persist the Universal Video Quality setting ('720p' | '1080p' | '4K')
+ */
+export const setUniversalQuality = async (quality) => {
+  const normalized = quality === '4k' ? '4K' : quality;
+  if (!['720p', '1080p', '4K'].includes(normalized)) return _settings.universalQuality;
+  _settings.universalQuality = normalized;
+  await persistSettings();
+  notifyListeners('UNIVERSAL_QUALITY_CHANGED', { universalQuality: normalized });
+  return normalized;
+};
+
 /**
  * Get current settings snapshot
  */
@@ -299,7 +344,11 @@ export default {
   setDontShowDonationAgain,
   recordDonationDismissed,
   getWatchHistory,
+  setWatchHistory,
+  updatePlaybackProgressSettings,
   saveWatchProgress,
+  getUniversalQuality,
+  setUniversalQuality,
   getSettings,
   subscribeSettings,
 };

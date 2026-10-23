@@ -27,6 +27,8 @@ import AppSettings, {
   getTmdbApiKey,
   hasTmdbApiKey,
   deleteTmdbApiKey,
+  getUniversalQuality,
+  setUniversalQuality,
   subscribeSettings
 } from '../utils/AppSettings';
 import TmdbApiKeyModal from './TmdbApiKeyModal';
@@ -37,6 +39,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function AccountScreen({ onBack, onNavigateTab }) {
   const [dnsConfig, setDnsConfigState] = useState(getDnsConfig());
   const [autoPlayNext, setAutoPlayNext] = useState(true);
+  const [universalQuality, setUniversalQualityState] = useState(getUniversalQuality());
   const [tmdbKey, setTmdbKeyState] = useState(getTmdbApiKey());
   const [showTmdbModal, setShowTmdbModal] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
@@ -45,12 +48,15 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
   useEffect(() => {
     const current = getDnsConfig();
     setDnsConfigState(current);
+    setUniversalQualityState(getUniversalQuality());
 
     const unsubSettings = subscribeSettings(({ eventType, payload }) => {
       if (eventType === 'TMDB_KEY_SAVED') {
         setTmdbKeyState(payload.key || '');
       } else if (eventType === 'TMDB_KEY_DELETED') {
         setTmdbKeyState('');
+      } else if (eventType === 'UNIVERSAL_QUALITY_CHANGED') {
+        setUniversalQualityState(payload.universalQuality || '1080p');
       }
     });
 
@@ -112,13 +118,10 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
         contentContainerStyle={styles.scrollContent}
         bounces={true}
       >
-        {/* Profile Avatar & Info Card */}
+        {/* Profile Clean Icon & Info Card */}
         <View style={styles.profileSection}>
           <View style={styles.avatarWrapper}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=300&auto=format&fit=crop' }}
-              style={styles.avatarImage}
-            />
+            <Ionicons name="person" size={scale(34)} color="#475569" />
           </View>
 
           <View style={styles.userInfo}>
@@ -253,6 +256,47 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
               </View>
             </View>
 
+            {/* Universal Video Quality Option (720p, 1080p, 4K) */}
+            <View style={styles.settingCard}>
+              <View style={styles.settingHeaderRow}>
+                <Ionicons name="film-outline" size={scale(20)} color={colors.primary} />
+                <Text style={styles.settingCardTitle}>Universal Video Quality</Text>
+              </View>
+              <Text style={styles.settingCardDesc}>
+                {universalQuality === '4K'
+                  ? 'Prefers compatible 4K Ultra HD streams. Automatically falls back to 1080p or best available.'
+                  : (universalQuality === '720p'
+                    ? '720p HD stream optimized for data-saving and fast loading.'
+                    : 'Full HD 1080p master quality with optimal balance of clarity and speed.')}
+              </Text>
+              <View style={styles.providerRow}>
+                {['720p', '1080p', '4K'].map((q) => {
+                  const isSelected = universalQuality === q;
+                  return (
+                    <TouchableOpacity
+                      key={q}
+                      style={[
+                        styles.providerPill,
+                        isSelected && styles.providerPillActive
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={async () => {
+                        setUniversalQualityState(q);
+                        await setUniversalQuality(q);
+                      }}
+                    >
+                      <Text style={[
+                        styles.providerPillText,
+                        isSelected && styles.providerPillTextActive
+                      ]}>
+                        {q}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
             {/* Auto-Play Next Toggle */}
             <View style={styles.settingCard}>
               <View style={styles.switchRow}>
@@ -310,13 +354,11 @@ const styles = StyleSheet.create({
     width: scale(70),
     height: scale(70),
     borderRadius: scale(35),
-    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#F3F4F6',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
+    borderColor: '#E2E8F0',
   },
   userInfo: {
     marginLeft: scale(16),

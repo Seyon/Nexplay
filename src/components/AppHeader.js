@@ -47,17 +47,15 @@ export default function AppHeader({
             </TouchableOpacity>
           )}
 
-          {/* User Profile Avatar */}
+          {/* User Profile Clean Icon */}
           {showAvatar && (
             <TouchableOpacity
               style={styles.avatarBtn}
               activeOpacity={0.8}
               onPress={onAccountPress}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop' }}
-                style={styles.avatarImage}
-              />
+              <Ionicons name="person" size={scale(17)} color="#475569" />
             </TouchableOpacity>
           )}
         </View>
@@ -170,12 +168,10 @@ const styles = StyleSheet.create({
     width: scale(34),
     height: scale(34),
     borderRadius: scale(17),
-    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
   },
 });

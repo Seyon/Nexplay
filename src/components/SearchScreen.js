@@ -10,75 +10,30 @@ import {
   ActivityIndicator,
   Keyboard,
   Dimensions,
-  ScrollView
+  ScrollView,
+  RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { searchMulti, fetchTopSearchesToday, getPosterUrl, formatYear } from '../utils/api';
+import { 
+  searchMulti, 
+  fetchTopSearchesToday, 
+  fetchPopularMovies, 
+  fetchPopularTvSeries, 
+  getPosterUrl, 
+  formatYear 
+} from '../utils/api';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
 import { colors } from '../config/theme';
 
-const POPULAR_SEARCH_CHIPS = [
-  'Dune',
-  'John Wick',
-  'Interstellar',
-  'Money Heist',
-  'The Batman',
-  'Avengers Endgame',
-];
-
-const CURATED_TRENDING_ITEMS = [
-  {
-    id: 'tr-1',
-    title: 'Dune',
-    genre: 'Sci-Fi',
-    year: '2021',
-    poster_path: '/d5NXSklXo0qyIYkgV94XAgMIckC.jpg',
-    image: 'https://image.tmdb.org/t/p/w500/d5NXSklXo0qyIYkgV94XAgMIckC.jpg',
-    media_type: 'movie',
-    overview: 'Paul Atreides leads nomadic tribes in a battle for control of the desert planet Arrakis.',
-  },
-  {
-    id: 'tr-2',
-    title: 'The Batman',
-    genre: 'Action',
-    year: '2022',
-    poster_path: '/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-    image: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-    media_type: 'movie',
-    overview: 'Batman ventures into Gotham City underworld when a sadistic killer leaves behind cryptic clues.',
-  },
-  {
-    id: 'tr-3',
-    title: 'Stranger Things',
-    genre: 'Sci-Fi',
-    year: '2016',
-    poster_path: '/56v2ox9aywvYTN9vQJWvTwNVm77.jpg',
-    image: 'https://image.tmdb.org/t/p/w500/56v2ox9aywvYTN9vQJWvTwNVm77.jpg',
-    media_type: 'tv',
-    overview: 'When a young boy vanishes, a small town uncovers a mystery involving secret experiments.',
-  },
-  {
-    id: 'tr-4',
-    title: 'Interstellar',
-    genre: 'Sci-Fi',
-    year: '2014',
-    poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-    image: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-    media_type: 'movie',
-    overview: 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity survival.',
-  },
-  {
-    id: 'tr-5',
-    title: 'The Last of Us',
-    genre: 'Drama',
-    year: '2023',
-    poster_path: '/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
-    image: 'https://image.tmdb.org/t/p/w500/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
-    media_type: 'tv',
-    overview: 'Twenty years after a fungal outbreak ravages the planet, survivors struggle to stay alive.',
-  },
-];
+const TMDB_GENRE_MAP = {
+  28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+  99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+  27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
+  10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western',
+  10759: 'Action & Adventure', 10762: 'Kids', 10763: 'News', 10764: 'Reality',
+  10765: 'Sci-Fi & Fantasy', 10766: 'Soap', 10767: 'Talk', 10768: 'War & Politics'
+};
 
 export default function SearchScreen({ onMoviePress, onBack }) {
   const insets = useSafeAreaInsets();
@@ -87,26 +42,84 @@ export default function SearchScreen({ onMoviePress, onBack }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [topSearches, setTopSearches] = useState(CURATED_TRENDING_ITEMS);
+  const [topSearches, setTopSearches] = useState([]);
+  const [popularChips, setPopularChips] = useState([
+    'Dune',
+    'John Wick',
+    'Interstellar',
+    'Stranger Things',
+    'The Batman',
+    'Deadpool'
+  ]);
+  const [isLoadingPopular, setIsLoadingPopular] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const searchDebounceTimer = useRef(null);
   const inputRef = useRef(null);
 
+  const loadPopularAndTrending = useCallback(async (refresh = false) => {
+    if (refresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoadingPopular(true);
+    }
+    try {
+      // Concurrently fetch popular movies, popular series, and daily trending from TMDB
+      const [popMovies, popSeries, trendingItems] = await Promise.all([
+        fetchPopularMovies().catch(() => []),
+        fetchPopularTvSeries().catch(() => []),
+        fetchTopSearchesToday().catch(() => []),
+      ]);
+
+      const pool = [
+        ...(Array.isArray(trendingItems) ? trendingItems : []),
+        ...(Array.isArray(popMovies) ? popMovies : []),
+        ...(Array.isArray(popSeries) ? popSeries : []),
+      ];
+
+      const combined = [];
+      const seenIds = new Set();
+
+      for (const item of pool) {
+        if (!item || !item.id) continue;
+        const key = `${item.media_type || (item.title ? 'movie' : 'tv')}-${item.id}`;
+        if (!seenIds.has(key) && (item.poster_path || item.backdrop_path)) {
+          seenIds.add(key);
+          combined.push(item);
+        }
+      }
+
+      if (combined.length > 0) {
+        setTopSearches(combined.slice(0, 15));
+
+        // Dynamically extract up-to-date popular search chips from popular titles
+        const dynamicChips = [];
+        const seenTitles = new Set();
+        for (const item of combined) {
+          const title = (item.title || item.name || '').trim();
+          if (title && !seenTitles.has(title.toLowerCase()) && title.length <= 26) {
+            seenTitles.add(title.toLowerCase());
+            dynamicChips.push(title);
+            if (dynamicChips.length >= 8) break;
+          }
+        }
+        if (dynamicChips.length >= 3) {
+          setPopularChips(dynamicChips);
+        }
+      }
+    } catch (err) {
+      console.warn('[SearchScreen] Error loading popular searches:', err);
+    } finally {
+      setIsLoadingPopular(false);
+      if (refresh) setIsRefreshing(false);
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
-    async function loadTrending() {
-      try {
-        const results = await fetchTopSearchesToday();
-        if (isMounted && results && results.length > 0) {
-          setTopSearches(results.slice(0, 10));
-        }
-      } catch (err) {
-        console.warn('[SearchScreen] Error loading trending:', err);
-      }
-    }
-    loadTrending();
+    loadPopularAndTrending(false);
     return () => { isMounted = false; };
-  }, []);
+  }, [loadPopularAndTrending]);
 
   const performSearch = useCallback(async (query) => {
     if (!query || !query.trim()) {
@@ -241,16 +254,24 @@ export default function SearchScreen({ onMoviePress, onBack }) {
           </View>
         )
       ) : (
-        /* Default View matching Image 2 Screen 8 */
+        /* Default View matching Image 2 Screen 8 with pull-to-refresh */
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => loadPopularAndTrending(true)}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
         >
           {/* Section: Popular Searches */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Searches</Text>
             <View style={styles.chipsContainer}>
-              {POPULAR_SEARCH_CHIPS.map((chip, idx) => (
+              {popularChips.map((chip, idx) => (
                 <TouchableOpacity
                   key={`chip-${idx}`}
                   style={styles.chip}
@@ -266,11 +287,18 @@ export default function SearchScreen({ onMoviePress, onBack }) {
           {/* Section: Trending Now */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Trending Now</Text>
-            {topSearches.map((item, index) => {
-              const posterUri = item.image || getPosterUrl(item.poster_path);
+            {isLoadingPopular && topSearches.length === 0 ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading popular titles...</Text>
+              </View>
+            ) : topSearches.map((item, index) => {
+              const posterUri = item.poster_path
+                ? getPosterUrl(item.poster_path)
+                : (item.image || getPosterUrl(item.backdrop_path));
               const title = item.title || item.name || '';
-              const year = item.year || (item.release_date || item.first_air_date || '').split('-')[0] || '2022';
-              const genre = item.genre || 'Action';
+              const year = formatYear(item.release_date || item.first_air_date || item.year);
+              const genre = item.genre || (Array.isArray(item.genre_ids) && item.genre_ids.length > 0 ? TMDB_GENRE_MAP[item.genre_ids[0]] : null) || (item.media_type === 'tv' ? 'Series' : 'Movie');
 
               return (
                 <TouchableOpacity
@@ -289,7 +317,7 @@ export default function SearchScreen({ onMoviePress, onBack }) {
                       {title}
                     </Text>
                     <Text style={styles.itemSubtitle}>
-                      {genre} • {year}
+                      {genre}{year ? ` • ${year}` : ''}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={scale(18)} color={colors.textMuted} />

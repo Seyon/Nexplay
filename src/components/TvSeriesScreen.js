@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import HeroCarousel from './HeroCarousel';
 import MovieRow from './MovieRow';
+import ContinueWatchingRow from './ContinueWatchingRow';
 import TopTenRow from './TopTenRow';
 import AppHeader from './AppHeader';
 import {
@@ -36,7 +37,8 @@ import {
 import { resolveSeriesHeroLineup } from '../utils/HeroManager';
 import { verticalScale, scale, moderateScale } from '../utils/responsive';
 import { colors } from '../config/theme';
-import { subscribeSettings, hasTmdbApiKey } from '../utils/AppSettings';
+import { subscribeSettings, hasTmdbApiKey, getWatchHistory } from '../utils/AppSettings';
+import { subscribePlaybackProgress } from '../utils/PlaybackProgressManager';
 
 const SERIES_TABS = [
   { id: 'all', label: 'All' },
@@ -57,6 +59,7 @@ export default function TvSeriesScreen({ onMoviePress, onSeeMore, onBack, onSear
   const [loading, setLoading] = useState(true);
 
   // 14 Categories (Series Only)
+  const [continueWatchingSeries, setContinueWatchingSeries] = useState([]);
   const [heroSeries, setHeroSeries] = useState([]);
   const [trendingSeries, setTrendingSeries] = useState([]);
   const [popularSeries, setPopularSeries] = useState([]);
@@ -142,19 +145,41 @@ export default function TvSeriesScreen({ onMoviePress, onSeeMore, onBack, onSear
   useEffect(() => {
     isMountedRef.current = true;
     loadAllTvData();
+
+    const syncContinueWatching = () => {
+      const all = getWatchHistory();
+      const filtered = Array.isArray(all) ? all.filter(item => item.media_type === 'tv' || Boolean(item.season || item.episode)) : [];
+      setContinueWatchingSeries(filtered);
+    };
+    syncContinueWatching();
+
     const unsub = subscribeSettings(({ eventType }) => {
       if (eventType === 'TMDB_KEY_SAVED') {
         loadAllTvData();
+      } else if (eventType === 'WATCH_HISTORY_UPDATED') {
+        syncContinueWatching();
       }
     });
+
+    const unsubProgress = subscribePlaybackProgress(({ eventType }) => {
+      if (eventType === 'WATCH_HISTORY_UPDATED') {
+        syncContinueWatching();
+      }
+    });
+
     const appStateSub = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active' && hasTmdbApiKey()) {
-        loadAllTvData();
+      if (nextAppState === 'active') {
+        syncContinueWatching();
+        if (hasTmdbApiKey()) {
+          loadAllTvData();
+        }
       }
     });
+
     return () => {
       isMountedRef.current = false;
       if (unsub) unsub();
+      if (unsubProgress) unsubProgress();
       if (appStateSub) appStateSub.remove();
     };
   }, [loadAllTvData]);
@@ -236,6 +261,16 @@ export default function TvSeriesScreen({ onMoviePress, onSeeMore, onBack, onSear
             movies={heroSeries}
             onMoviePress={onMoviePress}
             badgeTitle="Featured Series"
+          />
+        )}
+
+        {/* Continue Watching for TV Series */}
+        {activeCategory === 'all' && continueWatchingSeries.length > 0 && (
+          <ContinueWatchingRow
+            title="Continue Watching"
+            data={continueWatchingSeries}
+            onMoviePress={onMoviePress}
+            onSeeMore={() => onSeeMore && onSeeMore({ key: 'continue_watching', title: 'Continue Watching', data: continueWatchingSeries })}
           />
         )}
 

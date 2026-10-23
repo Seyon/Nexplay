@@ -10,12 +10,15 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchCategoryMedia, getPosterUrl, formatYear } from '../utils/api';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
 import { colors } from '../config/theme';
+import { getWatchHistory } from '../utils/AppSettings';
+import { subscribePlaybackProgress, removeFromContinueWatching } from '../utils/PlaybackProgressManager';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - scale(44)) / 3;
@@ -40,6 +43,15 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
     async function loadCategoryItems() {
       setLoading(true);
       try {
+        if (categoryKey === 'continue_watching') {
+          const cwItems = getWatchHistory();
+          if (isMounted) {
+            setItems(cwItems || []);
+            setHasMore(false);
+          }
+          return;
+        }
+
         const fetched = await fetchCategoryMedia(categoryKey, 1);
         if (isMounted) {
           if (fetched && fetched.length > 0) {
@@ -57,6 +69,37 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
     loadCategoryItems();
     return () => { isMounted = false; };
   }, [categoryKey]);
+
+  // Subscribe to live continue watching updates
+  useEffect(() => {
+    if (categoryKey !== 'continue_watching') return;
+    const unsubscribe = subscribePlaybackProgress(({ eventType }) => {
+      if (eventType === 'WATCH_HISTORY_UPDATED' || eventType === 'PLAYBACK_PROGRESS_SAVED') {
+        const updated = getWatchHistory();
+        setItems(updated || []);
+      }
+    });
+    return () => unsubscribe();
+  }, [categoryKey]);
+
+  const handlePromptRemove = (item) => {
+    const itemTitle = item.title || item.name || 'this title';
+    Alert.alert(
+      'Remove from Continue Watching?',
+      `Do you want to remove "${itemTitle}" from your Continue Watching list?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const updated = await removeFromContinueWatching(item.id);
+            setItems(updated || []);
+          }
+        }
+      ]
+    );
+  };
 
   // Infinite scroll
   const loadMoreItems = async () => {
@@ -109,13 +152,17 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
     const title = item.title || item.name || 'Untitled';
     const year = formatYear(item.release_date || item.first_air_date);
     const rating = item.vote_average ? Number(item.vote_average).toFixed(1) : null;
-    const posterUri = getPosterUrl(item.poster_path || item.image);
+    const posterUri = getPosterUrl(item.poster_path || item.image || item.backdrop_path);
+    const progressPercent = typeof item.progress === 'number' ? Math.round(item.progress) : 0;
+    const isContinueWatchingCategory = categoryKey === 'continue_watching';
 
     return (
       <TouchableOpacity
         style={styles.cardContainer}
         activeOpacity={0.82}
         onPress={() => onMoviePress && onMoviePress(item)}
+        onLongPress={isContinueWatchingCategory ? () => handlePromptRemove(item) : undefined}
+        delayLongPress={500}
       >
         <View style={styles.imageWrapper}>
           <Image
@@ -129,12 +176,30 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
               <Text style={styles.ratingText}>{rating}</Text>
             </View>
           )}
+          {isContinueWatchingCategory && (
+            <TouchableOpacity
+              style={styles.removeButtonCircle}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={(e) => {
+                e.stopPropagation();
+                handlePromptRemove(item);
+              }}
+            >
+              <Ionicons name="close" size={scale(9)} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+          {progressPercent > 0 && (
+            <View style={styles.cardProgressBarBg}>
+              <View style={[styles.cardProgressBarFill, { width: `${progressPercent}%` }]} />
+            </View>
+          )}
         </View>
         <Text style={styles.cardTitle} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.cardSubtitle} numberOfLines={1}>
-          {year ? `${year} • ` : ''}{isTv ? 'Series' : 'Movie'}
+          {item.subtitle || `${year ? `${year} • ` : ''}${isTv ? 'Series' : 'Movie'}`}
         </Text>
       </TouchableOpacity>
     );
@@ -228,9 +293,15 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
             !loading ? (
               <View style={styles.emptyState}>
                 <Ionicons name="film-outline" size={scale(44)} color={colors.borderLight} />
-                <Text style={styles.emptyStateTitle}>No titles found</Text>
+                <Text style={styles.emptyStateTitle}>
+                  {categoryKey === 'continue_watching' ? 'No unfinished titles' : 'No titles found'}
+                </Text>
                 <Text style={styles.emptyStateSub}>
-                  No movies or series match "{searchQuery}" in this category.
+                  {categoryKey === 'continue_watching'
+                    ? "When you watch movies or episodes and stop before finishing, they'll appear here."
+                    : (searchQuery.trim().length > 0
+                        ? `No movies or series match "${searchQuery}" in this category.`
+                        : 'No content available in this category yet.')}
                 </Text>
               </View>
             ) : null
@@ -357,6 +428,33 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(2),
     borderRadius: scale(4),
     gap: scale(2),
+  },
+  removeButtonCircle: {
+    position: 'absolute',
+    top: scale(5),
+    right: scale(5),
+    width: scale(18),
+    height: scale(18),
+    borderRadius: scale(9),
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4,
+    borderWidth: 0.8,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  cardProgressBarBg: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: verticalScale(3),
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 3,
+  },
+  cardProgressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
   },
   ratingText: {
     color: '#FFFFFF',

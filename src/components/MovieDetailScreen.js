@@ -16,7 +16,8 @@ import {
   BackHandler,
   StyleSheet,
   useWindowDimensions,
-  PanResponder
+  PanResponder,
+  AppState
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,7 +43,16 @@ import {
   getWriters
 } from '../utils/api';
 import { ExtensionManager } from '../utils/ExtensionManager';
-import { saveWatchProgress } from '../utils/AppSettings';
+import { saveWatchProgress, getUniversalQuality, subscribeSettings } from '../utils/AppSettings';
+import {
+  getPlaybackProgress,
+  getLatestSeriesProgress,
+  savePlaybackProgress,
+  markPlaybackCompleted,
+  formatPlaybackTime,
+  formatRemainingTime,
+  subscribePlaybackProgress
+} from '../utils/PlaybackProgressManager';
 
 // Safe URL sanitizer for Media3 ExoPlayer:
 // Preserves AWS/Cloudflare R2 presigned URLs (%2F in credentials must NOT become %252F)
@@ -76,6 +86,54 @@ function sanitizePlayableUrl(rawUrl) {
   }
   return url;
 }
+
+/**
+ * Select optimal stream from resolved qualities based on universal quality preference.
+ * Priority rules:
+ * - '4K': Prefer 4K/2160p stream -> fallback to 1080p -> fallback to best available (720p, etc.)
+ * - '1080p': Prefer 1080p stream -> fallback to 720p -> fallback to 4K or best available
+ * - '720p': Prefer 720p stream -> fallback to 1080p -> fallback to best available
+ * Never upscale lower resolution streams or mislabel them as 4K.
+ */
+export const selectStreamByQualityPreference = (qualities = {}, preferredSetting = '1080p', fallbackStreamUrl = '') => {
+  if (!qualities || typeof qualities !== 'object' || Object.keys(qualities).length === 0) {
+    return {
+      quality: '1080p',
+      url: fallbackStreamUrl
+    };
+  }
+
+  const normalizedPref = (preferredSetting || '1080p').toLowerCase().trim();
+  const qMap = {};
+  for (const [k, v] of Object.entries(qualities)) {
+    if (v) qMap[k.toLowerCase()] = v;
+  }
+
+  const get4k = () => qMap['4k'] || qMap['2160p'] || qMap['2160'] || qMap['uhd'];
+  const get1080 = () => qMap['1080p'] || qMap['1080'] || qMap['fhd'];
+  const get720 = () => qMap['720p'] || qMap['720'] || qMap['hd'];
+  const getAny = () => Object.values(qMap)[0] || fallbackStreamUrl;
+
+  if (normalizedPref === '4k' || normalizedPref === '2160p') {
+    if (get4k()) return { quality: '4k', url: get4k() };
+    if (get1080()) return { quality: '1080p', url: get1080() };
+    if (get720()) return { quality: '720p', url: get720() };
+    return { quality: Object.keys(qMap)[0] || '1080p', url: getAny() };
+  }
+
+  if (normalizedPref === '720p') {
+    if (get720()) return { quality: '720p', url: get720() };
+    if (get1080()) return { quality: '1080p', url: get1080() };
+    if (get4k()) return { quality: '4k', url: get4k() };
+    return { quality: Object.keys(qMap)[0] || '720p', url: getAny() };
+  }
+
+  // Default: 1080p
+  if (get1080()) return { quality: '1080p', url: get1080() };
+  if (get720()) return { quality: '720p', url: get720() };
+  if (get4k()) return { quality: '4k', url: get4k() };
+  return { quality: Object.keys(qMap)[0] || '1080p', url: getAny() };
+};
 
 
 // Curated High-Definition Fallback Cast & Recommendations matching the reference design
@@ -211,17 +269,94 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [hasFirstFrameRendered, setHasFirstFrameRendered] = useState(false);
 
-  // Automatically record watch history / continue watching when playback is active
-  useEffect(() => {
-    if (isPlaying && (movie?.id || details?.id)) {
-      const activeItem = details?.id ? details : movie;
-      saveWatchProgress(
-        activeItem,
-        duration > 0 ? (currentTime / duration) * 100 : 35,
-        isTVShow ? `S${selectedSeason || 1} • In Progress` : (formatRuntime(activeItem?.runtime) || 'In Progress')
-      );
+  // Resume Progress & Continue Watching state
+  const [resumeInfo, setResumeInfo] = useState(null);
+  const lastProgressSavedTimeRef = useRef(0);
+  const movieRef = useRef(movie);
+  const detailsRef = useRef(details);
+  const isTVShowRef = useRef(isTVShow);
+  const currentEpisodeRef = useRef(null);
+  const selectedSeasonRef = useRef(selectedSeason);
+
+  // Synchronize state changes to refs for resilient closure access
+  useEffect(() => { movieRef.current = movie; }, [movie]);
+  useEffect(() => { detailsRef.current = details; }, [details]);
+  useEffect(() => { isTVShowRef.current = isTVShow; }, [isTVShow]);
+  useEffect(() => { currentEpisodeRef.current = currentEpisode; }, [currentEpisode]);
+  useEffect(() => { selectedSeasonRef.current = selectedSeason; }, [selectedSeason]);
+
+  // Centralized helper to save current playback position immediately to disk & settings
+  const saveCurrentPlaybackImmediately = useCallback(() => {
+    const cur = currentTimeRef.current;
+    const dur = (typeof durationRef.current === 'number' && durationRef.current > 0)
+      ? durationRef.current
+      : 0;
+
+    const targetMedia = detailsRef.current?.id ? detailsRef.current : movieRef.current;
+    if (cur >= 3 && targetMedia?.id) {
+      const isTV = isTVShowRef.current;
+      const ep = currentEpisodeRef.current;
+      const sNum = isTV ? (Number(ep?.seasonNumber || selectedSeasonRef.current) || 1) : undefined;
+      const eNum = isTV ? (Number(ep?.episodeNumber) || 1) : undefined;
+      savePlaybackProgress({
+        media: targetMedia,
+        mediaType: isTV ? 'tv' : 'movie',
+        season: sNum,
+        episode: eNum,
+        episodeTitle: isTV ? (ep?.title || ep?.name) : undefined,
+        episodeImage: isTV ? ep?.image : undefined,
+        currentTime: cur,
+        duration: dur,
+        isImmediate: true,
+      });
+      lastProgressSavedTimeRef.current = cur;
     }
-  }, [isPlaying, movie?.id, details?.id]);
+  }, []);
+
+  // Update resume progress snapshot for current selected movie or episode
+  const updateResumeSnapshot = useCallback(() => {
+    const targetMediaId = detailsRef.current?.id || movieRef.current?.id;
+    if (!targetMediaId) {
+      setResumeInfo(null);
+      return;
+    }
+    const isTV = isTVShowRef.current;
+    const ep = currentEpisodeRef.current;
+    const sNum = isTV ? (Number(ep?.seasonNumber || selectedSeasonRef.current) || 1) : undefined;
+    const eNum = isTV ? (Number(ep?.episodeNumber) || 1) : undefined;
+
+    const progress = getPlaybackProgress({
+      mediaId: targetMediaId,
+      mediaType: isTV ? 'tv' : 'movie',
+      season: sNum,
+      episode: eNum,
+    });
+
+    if (progress && !progress.completed && progress.currentTime >= 3) {
+      setResumeInfo(progress);
+    } else {
+      setResumeInfo(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateResumeSnapshot();
+  }, [details?.id, movie?.id, isTVShow, selectedSeason, currentEpisode?.episodeNumber, currentEpisode?.seasonNumber, updateResumeSnapshot]);
+
+  // Subscribe to playback progress manager updates (e.g. external sync or completion)
+  useEffect(() => {
+    const unsub = subscribePlaybackProgress(() => {
+      updateResumeSnapshot();
+    });
+    return () => unsub();
+  }, [updateResumeSnapshot]);
+
+  // Save progress immediately whenever playback is paused
+  useEffect(() => {
+    if (!isPlaying && hasStartedPlayback) {
+      saveCurrentPlaybackImmediately();
+    }
+  }, [isPlaying, hasStartedPlayback, saveCurrentPlaybackImmediately]);
 
   const [isBuffering, setIsBuffering] = useState(false);
   const isBufferingRef = useRef(false);
@@ -440,6 +575,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      saveCurrentPlaybackImmediately();
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
       }
@@ -447,7 +583,17 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         vlcPlayerRef.current?.pause();
       } catch (e) {}
     };
-  }, []);
+  }, [saveCurrentPlaybackImmediately]);
+
+  // Immediately persist playback progress if user switches away from the app
+  useEffect(() => {
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') {
+        saveCurrentPlaybackImmediately();
+      }
+    });
+    return () => appStateSub.remove();
+  }, [saveCurrentPlaybackImmediately]);
 
   // Initialize and track system brightness
   useEffect(() => {
@@ -674,15 +820,20 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             setRecommendations(fullDetails.similar.results.slice(0, 12));
           }
 
-          // If TV series, setup seasons and load Season 1 episodes
+          // If TV series, setup seasons and restore previous season/episode progress if available
           if (isTVShow && fullDetails.seasons && fullDetails.seasons.length > 0) {
             const validSeasons = fullDetails.seasons.filter(s => s.season_number > 0);
             const activeSeasons = validSeasons.length > 0 ? validSeasons : fullDetails.seasons;
             setSeasons(activeSeasons);
 
-            const initialSeasonNum = activeSeasons[0]?.season_number || 1;
-            setSelectedSeason(initialSeasonNum);
-            loadSeasonEpisodes(movie.id, initialSeasonNum, fullDetails);
+            // Check if movie object has explicit season/episode or check latest series progress
+            const latestSeriesRecord = getLatestSeriesProgress(movie.id);
+            const targetSeason = Number(movie.season || movie.last_season || latestSeriesRecord?.season) || activeSeasons[0]?.season_number || 1;
+            const targetEpisode = Number(movie.episode || latestSeriesRecord?.episode) || 1;
+
+            setSelectedSeason(targetSeason);
+            selectedSeasonRef.current = targetSeason;
+            loadSeasonEpisodes(movie.id, targetSeason, fullDetails, targetEpisode);
           } else {
             // Movie setup
             const initialEp = {
@@ -694,6 +845,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
             };
             setCurrentEpisode(initialEp);
+            currentEpisodeRef.current = initialEp;
           }
         }
       } catch (err) {
@@ -711,7 +863,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const activeScrapeRequestId = useRef(0);
 
   // 2. Fetch Episodes for selected Season from TMDB
-  const loadSeasonEpisodes = async (tvId, seasonNum, mediaInfo = details) => {
+  const loadSeasonEpisodes = async (tvId, seasonNum, mediaInfo = details, targetEpNumber = null) => {
     setLoadingEpisodes(true);
     try {
       const episodes = await fetchTvSeasonEpisodes(tvId, seasonNum);
@@ -751,7 +903,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         });
         setEpisodesList(formatted);
         if (formatted.length > 0) {
-          setCurrentEpisode(formatted[0]);
+          let chosen = formatted[0];
+          if (targetEpNumber) {
+            const match = formatted.find(e => Number(e.episodeNumber) === Number(targetEpNumber));
+            if (match) chosen = match;
+          }
+          setCurrentEpisode(chosen);
+          currentEpisodeRef.current = chosen;
         }
       } else {
         setEpisodesList([]);
@@ -766,9 +924,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
 
   // Change Season handler
   const handleSeasonSelect = (seasonNum) => {
+    saveCurrentPlaybackImmediately();
     setSelectedSeason(seasonNum);
+    selectedSeasonRef.current = seasonNum;
     setIsSeasonModalVisible(false);
-    loadSeasonEpisodes(movie.id, seasonNum);
+    loadSeasonEpisodes(movie.id, seasonNum, details, 1);
   };
 
   // Handle ABR (Adaptive Bitrate) Dynamic Downscaling
@@ -979,7 +1139,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
 
 
   // Dynamic Scraper & Player execution handler (Strict Server 1: HDHub4u, Server 2: 4KHDHub, Server 3: Movies4u)
-  const playVideo = async (episode = currentEpisode, server = activeServer) => {
+  const playVideo = async (episode = currentEpisode, server = activeServer, options = {}) => {
     const requestId = ++activeScrapeRequestId.current;
     lastPlayedServerRef.current = server;
     setActiveServer(server);
@@ -994,7 +1154,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         player.pause();
       } catch (e) {}
     }
-    lastSavedSeekTimeRef.current = 0;
+
     hasAutoSelectedDefaultAudio.current = false;
     hasUserManuallySelectedAudioTrack.current = false;
     setSelectedAudioTrack(null);
@@ -1002,14 +1162,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     setAvailableAudioTracks([]);
     setAvailableSubtitleTracks([]);
     setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
     setHasFirstFrameRendered(false);
     setHasStartedPlayback(true);
     setIsFullscreen(false);
     setIsBuffering(true);
     isBufferingRef.current = true;
-
 
     const targetSeason = episode?.seasonNumber || selectedSeason || 1;
     const targetEpisodeNum = episode?.episodeNumber || 1;
@@ -1019,6 +1176,38 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       episodeNumber: targetEpisodeNum
     };
     setCurrentEpisode(updatedEp);
+    currentEpisodeRef.current = updatedEp;
+
+    // Check if user has saved playback progress to resume or restart
+    if (options?.startFromBeginning) {
+      lastSavedSeekTimeRef.current = 0;
+      currentTimeRef.current = 0;
+      setCurrentTime(0);
+      setDuration(0);
+    } else {
+      const targetMediaId = details?.id || movie?.id;
+      const saved = getPlaybackProgress({
+        mediaId: targetMediaId,
+        mediaType: isTVShow ? 'tv' : 'movie',
+        season: isTVShow ? targetSeason : undefined,
+        episode: isTVShow ? targetEpisodeNum : undefined,
+      });
+
+      if (saved && !saved.completed && saved.currentTime >= 3) {
+        console.log(`[MovieDetailScreen] Resuming ${isTVShow ? `S${targetSeason}E${targetEpisodeNum}` : 'movie'} from saved timestamp: ${saved.currentTime}s`);
+        lastSavedSeekTimeRef.current = saved.currentTime;
+        currentTimeRef.current = saved.currentTime;
+        setCurrentTime(saved.currentTime);
+        if (saved.duration > 0) {
+          setDuration(saved.duration);
+        }
+      } else {
+        lastSavedSeekTimeRef.current = 0;
+        currentTimeRef.current = 0;
+        setCurrentTime(0);
+        setDuration(0);
+      }
+    }
 
     try {
       const origLang = (details.original_language || movie.original_language || '').toLowerCase();
@@ -1131,9 +1320,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       setResolvedQualities(qualities);
       setResolvedQualitySizes(qualitySizes);
 
-      // Player strictly plays 1080p as default if available
-      let initialQuality = (qualities['1080p'] ? '1080p' : (qualities['720p'] ? '720p' : (qualities['4k'] ? '4k' : Object.keys(qualities)[0])));
-      let initialStreamLink = qualities[initialQuality] || streamUrl;
+      // Select initial stream matching universal quality preference (4K, 1080p, 720p)
+      const universalPref = getUniversalQuality();
+      const optimal = selectStreamByQualityPreference(qualities, universalPref, streamUrl);
+      let initialQuality = optimal.quality;
+      let initialStreamLink = optimal.url || streamUrl;
 
       setCurrentQuality(initialQuality);
       console.log(`[MovieDetailScreen] ✅ Extracted available streams:`, qualities);
@@ -1420,19 +1611,25 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     };
   }, []);
 
-  // Android Hardware Back button handling while in Fullscreen
+  // Android Hardware Back button handling while in Fullscreen or normal mode
   useEffect(() => {
     const onBackPress = () => {
       if (isFullscreen) {
         toggleFullscreen();
         return true; // Exits fullscreen smoothly without navigating away from detail screen
       }
+      saveCurrentPlaybackImmediately();
       return false; // Allows normal detail screen back handler
     };
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => subscription.remove();
-  }, [isFullscreen]);
+  }, [isFullscreen, saveCurrentPlaybackImmediately]);
+
+  const handleHeaderBack = () => {
+    saveCurrentPlaybackImmediately();
+    if (onBack) onBack();
+  };
 
   const toggleControls = () => {
     if (isControlsLocked) {
@@ -1802,6 +1999,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   };
 
   const handleServerChange = (serverId) => {
+    saveCurrentPlaybackImmediately();
     setActiveServer(serverId);
     setPlaybackError(null);
     isResolvingRef.current = true;
@@ -1809,12 +2007,16 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   };
 
   const selectEpisode = (episode) => {
+    saveCurrentPlaybackImmediately();
+    const targetSeason = episode.seasonNumber || selectedSeason || 1;
+    const targetEpisodeNum = episode.episodeNumber || 1;
     const updatedEp = {
       ...episode,
-      seasonNumber: episode.seasonNumber || selectedSeason || 1,
-      episodeNumber: episode.episodeNumber || 1
+      seasonNumber: targetSeason,
+      episodeNumber: targetEpisodeNum
     };
     setCurrentEpisode(updatedEp);
+    currentEpisodeRef.current = updatedEp;
     playVideo(updatedEp, activeServer);
   };
 
@@ -1973,8 +2175,38 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 if (controlsVisibleRef.current || !isSeekingRef.current) {
                   setCurrentTime(cur);
                 }
+
+                // Periodic playback progress save (every ~3.5 seconds)
+                const durVal = (event?.duration && event.duration > 0) ? event.duration : (durationRef.current || 0);
+                if (durVal > 0 && durVal !== durationRef.current) {
+                  durationRef.current = durVal;
+                  setDuration(durVal);
+                }
+
+                if (cur >= 3 && Math.abs(cur - lastProgressSavedTimeRef.current) >= 3.5) {
+                  lastProgressSavedTimeRef.current = cur;
+                  const targetMedia = detailsRef.current?.id ? detailsRef.current : movieRef.current;
+                  if (targetMedia?.id) {
+                    const isTV = isTVShowRef.current;
+                    const ep = currentEpisodeRef.current;
+                    const sNum = isTV ? (Number(ep?.seasonNumber || selectedSeasonRef.current) || 1) : undefined;
+                    const eNum = isTV ? (Number(ep?.episodeNumber) || 1) : undefined;
+                    savePlaybackProgress({
+                      media: targetMedia,
+                      mediaType: isTV ? 'tv' : 'movie',
+                      season: sNum,
+                      episode: eNum,
+                      episodeTitle: isTV ? (ep?.title || ep?.name) : undefined,
+                      episodeImage: isTV ? ep?.image : undefined,
+                      currentTime: cur,
+                      duration: durVal,
+                      isImmediate: false,
+                    });
+                  }
+                }
               }
               if (event?.duration && event.duration > 0 && event.duration !== duration) {
+                durationRef.current = event.duration;
                 setDuration(event.duration);
               }
             }}
@@ -2000,11 +2232,9 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 lastSavedSeekTimeRef.current = 0;
                 setTimeout(() => {
                   try {
-                    vlcPlayerRef.current?.seek(targetSec);
-                    currentTimeRef.current = targetSec;
-                    setCurrentTime(targetSec);
+                    seekToTimestamp(targetSec);
                   } catch (_) {}
-                }, 300);
+                }, 350);
               }
               setTimeout(() => {
                 try { vlcPlayerRef.current?.getTracks(); } catch (_) {}
@@ -2013,6 +2243,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             onPaused={() => {
               setIsPlaying(false);
               isPlayingRef.current = false;
+              saveCurrentPlaybackImmediately();
             }}
             onBuffer={(event) => {
               const buffering = Boolean(event?.isBuffering);
@@ -2091,7 +2322,22 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               }
             }}
             onEnd={() => {
+              console.log('[VLCPlayer] Playback reached end');
               setIsPlaying(false);
+              isPlayingRef.current = false;
+              const targetMedia = detailsRef.current?.id ? detailsRef.current : movieRef.current;
+              if (targetMedia?.id) {
+                const isTV = isTVShowRef.current;
+                const ep = currentEpisodeRef.current;
+                const sNum = isTV ? (Number(ep?.seasonNumber || selectedSeasonRef.current) || 1) : undefined;
+                const eNum = isTV ? (Number(ep?.episodeNumber) || 1) : undefined;
+                markPlaybackCompleted({
+                  mediaId: targetMedia.id,
+                  mediaType: isTV ? 'tv' : 'movie',
+                  season: sNum,
+                  episode: eNum,
+                });
+              }
             }}
           />
         </View>
@@ -2522,7 +2768,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: scale(10) }}>
                 <TouchableOpacity 
-                  onPress={isFullscreenMode ? toggleFullscreen : onBack}
+                  onPress={isFullscreenMode ? toggleFullscreen : handleHeaderBack}
                   style={{ 
                     width: topBtnSize, 
                     height: topBtnSize, 
@@ -2956,8 +3202,28 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
           const activeCredits = tidbSegments?.credits?.find(seg => curMs >= seg.start_ms && (seg.end_ms ? curMs <= seg.end_ms : true));
           const isNearEnd = isTVShow && duration > 0 && currentTime >= Math.max(0, duration - 75);
 
-          const currentEpIndex = isTVShow ? episodesList.findIndex(e => e.episodeNumber === (currentEpisode?.episodeNumber || 1)) : -1;
-          const nextEpisode = (currentEpIndex >= 0 && currentEpIndex < episodesList.length - 1) ? episodesList[currentEpIndex + 1] : null;
+          const currentEpNum = currentEpisode?.episodeNumber || 1;
+          const currentSeasonNum = currentEpisode?.seasonNumber || selectedSeason || 1;
+          const currentSeasonObj = isTVShow ? seasons.find(s => s.season_number === currentSeasonNum) : null;
+          const seasonEpCount = currentSeasonObj?.episode_count || (episodesList.length > 0 ? episodesList.length : null);
+
+          const currentEpIndex = isTVShow ? episodesList.findIndex(e => (e.episodeNumber || 0) === currentEpNum) : -1;
+          let nextEpisode = null;
+          if (currentEpIndex >= 0 && currentEpIndex < episodesList.length - 1) {
+            nextEpisode = episodesList[currentEpIndex + 1];
+          } else if (isTVShow) {
+            // Check if there is an actual subsequent season with episodes
+            const nextSeason = seasons
+              .filter(s => s.season_number > currentSeasonNum && (s.episode_count === undefined || s.episode_count > 0))
+              .sort((a, b) => a.season_number - b.season_number)[0];
+            if (nextSeason) {
+              nextEpisode = {
+                seasonNumber: nextSeason.season_number,
+                episodeNumber: 1,
+                title: `1. ${displayTitle}`
+              };
+            }
+          }
 
           const showIntro = !!activeIntro;
           const showRecap = !!activeRecap && !showIntro;
@@ -3641,9 +3907,27 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             </View>
           </View>
 
-          {/* Action Buttons: [▶ Play] and [+ My List] */}
+          {/* Resume Progress Banner matching Netflix / Prime Video */}
+          {resumeInfo && !hasStartedPlayback && (
+            <View style={detailStyles.resumeBanner}>
+              <View style={detailStyles.resumeProgressTrack}>
+                <View style={[detailStyles.resumeProgressFill, { width: `${resumeInfo.progress}%` }]} />
+              </View>
+              <View style={detailStyles.resumeInfoRow}>
+                <Text style={detailStyles.resumeTimeText}>
+                  {isTVShow ? `S${resumeInfo.season || selectedSeason || 1} E${resumeInfo.episode || 1} • ` : ''}
+                  {formatPlaybackTime(resumeInfo.currentTime)} / {formatPlaybackTime(resumeInfo.duration)}
+                </Text>
+                <Text style={detailStyles.resumeRemainingText}>
+                  {formatRemainingTime(resumeInfo.duration - resumeInfo.currentTime)}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Action Buttons: [▶ Play / Resume], [Start Over], and [+ My List] */}
           <View style={detailStyles.actionButtonsRow}>
-            {/* Play Button (Solid Red #E50914) */}
+            {/* Play / Resume Button (Solid Red #E50914) */}
             <TouchableOpacity 
               onPress={handlePlayerPlayPause}
               activeOpacity={0.85}
@@ -3656,9 +3940,28 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 style={{ marginRight: scale(6) }} 
               />
               <Text style={detailStyles.playButtonText}>
-                {hasStartedPlayback && isPlaying ? 'Pause' : 'Play'}
+                {hasStartedPlayback && isPlaying ? 'Pause' : (resumeInfo ? 'Resume' : 'Play')}
               </Text>
             </TouchableOpacity>
+
+            {/* Start Over Button when resume progress exists */}
+            {resumeInfo && !hasStartedPlayback && (
+              <TouchableOpacity
+                onPress={() => playVideo(currentEpisode, activeServer, { startFromBeginning: true })}
+                activeOpacity={0.8}
+                style={detailStyles.startOverButton}
+              >
+                <Ionicons 
+                  name="refresh-outline" 
+                  size={scale(16)} 
+                  color="#111827" 
+                  style={{ marginRight: scale(4) }} 
+                />
+                <Text style={detailStyles.startOverButtonText}>
+                  Start Over
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* + My List Button */}
             <TouchableOpacity 
@@ -3730,10 +4033,14 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             <Text style={detailStyles.sectionHeaderTitle}>Up Next</Text>
             {(() => {
               if (isTVShow) {
-                // --- SERIES LOGIC: NEXT EPISODE FROM SAME SERIES AND SEASON ---
+                // --- SERIES LOGIC: VALIDATE SEASON & EPISODE COUNTS ---
                 const currentEpNum = currentEpisode?.episodeNumber || 1;
                 const currentSeasonNum = currentEpisode?.seasonNumber || selectedSeason || 1;
                 
+                // Get season metadata to validate total episode count
+                const currentSeasonObj = seasons.find(s => s.season_number === currentSeasonNum);
+                const seasonEpCount = currentSeasonObj?.episode_count || (episodesList.length > 0 ? episodesList.length : null);
+
                 // Search next episode in current season's episodes list
                 const currentIdx = episodesList.findIndex(
                   e => (e.episodeNumber || 0) === currentEpNum || (e.id && currentEpisode?.id && e.id === currentEpisode?.id)
@@ -3742,11 +4049,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 let nextEp = null;
                 if (currentIdx >= 0 && currentIdx < episodesList.length - 1) {
                   nextEp = episodesList[currentIdx + 1];
-                } else {
+                } else if (seasonEpCount && currentEpNum < seasonEpCount) {
                   nextEp = episodesList.find(e => (e.episodeNumber || 0) === currentEpNum + 1);
                 }
 
-                // If found in current season
+                // If next episode exists in current season
                 if (nextEp) {
                   const nextEpNum = nextEp.episodeNumber || (currentEpNum + 1);
                   const epTitle = (nextEp.title && !nextEp.title.toLowerCase().startsWith('episode')) 
@@ -3782,7 +4089,10 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 }
 
                 // If this was the last episode of the season, check for next season
-                const nextSeason = seasons.find(s => s.season_number === currentSeasonNum + 1);
+                const nextSeason = seasons
+                  .filter(s => s.season_number > currentSeasonNum && (s.episode_count === undefined || s.episode_count > 0))
+                  .sort((a, b) => a.season_number - b.season_number)[0];
+
                 if (nextSeason) {
                   return (
                     <TouchableOpacity
@@ -3819,82 +4129,52 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                   );
                 }
 
-                // If episodesList is still loading or has only 1 episode, synthesize the next episode
-                const syntheticEpNum = currentEpNum + 1;
-                const syntheticEp = {
-                  seasonNumber: currentSeasonNum,
-                  episodeNumber: syntheticEpNum,
-                  title: `${syntheticEpNum}. ${displayTitle}`,
-                  duration: '55m',
-                  image: details.backdrop_path ? getBackdropUrl(details.backdrop_path) : getPosterUrl(details.poster_path)
-                };
-
-                return (
-                  <TouchableOpacity
-                    style={detailStyles.upNextCard}
-                    activeOpacity={0.85}
-                    onPress={() => selectEpisode(syntheticEp)}
-                  >
-                    <Image
-                      source={{ uri: syntheticEp.image }}
-                      style={detailStyles.upNextThumb}
-                      resizeMode="cover"
-                    />
-                    <View style={detailStyles.upNextInfo}>
-                      <Text style={detailStyles.upNextTitle} numberOfLines={1}>
-                        {syntheticEp.title}
-                      </Text>
-                      <Text style={detailStyles.upNextSub}>
-                        {`S${currentSeasonNum} E${syntheticEpNum} • 55m`}
-                      </Text>
-                    </View>
-                    <View style={detailStyles.upNextPlayBtn}>
-                      <Ionicons name="play" size={scale(14)} color="#FFFFFF" style={{ marginLeft: scale(1.5) }} />
-                    </View>
-                  </TouchableOpacity>
-                );
+                // When user finishes the final episode of the final available season:
+                // DO NOT fabricate a nonexistent episode!
+                // Fall through to show TMDB recommendations / related movies or TV series below!
               }
 
-              // --- MOVIE LOGIC: RELATED MOVIES ---
-              const upNextMovie = (recommendations && recommendations.length > 0)
+              // --- RECOMMENDATIONS LOGIC: RELEVANT MOVIES OR TV SERIES ---
+              const upNextMedia = (recommendations && recommendations.length > 0)
                 ? recommendations[0]
                 : (DEFAULT_RECOMMENDATIONS && DEFAULT_RECOMMENDATIONS.length > 0 ? DEFAULT_RECOMMENDATIONS[0] : null);
 
-              if (!upNextMovie) return null;
+              if (!upNextMedia) return null;
 
-              const movieYear = upNextMovie.release_date ? upNextMovie.release_date.substring(0, 4) : (upNextMovie.year || '');
-              const movieGenre = upNextMovie.genre || (Array.isArray(upNextMovie.genres) && upNextMovie.genres[0]?.name ? upNextMovie.genres[0].name : (genresList?.[0]?.name || 'Movie'));
-              const movieVote = upNextMovie.vote_average ? `★ ${Number(upNextMovie.vote_average).toFixed(1)}` : '';
-              const movieSub = [movieYear, movieGenre, movieVote].filter(Boolean).join(' • ') || 'Related Movie';
-              const movieThumb = upNextMovie.backdrop_path 
-                ? getBackdropUrl(upNextMovie.backdrop_path)
-                : (upNextMovie.poster_path ? getPosterUrl(upNextMovie.poster_path) : (upNextMovie.image || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop'));
+              const mediaYear = upNextMedia.release_date || upNextMedia.first_air_date ? (upNextMedia.release_date || upNextMedia.first_air_date).substring(0, 4) : (upNextMedia.year || '');
+              const mediaGenre = upNextMedia.genre || (Array.isArray(upNextMedia.genres) && upNextMedia.genres[0]?.name ? upNextMedia.genres[0].name : (genresList?.[0]?.name || (upNextMedia.media_type === 'tv' ? 'Series' : 'Movie')));
+              const mediaVote = upNextMedia.vote_average ? `★ ${Number(upNextMedia.vote_average).toFixed(1)}` : '';
+              const mediaSub = [mediaYear, mediaGenre, mediaVote].filter(Boolean).join(' • ') || (isTVShow ? 'Recommended Series' : 'Related Movie');
+              const mediaThumb = upNextMedia.backdrop_path 
+                ? getBackdropUrl(upNextMedia.backdrop_path)
+                : (upNextMedia.poster_path ? getPosterUrl(upNextMedia.poster_path) : (upNextMedia.image || getPosterUrl(null)));
 
               return (
                 <TouchableOpacity
                   style={detailStyles.upNextCard}
                   activeOpacity={0.85}
                   onPress={() => {
+                    saveCurrentPlaybackImmediately();
                     if (onNavigateMovie) {
-                      onNavigateMovie(upNextMovie);
+                      onNavigateMovie(upNextMedia);
                     } else {
-                      setDetails(upNextMovie);
+                      setDetails(upNextMedia);
                       setHasStartedPlayback(false);
                       setIsPlaying(false);
                     }
                   }}
                 >
                   <Image
-                    source={{ uri: movieThumb }}
+                    source={{ uri: mediaThumb }}
                     style={detailStyles.upNextThumb}
                     resizeMode="cover"
                   />
                   <View style={detailStyles.upNextInfo}>
                     <Text style={detailStyles.upNextTitle} numberOfLines={1}>
-                      {upNextMovie.title || upNextMovie.name || 'Related Movie'}
+                      {upNextMedia.title || upNextMedia.name || (isTVShow ? 'Recommended Next' : 'Related Movie')}
                     </Text>
                     <Text style={detailStyles.upNextSub}>
-                      {movieSub}
+                      {mediaSub}
                     </Text>
                   </View>
                   <View style={detailStyles.upNextPlayBtn}>
@@ -3983,8 +4263,15 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 {episodesList.map((item, index) => {
                   const isPlayingThisEp = currentEpisode.id === item.id || currentEpisode.episodeNumber === item.episodeNumber;
                   const epNum = item.episodeNumber || (index + 1);
-                  const epTitle = item.title || item.name || `Episode ${epNum}`;
                   const epDuration = item.duration || '55m';
+                  const displayEpTitle = item.name ? `${epNum}. ${item.name}` : (item.title || `Episode ${epNum}`);
+
+                  const epProgress = getPlaybackProgress({
+                    mediaId: details?.id || movie?.id,
+                    mediaType: 'tv',
+                    season: selectedSeason,
+                    episode: epNum,
+                  });
 
                   return (
                     <TouchableOpacity
@@ -3993,17 +4280,29 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                       style={detailStyles.episodeRowCard}
                       activeOpacity={0.8}
                     >
-                      <Image
-                        source={{ uri: item.image || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop' }}
-                        style={detailStyles.episodeRowThumb}
-                        resizeMode="cover"
-                      />
+                      <View style={{ position: 'relative' }}>
+                        <Image
+                          source={{ uri: item.image || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop' }}
+                          style={detailStyles.episodeRowThumb}
+                          resizeMode="cover"
+                        />
+                        {epProgress && !epProgress.completed && epProgress.progress > 0 && (
+                          <View style={detailStyles.epProgressTrack}>
+                            <View style={[detailStyles.epProgressFill, { width: `${epProgress.progress}%` }]} />
+                          </View>
+                        )}
+                        {epProgress && epProgress.completed && (
+                          <View style={detailStyles.epCompletedBadge}>
+                            <Ionicons name="checkmark-circle" size={scale(11)} color="#10B981" />
+                          </View>
+                        )}
+                      </View>
                       <View style={detailStyles.episodeRowInfo}>
                         <Text style={detailStyles.episodeRowTitle} numberOfLines={1}>
-                          {epNum}. {displayTitle}
+                          {displayEpTitle}
                         </Text>
                         <Text style={detailStyles.episodeRowSubtitle}>
-                          S{selectedSeason || 1} E{epNum} • {epDuration}
+                          S{selectedSeason || 1} E{epNum} • {epProgress && !epProgress.completed && epProgress.currentTime >= 3 ? formatRemainingTime(epProgress.duration - epProgress.currentTime) : (epProgress && epProgress.completed ? 'Completed' : epDuration)}
                         </Text>
                       </View>
                       {/* Play Circle Icon on Right (Screen 5 style) */}
@@ -4096,6 +4395,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 <TouchableOpacity 
                   key={`rec-${item.id || index}`}
                   onPress={() => {
+                    saveCurrentPlaybackImmediately();
                     if (onNavigateMovie) {
                       onNavigateMovie(item);
                     } else {
@@ -4293,6 +4593,78 @@ const detailStyles = StyleSheet.create({
     color: '#111827',
     fontSize: moderateScale(14),
     fontWeight: '700',
+  },
+  startOverButton: {
+    paddingHorizontal: scale(14),
+    height: verticalScale(42),
+    backgroundColor: '#F3F4F6',
+    borderRadius: scale(21),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startOverButtonText: {
+    color: '#111827',
+    fontSize: moderateScale(13),
+    fontWeight: '700',
+  },
+  resumeBanner: {
+    marginBottom: verticalScale(12),
+    backgroundColor: '#F8FAFC',
+    borderRadius: scale(10),
+    padding: scale(10),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  resumeProgressTrack: {
+    width: '100%',
+    height: verticalScale(3.5),
+    backgroundColor: '#E2E8F0',
+    borderRadius: scale(2),
+    overflow: 'hidden',
+    marginBottom: verticalScale(6),
+  },
+  resumeProgressFill: {
+    height: '100%',
+    backgroundColor: '#E50914',
+    borderRadius: scale(2),
+  },
+  resumeInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  resumeTimeText: {
+    color: '#64748B',
+    fontSize: moderateScale(11),
+    fontWeight: '600',
+  },
+  resumeRemainingText: {
+    color: '#E50914',
+    fontSize: moderateScale(11),
+    fontWeight: '700',
+  },
+  epProgressTrack: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: verticalScale(3),
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  epProgressFill: {
+    height: '100%',
+    backgroundColor: '#E50914',
+  },
+  epCompletedBadge: {
+    position: 'absolute',
+    top: scale(4),
+    right: scale(4),
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius: scale(10),
+    padding: scale(2),
   },
   // Support NexPlay Banner matching Screen 6
   supportBannerCard: {

@@ -4,6 +4,7 @@ import { TamilDhool, TamilDhoolClient } from '../providers/tamildhool/index.js';
 import { TamilGun, TamilGunClient } from '../providers/tamilgun/index.js';
 // src/utils/ScraperEngine.js
 import { resolveDomain, resolveUrlWithDoh } from './DnsResolver.js';
+import { getUniversalQuality } from './AppSettings.js';
 
 function normalizeNumbers(str) {
   if (!str) return '';
@@ -264,9 +265,33 @@ function calculateTitleMatchScore(
     }
   }
 
+  // Release Year Comparison & Disambiguation
+  // Extremely important when movies share the same title across different release years (e.g. Moana 2026 vs Moana 2016)
+  let yearMultiplier = 1.0;
+  const tYear = extractYear(targetYear) || extractYear(targetTitle);
+  const cYear = extractYear(candidateYear) || extractYear(candidateTitle) || extractYear(candidateUrl);
+
+  if (tYear && cYear) {
+    const diff = Math.abs(tYear - cYear);
+    if (diff === 0) {
+      yearMultiplier = 1.5; // Exact matching release year bonus
+    } else if (diff === 1) {
+      yearMultiplier = 1.05; // Tolerance for late-year / early-year release rollover
+    } else if (diff === 2) {
+      yearMultiplier = 0.35; // 2-year difference penalty
+    } else {
+      // 3+ years difference: e.g. 2016 vs 2026 (diff = 10)
+      // Severe disqualifying penalty to prevent returning wrong generation / older / newer movie
+      yearMultiplier = 0.05;
+    }
+  } else if (tYear && !cYear) {
+    // Target year known but candidate year missing
+    yearMultiplier = 0.9;
+  }
+
   // 1. Exact string match (strong bonus so exact titles decisively beat partials)
   if (normTarget === normCandidate || cleanTarget === cleanCandidate) {
-    return 2.0 * typeMultiplier * seasonMultiplier * audioMultiplier;
+    return 2.0 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier;
   }
 
   const targetTokens = cleanTarget.split(' ').filter(t => t.length > 0);
@@ -274,7 +299,7 @@ function calculateTitleMatchScore(
 
   if (targetTokens.length === 0 || candidateTokens.length === 0) return 0.0;
 
-  // 2. Core candidate title matching (candidate tokens without meta/quality/season tokens)
+  // 2. Core candidate title matching (candidate tokens without meta/quality/season tokens or 4-digit years)
   const metaTokens = new Set([
     'season', 'series', 'complete', 'all', 'episodes', 'episode', 'pack', 'dual', 'audio', 'hindi', 'english',
     'tamil', 'telugu', 'malayalam', 'kannada', 'korean', 'japanese', 'chinese', 'french', 'spanish', 'german',
@@ -284,60 +309,51 @@ function calculateTitleMatchScore(
     'extended', 'directors', 'cut', 'edition', 'proper', 'repack', 'hevc', 'x264', 'x265', '1080p', '720p',
     '480p', '2160p', '4k', 'remux', 'hdr', 'dv', 'atmos', 'dts', 'ddp5', 'dd5'
   ]);
-  const filteredCandidateTokens = candidateTokens.filter(t => !metaTokens.has(t) && !/^\d+$/.test(t));
+  // Filter out meta tokens and 4-digit years (1900-2099) so sequel numbers (e.g. 2, 3) are preserved!
+  const filteredCandidateTokens = candidateTokens.filter(t => !metaTokens.has(t) && !/^(?:19|20)\d{2}$/.test(t));
+  const filteredTargetTokens = targetTokens.filter(t => !/^(?:19|20)\d{2}$/.test(t));
 
-  if (targetTokens.length === filteredCandidateTokens.length && targetTokens.every((t, i) => t === filteredCandidateTokens[i])) {
-    return 1.8 * typeMultiplier * seasonMultiplier;
+  const compareTargetTokens = filteredTargetTokens.length > 0 ? filteredTargetTokens : targetTokens;
+
+  if (compareTargetTokens.length === filteredCandidateTokens.length && compareTargetTokens.every((t, i) => t === filteredCandidateTokens[i])) {
+    return 1.8 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier;
   }
 
   // 3. Target Token Recall: What portion of target words appear in candidate
   let matchedTargetTokens = 0;
-  for (const token of targetTokens) {
+  for (const token of compareTargetTokens) {
     if (candidateTokens.includes(token)) {
       matchedTargetTokens++;
     }
   }
-  const targetRecall = matchedTargetTokens / targetTokens.length;
+  const targetRecall = matchedTargetTokens / compareTargetTokens.length;
 
   // 4. Candidate Precision: Avoid false positives on long candidate titles
   let matchedCandidateTokens = 0;
   for (const cToken of candidateTokens) {
-    if (targetTokens.includes(cToken)) {
+    if (compareTargetTokens.includes(cToken)) {
       matchedCandidateTokens++;
     }
   }
   const candidatePrecision = matchedCandidateTokens / candidateTokens.length;
 
-  // 5. Release Year Comparison
-  let yearMultiplier = 1.0;
-  const tYear = extractYear(targetYear) || extractYear(targetTitle);
-  const cYear = extractYear(candidateYear) || extractYear(candidateTitle);
-
-  if (tYear && cYear) {
-    const diff = Math.abs(tYear - cYear);
-    if (diff === 0) yearMultiplier = 1.15; // exact year bonus
-    else if (diff <= 1) yearMultiplier = 1.0;
-    else if (diff <= 3) yearMultiplier = 0.85;
-    else yearMultiplier = 0.4; // significant penalty for distant years (e.g. 2001 vs 2026)
-  }
-
   // 6. Subtitle expansion bonus (e.g. "Stree 2: Sarkate Ka Aatank", "Spider-Man: No Way Home")
   // Only grant subtitle expansion if candidate starts with the target title tokens
   const isTargetPrefix = cleanCandidate.startsWith(cleanTarget) || 
-    (filteredCandidateTokens.length >= targetTokens.length && targetTokens.every((t, i) => t === filteredCandidateTokens[i]));
+    (filteredCandidateTokens.length >= compareTargetTokens.length && compareTargetTokens.every((t, i) => t === filteredCandidateTokens[i]));
 
   if (targetRecall === 1.0 && isTargetPrefix && yearMultiplier >= 1.0) {
-    return Math.min(1.85, (1.2 + candidatePrecision * 0.4) * typeMultiplier * seasonMultiplier * audioMultiplier);
+    return Math.min(1.85, (1.2 + candidatePrecision * 0.4) * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier);
   }
 
   // Severe penalty for single-word targets (like "From") when candidate has extra non-meta words ("The Girl From Plainville", "Agent from Above")
   let precisionWeight = 0.3;
-  if (targetTokens.length === 1 && filteredCandidateTokens.length > 1) {
+  if (compareTargetTokens.length === 1 && filteredCandidateTokens.length > 1) {
     precisionWeight = 0.85;
   }
 
   let baseScore = (targetRecall * (1 - precisionWeight)) + (candidatePrecision * precisionWeight);
-  if (!isTargetPrefix && targetTokens.length <= 2) {
+  if (!isTargetPrefix && compareTargetTokens.length <= 2) {
     baseScore *= 0.4; // Strong penalty if target word appears in the middle of an unrelated title
   }
   // Cap partial matches at 0.98 so exact/core matches (>1.0) always take priority
@@ -2599,11 +2615,26 @@ var FourKHDHubClient = class {
         // Strictly prioritize: FSL (1) -> FSLv2 (2) -> Pixeldrain (3) -> Watch Online (4) -> Workers (5) -> Google CDN 10Gbps (99)
         const bestCandidate = ClientUtils.selectBestStreamCandidate(liveCandidates);
         if (bestCandidate) {
-          // Strictly play 1080p as default if available among live candidates
-          const best1080 = liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false);
-          const rawPrimary = (qualities['1080p'] && best1080) ? qualities['1080p'] : bestCandidate.url;
+          // Select primary stream based on persistent Universal Video Quality preference
+          const prefQ = (typeof getUniversalQuality === 'function' ? getUniversalQuality() : '1080p').toLowerCase();
+          let targetCand = null;
+          if (prefQ === '4k' || prefQ === '2160p') {
+            targetCand = liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false)
+                      || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+                      || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false);
+          } else if (prefQ === '720p') {
+            targetCand = liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
+                      || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+                      || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
+          } else {
+            // 1080p default
+            targetCand = liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+                      || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
+                      || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
+          }
+          const rawPrimary = targetCand?.url || bestCandidate.url;
           const primaryUrl = ClientUtils.sanitizeStreamUrl(rawPrimary);
-          const chosenQuality = (primaryUrl === ClientUtils.sanitizeStreamUrl(qualities['1080p'])) ? '1080p' : (bestCandidate.q === '4k' ? '4K' : (bestCandidate.q === '1080p' ? '1080p' : (bestCandidate.q === '720p' ? '720p' : (bestCandidate.q === '480p' ? '480p' : '1080p'))));
+          const chosenQuality = targetCand?.q === '4k' ? '4K' : (targetCand?.q === '1080p' ? '1080p' : (targetCand?.q === '720p' ? '720p' : (bestCandidate.q === '4k' ? '4K' : (bestCandidate.q === '1080p' ? '1080p' : (bestCandidate.q === '720p' ? '720p' : '1080p')))));
           const sanitizedQualities = {};
           for (const [k, v] of Object.entries(qualities)) {
             sanitizedQualities[k] = ClientUtils.sanitizeStreamUrl(v);
@@ -2828,11 +2859,26 @@ var FourKHDHubClient = class {
       // Strictly prioritize: FSL (1) -> FSLv2 (2) -> Pixeldrain (3) -> Watch Online (4) -> Workers (5) -> Google CDN 10Gbps (99)
       const bestCandidate = ClientUtils.selectBestStreamCandidate(liveCandidates);
       if (bestCandidate) {
-        // Strictly play 1080p as default if available among live candidates
-        const best1080 = liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false);
-        const rawPrimary = (qualities['1080p'] && best1080) ? qualities['1080p'] : bestCandidate.url;
+        // Select primary stream based on persistent Universal Video Quality preference
+        const prefQ = (typeof getUniversalQuality === 'function' ? getUniversalQuality() : '1080p').toLowerCase();
+        let targetCand = null;
+        if (prefQ === '4k' || prefQ === '2160p') {
+          targetCand = liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false)
+                    || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+                    || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false);
+        } else if (prefQ === '720p') {
+          targetCand = liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
+                    || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+                    || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
+        } else {
+          // 1080p default
+          targetCand = liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+                    || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
+                    || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
+        }
+        const rawPrimary = targetCand?.url || bestCandidate.url;
         const primaryUrl = ClientUtils.sanitizeStreamUrl(rawPrimary);
-        const chosenQuality = (primaryUrl === ClientUtils.sanitizeStreamUrl(qualities['1080p'])) ? '1080p' : (bestCandidate.q === '4k' ? '4K' : (bestCandidate.q === '1080p' ? '1080p' : (bestCandidate.q === '720p' ? '720p' : (bestCandidate.q === '480p' ? '480p' : '1080p'))));
+        const chosenQuality = targetCand?.q === '4k' ? '4K' : (targetCand?.q === '1080p' ? '1080p' : (targetCand?.q === '720p' ? '720p' : (bestCandidate.q === '4k' ? '4K' : (bestCandidate.q === '1080p' ? '1080p' : (bestCandidate.q === '720p' ? '720p' : '1080p')))));
         const sanitizedQualities = {};
         for (const [k, v] of Object.entries(qualities)) {
           sanitizedQualities[k] = ClientUtils.sanitizeStreamUrl(v);
