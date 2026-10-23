@@ -2,14 +2,22 @@
   "major": 1,
   "minor": 8,
   "patch": 29,
-  "issue": 0,
-  "build": 181,
-  "updateType": "patch",
+  "issue": 2,
+  "build": 182,
+  "updateType": "bugfix",
   "timestamp": "20261022",
-  "versionName": "1.8.29.0.181-patch.20261022",
-  "versionCode": 2090181,
-  "lastSuccessfulBuild": "2026-10-22T16:40:23.824Z",
+  "versionName": "1.8.29.2.182-bugfix.20261022",
+  "versionCode": 2090182,
+  "lastSuccessfulBuild": "2026-10-23T05:17:28.216Z",
   "history": [
+    {
+      "versionName": "1.8.29.2.182-bugfix.20261022",
+      "versionCode": 2090182,
+      "updateType": "bugfix",
+      "build": 182,
+      "note": "Release build with year disambiguation and universal quality",
+      "builtAt": "2026-10-23T05:17:28.216Z"
+    },
     {
       "versionName": "1.8.29.0.181-patch.20261022",
       "versionCode": 2090181,
@@ -401,14 +409,6 @@
       "build": 133,
       "note": "Tv serial home posters, hero carousel height, server 1 playback fix",
       "builtAt": "2026-09-27T09:50:47.704Z"
-    },
-    {
-      "versionName": "1.6.8.2.132-bugfix.20260926",
-      "versionCode": 1680132,
-      "updateType": "bugfix",
-      "build": 132,
-      "note": "VLC player UI UX and updated server 1 and 2 metadata formats",
-      "builtAt": "2026-09-27T05:06:36.881Z"
     }
   ]
 }
