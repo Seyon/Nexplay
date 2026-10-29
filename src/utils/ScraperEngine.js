@@ -2,9 +2,22 @@ import { Movies4u, Movies4uClient } from './Movies4uProvider.js';
 
 import { TamilDhool, TamilDhoolClient } from '../providers/tamildhool/index.js';
 import { TamilGun, TamilGunClient } from '../providers/tamilgun/index.js';
-// src/utils/ScraperEngine.js
 import { resolveDomain, resolveUrlWithDoh } from './DnsResolver.js';
-import { getUniversalQuality } from './AppSettings.js';
+
+let _universalQualityGetter = null;
+export function setUniversalQualityGetter(getter) {
+  _universalQualityGetter = getter;
+}
+export function getUniversalQuality() {
+  if (typeof _universalQualityGetter === 'function') {
+    try {
+      return _universalQualityGetter() || '1080p';
+    } catch {
+      return '1080p';
+    }
+  }
+  return '1080p';
+}
 
 function normalizeNumbers(str) {
   if (!str) return '';

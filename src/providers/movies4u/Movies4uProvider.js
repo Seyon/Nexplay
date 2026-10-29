@@ -388,6 +388,12 @@ export class Movies4uClient {
         const cleanQuery = query.trim();
         if (!cleanQuery)
             return [];
+        const baseTitle = cleanQuery.replace(/\b(19\d{2}|20\d{2})\b/g, '').trim();
+        const searchQueries = [cleanQuery];
+        if (baseTitle && baseTitle !== cleanQuery) {
+            searchQueries.push(baseTitle);
+        }
+
         const baseUrl = await this.resolveLiveDomain(customHttpGet);
         const candidateMirrors = Array.from(new Set([
             baseUrl,
@@ -400,44 +406,49 @@ export class Movies4uClient {
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
 
         for (const mirror of candidateMirrors) {
-            const searchUrl = `${mirror}/lookup.php?q=${encodeURIComponent(cleanQuery)}&page=${page}&per_page=30`;
-            try {
-                const resText = await fetcher(searchUrl, {
-                    'User-Agent': DEFAULT_USER_AGENT,
-                    'Referer': `${mirror}/search.html?q=${encodeURIComponent(cleanQuery)}`
-                }, 6000);
-                if (!resText || resText.startsWith('<') || resText.includes('<html')) {
-                    continue; // Skip parked HTML or redirect responses
+            for (const q of searchQueries) {
+                const searchUrl = `${mirror}/lookup.php?q=${encodeURIComponent(q)}&page=${page}&per_page=30`;
+                try {
+                    const resText = await fetcher(searchUrl, {
+                        'User-Agent': DEFAULT_USER_AGENT,
+                        'Referer': `${mirror}/search.html?q=${encodeURIComponent(q)}`
+                    }, 6000);
+                    if (!resText || resText.startsWith('<') || resText.includes('<html')) {
+                        continue; // Skip parked HTML or redirect responses
+                    }
+                    const data = JSON.parse(resText);
+                    const hits = Array.isArray(data?.hits) ? data.hits : [];
+                    if (hits.length === 0) {
+                        continue;
+                    }
+                    this.liveBaseUrl = mirror;
+                    this.domainResolved = true;
+                    return hits.map((hit) => {
+                        const rawTitle = hit.post_title || '';
+                        const yearMatch = rawTitle.match(/\b(19\d{2}|20\d{2})\b/);
+                        const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
+                        const isSeries = /\b(?:season|s\d+|series|episodes?)\b/i.test(rawTitle);
+                        const permalink = hit.permalink?.startsWith('http')
+                            ? hit.permalink.replace(/new[1-8]\.movies4u\.clinic/g, 'new1.movies4u.garden')
+                            : `${mirror}${hit.permalink?.startsWith('/') ? '' : '/'}${hit.permalink || ''}`;
+                        return {
+                            id: String(hit.id || ''),
+                            title: rawTitle,
+                            cleanTitle: this.cleanTitle(rawTitle),
+                            url: permalink,
+                            link: permalink,
+                            thumbnail: hit.post_thumbnail || undefined,
+                            image: hit.post_thumbnail || undefined,
+                            quality: hit.movie_quality || this.detectQuality(rawTitle),
+                            year,
+                            mediaType: isSeries ? 'series' : 'movie',
+                            provider: 'movies4u'
+                        };
+                    });
                 }
-                const data = JSON.parse(resText);
-                const hits = Array.isArray(data?.hits) ? data.hits : [];
-                this.liveBaseUrl = mirror;
-                this.domainResolved = true;
-                return hits.map((hit) => {
-                    const rawTitle = hit.post_title || '';
-                    const yearMatch = rawTitle.match(/\b(19\d{2}|20\d{2})\b/);
-                    const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
-                    const isSeries = /\b(?:season|s\d+|series|episodes?)\b/i.test(rawTitle);
-                    const permalink = hit.permalink?.startsWith('http')
-                        ? hit.permalink.replace(/new[1-8]\.movies4u\.clinic/g, 'new1.movies4u.garden')
-                        : `${mirror}${hit.permalink?.startsWith('/') ? '' : '/'}${hit.permalink || ''}`;
-                    return {
-                        id: String(hit.id || ''),
-                        title: rawTitle,
-                        cleanTitle: this.cleanTitle(rawTitle),
-                        url: permalink,
-                        link: permalink,
-                        thumbnail: hit.post_thumbnail || undefined,
-                        image: hit.post_thumbnail || undefined,
-                        quality: hit.movie_quality || this.detectQuality(rawTitle),
-                        year,
-                        mediaType: isSeries ? 'series' : 'movie',
-                        provider: 'movies4u'
-                    };
-                });
-            }
-            catch (err) {
-                console.warn(`[Movies4u] Mirror ${mirror} search note:`, err?.message || err);
+                catch (err) {
+                    console.warn(`[Movies4u] Mirror ${mirror} search note:`, err?.message || err);
+                }
             }
         }
         return [];

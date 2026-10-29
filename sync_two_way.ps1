@@ -35,12 +35,31 @@ $sharedFiles = @(
     "src\utils\PlayerSettingsController.js",
     "src\utils\TvSerialsMetadataCache.js",
     "src\utils\TvSerialsLiveScraper.js",
+    "src\utils\AppSettings.js",
+    "src\utils\PlaybackProgressManager.js",
+    "src\utils\HeroManager.js",
+    "src\utils\TamilDhoolProvider.js",
+    "src\utils\TamilGunProvider.js",
+    "src\utils\extractor.js",
+    "src\utils\api.js",
+    "src\utils\permissions.js",
+    "src\utils\responsive.js",
+    "src\components\MovieDetailScreen.js",
+    "src\components\AccountScreen.js",
+    "src\components\MoviesScreen.js",
+    "src\components\TvSeriesScreen.js",
     "src\components\TvSerialsScreen.js",
     "src\components\BottomTabBar.js",
+    "src\components\DonationModal.js",
+    "src\components\TmdbApiKeyModal.js",
+    "src\config\theme.js",
+    "src\config\tmdb.js",
+    "App.js",
     "manifest.json",
     "version.json",
     "version_manager.js",
-    "build_app.ps1"
+    "build_app.ps1",
+    "sync_to_providers.ps1"
 )
 
 # Dynamically discover any other utility or test scripts in src/utils
@@ -55,11 +74,8 @@ if (Test-Path "$providersPath\src\utils") {
 if (Test-Path "$stitchPath\src\utils") {
     Get-ChildItem -Path "$stitchPath\src\utils" -File | ForEach-Object {
         $rel = "src\utils\" + $_.Name
-        # Skip app-only utilities if not related to scrapers/providers
-        if ($_.Name -match '(Scraper|Provider|Resolver|Extension|Dns|manifest|test_resolver)') {
-            if ($sharedFiles -notcontains $rel) {
-                $sharedFiles += $rel
-            }
+        if ($sharedFiles -notcontains $rel) {
+            $sharedFiles += $rel
         }
     }
 }
@@ -163,9 +179,9 @@ try {
     $sStatus = git -C $stitchPath status --porcelain
     if ($sStatus) {
         Write-Host "Staging and committing changes in Stitch-nexplay..." -ForegroundColor Yellow
-        git -C $stitchPath add src/utils/ manifest.json sync_two_way.ps1
+        git -C $stitchPath add src/utils/ src/providers/ src/components/ src/config/ manifest.json version.json sync_two_way.ps1 sync_to_providers.ps1
         # If there are also app files modified, stage them as well
-        git -C $stitchPath add App.js src/components/MovieDetailScreen.js app.json android/ assets/
+        git -C $stitchPath add App.js app.json android/ assets/
         git -C $stitchPath commit -m "sync: two-way provider updates and player enhancements"
         Write-Host "Pushing Stitch-nexplay to origin main..." -ForegroundColor Cyan
         git -C $stitchPath push origin main

@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { File, Paths } from 'expo-file-system';
+import { setUniversalQualityGetter } from './ScraperEngine.js';
 
 const getDocumentDir = () => {
   if (FileSystem && FileSystem.documentDirectory) {
@@ -318,6 +319,12 @@ export const setUniversalQuality = async (quality) => {
   notifyListeners('UNIVERSAL_QUALITY_CHANGED', { universalQuality: normalized });
   return normalized;
 };
+
+try {
+  setUniversalQualityGetter(getUniversalQuality);
+} catch (e) {
+  // ScraperEngine hook fallback
+}
 
 /**
  * Get current settings snapshot

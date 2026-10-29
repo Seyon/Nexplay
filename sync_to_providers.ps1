@@ -51,7 +51,7 @@ foreach ($comp in $components) {
 }
 
 # 5. Sync root metadata & build files
-$rootFiles = @("manifest.json", "version.json", "version_manager.js", "build_app.ps1", "sync_two_way.ps1")
+$rootFiles = @("manifest.json", "version.json", "version_manager.js", "build_app.ps1", "sync_two_way.ps1", "sync_to_providers.ps1", "App.js")
 foreach ($rf in $rootFiles) {
     if (Test-Path $rf) {
         Copy-Item -Path $rf -Destination "$rootDestination\$rf" -Force
