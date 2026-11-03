@@ -1,15 +1,23 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 30,
+  "patch": 31,
   "issue": 0,
-  "build": 183,
+  "build": 184,
   "updateType": "patch",
-  "timestamp": "20261029",
-  "versionName": "1.8.30.0.183-patch.20261029",
-  "versionCode": 2100183,
-  "lastSuccessfulBuild": "2026-10-30T05:37:27.895Z",
+  "timestamp": "20261103",
+  "versionName": "1.8.31.0.184-patch.20261103",
+  "versionCode": 2110184,
+  "lastSuccessfulBuild": "2026-11-03T19:02:40.106Z",
   "history": [
+    {
+      "versionName": "1.8.31.0.184-patch.20261103",
+      "versionCode": 2110184,
+      "updateType": "patch",
+      "build": 184,
+      "note": "Integrate Tenrai Anime API and update Server 1 and Server 3 domains",
+      "builtAt": "2026-11-03T19:02:40.106Z"
+    },
     {
       "versionName": "1.8.30.0.183-patch.20261029",
       "versionCode": 2100183,
@@ -401,14 +409,6 @@
       "build": 135,
       "note": "Debug build with seek diagnostics",
       "builtAt": "2026-09-27T16:17:21.953Z"
-    },
-    {
-      "versionName": "1.7.9.0.134-patch.20260927",
-      "versionCode": 1790134,
-      "updateType": "patch",
-      "build": 134,
-      "note": "Eliminate touch delays, remove Tamildhool/Tamilgun names, remove reload stream, add Bigg Boss 10 prime show, format release APKs",
-      "builtAt": "2026-09-27T15:57:11.017Z"
     }
   ]
 }
