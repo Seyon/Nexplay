@@ -13,6 +13,7 @@
 import { HDHub4u, HDHub4uClient } from './hdhub4u/index.js';
 import { FourKHDHub, FourKHDHubClient } from './4khdhub/index.js';
 import { Movies4u, Movies4uClient, unpack } from './movies4u/index.js';
+import { Net79, Net79Client } from './net79/index.js';
 
 import { 
   TamilDhool, 
@@ -30,6 +31,8 @@ import {
 import { parseDateInput } from './common/index.js';
 
 export {
+  Net79,
+  Net79Client,
   HDHub4u,
   HDHub4uClient,
   FourKHDHub,
@@ -50,6 +53,14 @@ export {
 };
 
 export const PROVIDERS = {
+  net79: {
+    id: 'net79',
+    name: 'Server 1 (Net79 All-in-One)',
+    short: 'Net79',
+    serverNumber: 0,
+    client: Net79,
+    type: 'all_in_one'
+  },
   hdhub4u: {
     id: 'hdhub4u',
     name: 'Server 1 (HDHub4u)',
@@ -94,13 +105,14 @@ export const PROVIDERS = {
 
 /**
  * Get provider instance by ID string or server number
- * @param {string|number} identifier e.g. 'movies4u', 3, '3', 'hdhub4u', 1
+ * @param {string|number} identifier e.g. 'movies4u', 3, '3', 'hdhub4u', 1, 'net79'
  * @returns {object|null}
  */
 export function getProviderById(identifier) {
   if (!identifier) return null;
   const str = String(identifier).toLowerCase().trim();
   
+  if (str === '0' || str === 'net79' || str === 'allinone') return PROVIDERS.net79;
   if (str === '1' || str === 'hdhub4u') return PROVIDERS.hdhub4u;
   if (str === '2' || str === '4khdhub') return PROVIDERS['4khdhub'];
   if (str === '3' || str === 'movies4u') return PROVIDERS.movies4u;

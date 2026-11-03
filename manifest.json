@@ -1,25 +1,48 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.1",
-  "updatedAt": "2026-10-29T05:30:00.000Z",
+  "version": "1.1.2",
+  "updatedAt": "2026-11-03T18:32:17.439Z",
   "commitSha": "ab5ac8e",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
   "providers": {
+    "net79": {
+      "id": "net79",
+      "name": "Server 1 (Net79 All in One)",
+      "enabled": true,
+      "priority": 1,
+      "baseUrl": "https://net79.cc",
+      "mirrors": [
+        "https://net79.cc",
+        "https://net77.cc",
+        "https://netmirrorr.net",
+        "https://netmirrors.vip"
+      ],
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": "https://moviebox.ph/"
+      },
+      "features": {
+        "allInOne": true,
+        "movies": true,
+        "tvShows": true,
+        "multiAudio": true,
+        "universalProxy": true,
+        "directMp4Streams": true,
+        "peachifyFallback": true
+      }
+    },
     "hdhub4u": {
       "id": "hdhub4u",
       "name": "Server 1 (HDHub4u)",
       "enabled": true,
       "priority": 1,
-      "baseUrl": "https://new3.hdhub4u.free",
+      "baseUrl": "https://new10.hdhub4u.cl",
       "mirrors": [
-        "https://new3.hdhub4u.free",
-        "https://new2.hdhub4u.free",
-        "https://hdhub4u.free",
-        "https://hdhub4u.bi",
-        "https://hdhub4u.pro",
-        "https://hdhub4u.tv",
-        "https://hdhub4u.ms"
+        "https://new10.hdhub4u.cl",
+        "https://vfilm.pro",
+        "https://hdhub4u.skin",
+        "https://hdhub4u.pro"
       ],
       "headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -58,20 +81,15 @@
       "name": "Server 3 (Movies4u)",
       "enabled": true,
       "priority": 3,
-      "baseUrl": "https://new1.movies4u.garden",
+      "baseUrl": "https://new4.movies4u.garden",
       "mirrors": [
-        "https://new1.movies4u.garden",
+        "https://new4.movies4u.garden",
         "https://new3.movies4u.garden",
-        "https://movies4u.foo",
-        "https://movies4u.vip",
-        "https://new7.movies4u.clinic",
-        "https://new8.movies4u.clinic",
-        "https://movies4u.co",
-        "https://movies4u.clinic"
+        "https://movies4u.foo"
       ],
       "headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://movies4u.vip/"
+        "Referer": "https://new4.movies4u.garden/"
       },
       "features": {
         "movieResolution": true,
@@ -139,6 +157,7 @@
     ]
   },
   "changeLog": [
+    "Updated Server 1 (HDHub4u) domain to https://new10.hdhub4u.cl/ and Server 3 (Movies4u) domain to https://new4.movies4u.garden/",
     "Updated Server 1 (HDHub4u) baseUrl to new3.hdhub4u.free with active mirrors (hdhub4u.pro, hdhub4u.bi, hdhub4u.tv)",
     "Updated Server 3 (Movies4u) baseUrl to new1.movies4u.garden with active mirrors (new3.movies4u.garden, movies4u.foo, movies4u.vip)",
     "Integrated persistent Universal Video Quality (4K, 1080p, 720p) selection hook in ScraperEngine across all providers",

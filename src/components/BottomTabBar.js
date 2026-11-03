@@ -41,6 +41,14 @@ export default function BottomTabBar({ activeTab = 'Home', onTabPress }) {
       iconType: 'ionicons'
     },
     { 
+      name: 'Anime', 
+      label: 'Anime', 
+      aliases: ['anime', 'AnimeScreen', 'Animation'],
+      iconActive: 'sparkles', 
+      iconInactive: 'sparkles-outline',
+      iconType: 'ionicons'
+    },
+    { 
       name: 'TV Serials', 
       label: 'TV Serials', 
       aliases: ['My List', 'MyList', 'Serials', 'TvSerials'],
@@ -121,8 +129,8 @@ export default function BottomTabBar({ activeTab = 'Home', onTabPress }) {
 const styles = StyleSheet.create({
   floatingWrapper: {
     position: 'absolute',
-    left: scale(20),
-    right: scale(20),
+    left: scale(14),
+    right: scale(14),
     zIndex: 9999,
     elevation: 16,
     alignItems: 'center',
@@ -135,7 +143,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: scale(32),
     height: verticalScale(60),
-    paddingHorizontal: scale(10),
+    paddingHorizontal: scale(6),
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.10,
@@ -163,9 +171,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   raisedCircle: {
-    width: scale(48),
-    height: scale(48),
-    borderRadius: scale(24),
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -178,7 +186,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   activeTabLabel: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10),
     textAlign: 'center',
     marginTop: verticalScale(3),
     fontWeight: '700',
@@ -186,7 +194,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   inactiveTabLabel: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10),
     textAlign: 'center',
     marginTop: verticalScale(2),
     fontWeight: '500',

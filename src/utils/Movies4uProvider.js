@@ -283,8 +283,8 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
  * Optimized for Android Media3 ExoPlayer & Stitch-Nexplay Integration
  */
 export class Movies4uClient {
-    liveBaseUrl = 'https://new1.movies4u.garden';
-    mirrors = ['https://new1.movies4u.garden', 'https://new2.movies4u.garden', 'https://movies4u.foo', 'https://movies4u.co', 'https://movies4u.vip'];
+    liveBaseUrl = 'https://new4.movies4u.garden';
+    mirrors = ['https://new4.movies4u.garden', 'https://new3.movies4u.garden', 'https://movies4u.foo'];
     domainResolved = false;
     constructor(customBaseUrl) {
         if (customBaseUrl) {
@@ -377,7 +377,7 @@ export class Movies4uClient {
         catch (e) {
             console.warn('[Movies4u] Note resolving live domain from movies4u.foo:', e?.message || e);
         }
-        this.liveBaseUrl = 'https://new1.movies4u.garden';
+        this.liveBaseUrl = 'https://new4.movies4u.garden';
         this.domainResolved = true;
         return this.liveBaseUrl;
     }
@@ -399,8 +399,8 @@ export class Movies4uClient {
             baseUrl,
             this.liveBaseUrl,
             ...this.mirrors,
-            'https://new1.movies4u.garden',
-            'https://new2.movies4u.garden'
+            'https://new4.movies4u.garden',
+            'https://new3.movies4u.garden'
         ])).map(m => (m || '').replace(/\/+$/, '')).filter(Boolean);
 
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
@@ -412,7 +412,7 @@ export class Movies4uClient {
                     const resText = await fetcher(searchUrl, {
                         'User-Agent': DEFAULT_USER_AGENT,
                         'Referer': `${mirror}/search.html?q=${encodeURIComponent(q)}`
-                    }, 6000);
+                    }, 3500);
                     if (!resText || resText.startsWith('<') || resText.includes('<html')) {
                         continue; // Skip parked HTML or redirect responses
                     }
@@ -706,8 +706,22 @@ export class Movies4uClient {
         return clean;
     }
 
-    async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 4000) {
+    async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 2000) {
         if (!streamUrl || !streamUrl.startsWith("http")) return { isLive: false, supports206: false };
+        const u = streamUrl.toLowerCase();
+        // Instant bypass for known direct CDN streams (Cloudflare R2, PixelDrain API, Bunker, FastDL)
+        if (
+            u.includes('r2.dev') ||
+            u.includes('r2.cloudflarestorage.com') ||
+            u.includes('pixeldrain.com/api/file/') ||
+            u.includes('pixeldrain.dev/api/file/') ||
+            u.includes('bunker.monster') ||
+            u.includes('valentine.guru') ||
+            u.includes('pongala.life') ||
+            u.includes('lenin.buzz')
+        ) {
+            return { isLive: true, supports206: true, status: 206 };
+        }
         let controller = null;
         let timeoutId = null;
         try {

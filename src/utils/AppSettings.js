@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { File, Paths } from 'expo-file-system';
 import { setUniversalQualityGetter } from './ScraperEngine.js';
+import { getRandomDefaultUsername } from '../data/defaultUsernames';
 
 const getDocumentDir = () => {
   if (FileSystem && FileSystem.documentDirectory) {
@@ -25,6 +26,7 @@ let _settings = {
   watchHistory: [],
   playbackProgress: {},
   universalQuality: '1080p',
+  userName: '',
 };
 
 let _isInitialized = false;
@@ -97,6 +99,7 @@ export const initSettings = async () => {
           universalQuality: ['720p', '1080p', '4K', '4k'].includes(parsed.universalQuality)
             ? (parsed.universalQuality === '4k' ? '4K' : parsed.universalQuality)
             : '1080p',
+          userName: (parsed.userName || '').trim(),
         };
       } catch (err) {
         console.warn('[AppSettings] Corrupted settings JSON:', err);
@@ -120,6 +123,21 @@ export const initSettings = async () => {
         }
       } catch (bErr) {
         // silent fallback
+      }
+    }
+
+    // 4. Ensure initial random username from built-in list (first time install or legacy 'Aji')
+    let needsInitialSave = false;
+    if (!_settings.userName || _settings.userName.toLowerCase() === 'aji') {
+      _settings.userName = getRandomDefaultUsername();
+      needsInitialSave = true;
+    }
+
+    if (needsInitialSave) {
+      try {
+        await persistSettings();
+      } catch (err) {
+        console.warn('[AppSettings] Initial username persist warning:', err);
       }
     }
 
@@ -327,6 +345,39 @@ try {
 }
 
 /**
+ * Synchronous getter for user profile name
+ */
+export const getUserName = () => {
+  if (!_settings.userName || _settings.userName.toLowerCase() === 'aji') {
+    _settings.userName = getRandomDefaultUsername();
+  }
+  return _settings.userName;
+};
+
+/**
+ * Set and persist a custom user profile name
+ */
+export const setUserName = async (name) => {
+  const clean = (name || '').trim();
+  if (!clean || clean.toLowerCase() === 'aji') return _settings.userName;
+  _settings.userName = clean;
+  await persistSettings();
+  notifyListeners('USER_NAME_CHANGED', { userName: _settings.userName });
+  return _settings.userName;
+};
+
+/**
+ * Randomize and assign a new username from the built-in list
+ */
+export const randomizeUserName = async () => {
+  const newName = getRandomDefaultUsername();
+  _settings.userName = newName;
+  await persistSettings();
+  notifyListeners('USER_NAME_CHANGED', { userName: newName });
+  return newName;
+};
+
+/**
  * Get current settings snapshot
  */
 export const getSettings = () => ({ ..._settings });
@@ -356,6 +407,9 @@ export default {
   saveWatchProgress,
   getUniversalQuality,
   setUniversalQuality,
+  getUserName,
+  setUserName,
+  randomizeUserName,
   getSettings,
   subscribeSettings,
 };

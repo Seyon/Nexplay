@@ -59,6 +59,7 @@ import CategoryDetailScreen from './src/components/CategoryDetailScreen';
 import MoviesScreen from './src/components/MoviesScreen';
 import TvSeriesScreen from './src/components/TvSeriesScreen';
 import TvSerialsScreen from './src/components/TvSerialsScreen';
+import AnimeScreen from './src/components/AnimeScreen';
 import SearchScreen from './src/components/SearchScreen';
 import AccountScreen from './src/components/AccountScreen';
 
@@ -731,7 +732,18 @@ export default function App() {
                 />
               )}
 
-              {/* 4. TV SERIALS TAB (Attached Reference Design) */}
+              {/* 4. ANIME TAB (Exact Home Screen UI/UX Layout & Behavior) */}
+              {(activeTab === 'Anime' || activeTab === 'anime' || activeTab === 'Animation') && (
+                <AnimeScreen 
+                  onMoviePress={handleMoviePress} 
+                  onSeeMore={handleSeeMore}
+                  onBack={() => handleTabPress('Home')}
+                  onSearchPress={() => handleTabPress('Search')}
+                  onAccountPress={() => handleTabPress('Account')}
+                />
+              )}
+
+              {/* 5. TV SERIALS TAB (Attached Reference Design) */}
               {(activeTab === 'TV Serials' || activeTab === 'My List' || activeTab === 'TvSerials' || activeTab === 'Serials') && (
                 <TvSerialsScreen 
                   onMoviePress={handleMoviePress} 

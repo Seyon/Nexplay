@@ -283,8 +283,8 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
  * Optimized for Android Media3 ExoPlayer & Stitch-Nexplay Integration
  */
 export class Movies4uClient {
-    liveBaseUrl = 'https://new1.movies4u.garden';
-    mirrors = ['https://new1.movies4u.garden', 'https://new2.movies4u.garden', 'https://movies4u.foo', 'https://movies4u.co', 'https://movies4u.vip'];
+    liveBaseUrl = 'https://new4.movies4u.garden';
+    mirrors = ['https://new4.movies4u.garden', 'https://new3.movies4u.garden', 'https://movies4u.foo'];
     domainResolved = false;
     constructor(customBaseUrl) {
         if (customBaseUrl) {
@@ -377,7 +377,7 @@ export class Movies4uClient {
         catch (e) {
             console.warn('[Movies4u] Note resolving live domain from movies4u.foo:', e?.message || e);
         }
-        this.liveBaseUrl = 'https://new1.movies4u.garden';
+        this.liveBaseUrl = 'https://new4.movies4u.garden';
         this.domainResolved = true;
         return this.liveBaseUrl;
     }

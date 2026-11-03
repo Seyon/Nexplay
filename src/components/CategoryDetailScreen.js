@@ -15,6 +15,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchCategoryMedia, getPosterUrl, formatYear } from '../utils/api';
+import nexPlayAnimeApi from '../services/NexPlayAnimeApi';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
 import { colors } from '../config/theme';
 import { getWatchHistory } from '../utils/AppSettings';
@@ -37,6 +38,27 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
+  const fetchItemsData = async (key, pageNum) => {
+    if (key && key.includes('anime')) {
+      let res = null;
+      if (key === 'trending_anime') res = await nexPlayAnimeApi.getTrending({ page: pageNum });
+      else if (key === 'airing_anime') res = await nexPlayAnimeApi.getAiring({ page: pageNum });
+      else if (key === 'popular_anime_series') res = await nexPlayAnimeApi.getPopular({ page: pageNum });
+      else if (key === 'popular_anime_movies') res = await nexPlayAnimeApi.getMovies({ page: pageNum });
+      else if (key === 'upcoming_anime') res = await nexPlayAnimeApi.getUpcoming({ page: pageNum });
+      else if (key === 'top_rated_anime') res = await nexPlayAnimeApi.getTopRated({ page: pageNum });
+      else if (key === 'action_shonen_anime') res = await nexPlayAnimeApi.getAnimeList({ genre: 'Action', page: pageNum });
+      else if (key === 'fantasy_isekai_anime') res = await nexPlayAnimeApi.getAnimeList({ genre: 'Fantasy', page: pageNum });
+      else if (key === 'romance_drama_anime') res = await nexPlayAnimeApi.getAnimeList({ genre: 'Romance', page: pageNum });
+      else if (key === 'scifi_mecha_anime') res = await nexPlayAnimeApi.getAnimeList({ genre: 'Sci-Fi', page: pageNum });
+      else if (key === 'comedy_anime') res = await nexPlayAnimeApi.getAnimeList({ genre: 'Comedy', page: pageNum });
+      else res = await nexPlayAnimeApi.getAnimeList({ page: pageNum });
+
+      return res?.data || [];
+    }
+    return await fetchCategoryMedia(key, pageNum);
+  };
+
   // Initial load
   useEffect(() => {
     let isMounted = true;
@@ -52,7 +74,7 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
           return;
         }
 
-        const fetched = await fetchCategoryMedia(categoryKey, 1);
+        const fetched = await fetchItemsData(categoryKey, 1);
         if (isMounted) {
           if (fetched && fetched.length > 0) {
             setItems(fetched);
@@ -107,7 +129,7 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
     setLoading(true);
     try {
       const nextPage = page + 1;
-      const nextItems = await fetchCategoryMedia(categoryKey, nextPage);
+      const nextItems = await fetchItemsData(categoryKey, nextPage);
       if (nextItems && nextItems.length > 0) {
         setItems(prev => {
           const existingIds = new Set(prev.map(i => i.id));

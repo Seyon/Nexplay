@@ -1,15 +1,23 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 29,
-  "issue": 2,
-  "build": 182,
-  "updateType": "bugfix",
-  "timestamp": "20261022",
-  "versionName": "1.8.29.2.182-bugfix.20261022",
-  "versionCode": 2090182,
-  "lastSuccessfulBuild": "2026-10-23T05:17:28.216Z",
+  "patch": 30,
+  "issue": 0,
+  "build": 183,
+  "updateType": "patch",
+  "timestamp": "20261029",
+  "versionName": "1.8.30.0.183-patch.20261029",
+  "versionCode": 2100183,
+  "lastSuccessfulBuild": "2026-10-30T05:37:27.895Z",
   "history": [
+    {
+      "versionName": "1.8.30.0.183-patch.20261029",
+      "versionCode": 2100183,
+      "updateType": "patch",
+      "build": 183,
+      "note": "Integrated default profile usernames and UI enhancements",
+      "builtAt": "2026-10-30T05:37:27.895Z"
+    },
     {
       "versionName": "1.8.29.2.182-bugfix.20261022",
       "versionCode": 2090182,
@@ -401,14 +409,6 @@
       "build": 134,
       "note": "Eliminate touch delays, remove Tamildhool/Tamilgun names, remove reload stream, add Bigg Boss 10 prime show, format release APKs",
       "builtAt": "2026-09-27T15:57:11.017Z"
-    },
-    {
-      "versionName": "1.7.0.0.133-minor.20260927",
-      "versionCode": 1700133,
-      "updateType": "minor",
-      "build": 133,
-      "note": "Tv serial home posters, hero carousel height, server 1 playback fix",
-      "builtAt": "2026-09-27T09:50:47.704Z"
     }
   ]
 }

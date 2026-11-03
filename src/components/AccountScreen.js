@@ -29,6 +29,8 @@ import AppSettings, {
   deleteTmdbApiKey,
   getUniversalQuality,
   setUniversalQuality,
+  getUserName,
+  randomizeUserName,
   subscribeSettings
 } from '../utils/AppSettings';
 import TmdbApiKeyModal from './TmdbApiKeyModal';
@@ -37,6 +39,7 @@ import DonationModal from './DonationModal';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function AccountScreen({ onBack, onNavigateTab }) {
+  const [userName, setUserNameState] = useState(getUserName() || 'NexPlayer');
   const [dnsConfig, setDnsConfigState] = useState(getDnsConfig());
   const [autoPlayNext, setAutoPlayNext] = useState(true);
   const [universalQuality, setUniversalQualityState] = useState(getUniversalQuality());
@@ -46,6 +49,7 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   useEffect(() => {
+    setUserNameState(getUserName() || 'NexPlayer');
     const current = getDnsConfig();
     setDnsConfigState(current);
     setUniversalQualityState(getUniversalQuality());
@@ -57,6 +61,8 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
         setTmdbKeyState('');
       } else if (eventType === 'UNIVERSAL_QUALITY_CHANGED') {
         setUniversalQualityState(payload.universalQuality || '1080p');
+      } else if (eventType === 'USER_NAME_CHANGED') {
+        setUserNameState(payload.userName || getUserName());
       }
     });
 
@@ -90,7 +96,20 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
       title: 'My Profile',
       icon: 'person-outline',
       onPress: () => {
-        Alert.alert('My Profile', 'Profile: Aji\nStatus: Premium Member\nEmail: aji@example.com');
+        Alert.alert(
+          'My Profile',
+          `Profile: ${userName}\nStatus: Active Member`,
+          [
+            { text: 'OK', style: 'default' },
+            {
+              text: 'Randomize Name',
+              onPress: async () => {
+                const newName = await randomizeUserName();
+                if (newName) setUserNameState(newName);
+              }
+            }
+          ]
+        );
       }
     },
     {
@@ -125,8 +144,8 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
           </View>
 
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>Hello, Aji</Text>
-            <Text style={styles.userEmail}>aji@example.com</Text>
+            <Text style={styles.userName}>Hello, {userName}</Text>
+            <Text style={styles.userBadge}>NexPlay Member</Text>
           </View>
         </View>
 
@@ -370,7 +389,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     marginBottom: verticalScale(2),
   },
-  userEmail: {
+  userBadge: {
     color: colors.textSecondary,
     fontSize: moderateScale(13),
     fontWeight: '500',

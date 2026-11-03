@@ -1009,6 +1009,207 @@ export const fetchTvSeasonEpisodes = async (tvId, seasonNumber = 1) => {
   }
 };
 
+
+// ==========================================
+// ANIME DISCOVERY & CATEGORIES (TMDB API)
+// ==========================================
+
+export const fetchTrendingAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Anime' }));
+  } catch (error) {
+    console.warn('Error fetching trending anime:', error);
+    return [];
+  }
+};
+
+export const fetchPopularAnimeSeries = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=2`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Anime Series' }));
+  } catch (error) {
+    console.warn('Error fetching popular anime series:', error);
+    return [];
+  }
+};
+
+export const fetchPopularAnimeMovies = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(m => ({ ...m, media_type: 'movie', genre: 'Anime Movie' }));
+  } catch (error) {
+    console.warn('Error fetching popular anime movies:', error);
+    return [];
+  }
+};
+
+export const fetchTop10Anime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&vote_count.gte=500&sort_by=vote_average.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Top 10 Anime' }));
+  } catch (error) {
+    console.warn('Error fetching top 10 anime:', error);
+    return [];
+  }
+};
+
+export const fetchActionShonenAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,10759&with_original_language=ja&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Action & Shonen' }));
+  } catch (error) {
+    console.warn('Error fetching action shonen anime:', error);
+    return [];
+  }
+};
+
+export const fetchFantasyIsekaiAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,10765&with_original_language=ja&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Fantasy & Isekai' }));
+  } catch (error) {
+    console.warn('Error fetching fantasy isekai anime:', error);
+    return [];
+  }
+};
+
+export const fetchRomanceDramaAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,18&with_original_language=ja&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Romance & Drama' }));
+  } catch (error) {
+    console.warn('Error fetching romance drama anime:', error);
+    return [];
+  }
+};
+
+export const fetchSciFiMechaAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,878&with_original_language=ja&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Sci-Fi & Mecha' }));
+  } catch (error) {
+    console.warn('Error fetching scifi mecha anime:', error);
+    return [];
+  }
+};
+
+export const fetchSupernaturalMysteryAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,9648&with_original_language=ja&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Supernatural & Mystery' }));
+  } catch (error) {
+    console.warn('Error fetching supernatural mystery anime:', error);
+    return [];
+  }
+};
+
+export const fetchComedyAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,35&with_original_language=ja&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Comedy' }));
+  } catch (error) {
+    console.warn('Error fetching comedy anime:', error);
+    return [];
+  }
+};
+
+export const fetchClassicsAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&first_air_date.lte=2014-01-01&vote_average.gte=7.8&vote_count.gte=250&sort_by=vote_average.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Classic Anime' }));
+  } catch (error) {
+    console.warn('Error fetching classics anime:', error);
+    return [];
+  }
+};
+
+export const fetchNewReleasesAnime = async () => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&first_air_date_year=${currentYear}&sort_by=popularity.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'New Anime' }));
+  } catch (error) {
+    console.warn('Error fetching new releases anime:', error);
+    return [];
+  }
+};
+
+export const fetchTopRatedAnime = async () => {
+  try {
+    const response = await fetchWithRetry(
+      `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&vote_average.gte=8.2&vote_count.gte=200&sort_by=vote_average.desc&page=1`,
+      { headers }
+    );
+    if (!response || !response.ok) return [];
+    const data = await response.json();
+    return (data.results || []).map(s => ({ ...s, media_type: 'tv', genre: 'Top Rated Anime' }));
+  } catch (error) {
+    console.warn('Error fetching top rated anime:', error);
+    return [];
+  }
+};
+
 // Fetch Category Media with New-to-Old sorting and pagination
 export const fetchCategoryMedia = async (categoryKey, page = 1) => {
   try {
@@ -1019,6 +1220,42 @@ export const fetchCategoryMedia = async (categoryKey, page = 1) => {
       case 'trending':
       case 'trending_movies':
         url = `${TMDB_BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}&page=${page}`;
+        break;
+            case 'trending_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'popular_anime_series':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'popular_anime_movies':
+        url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'action_shonen_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,10759&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'fantasy_isekai_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,10765&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'romance_drama_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,18&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'scifi_mecha_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,878&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'supernatural_mystery_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,9648&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'comedy_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16,35&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+        break;
+      case 'classics_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&first_air_date.lte=2014-01-01&vote_average.gte=7.8&vote_count.gte=250&sort_by=vote_average.desc&page=${page}`;
+        break;
+      case 'new_releases_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&sort_by=first_air_date.desc&vote_count.gte=5&page=${page}`;
+        break;
+      case 'top_rated_anime':
+        url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_genres=16&with_original_language=ja&vote_average.gte=8.2&vote_count.gte=200&sort_by=vote_average.desc&page=${page}`;
         break;
       case 'trending_all':
         url = `${TMDB_BASE_URL}/trending/all/week?api_key=${TMDB_API_KEY}&page=${page}`;

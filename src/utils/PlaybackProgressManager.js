@@ -9,6 +9,7 @@ import {
 import * as FileSystem from 'expo-file-system/legacy';
 import { File, Paths } from 'expo-file-system';
 import { getPosterUrl, getBackdropUrl } from './api';
+import animeDatabase from '../services/AnimeDatabase';
 
 // Completion threshold: 92% watched or less than 25 seconds remaining
 const COMPLETION_PERCENTAGE_THRESHOLD = 92;
@@ -50,11 +51,18 @@ const notifyProgressListeners = (eventType, payload) => {
 };
 
 /**
- * Generate unique storage key for a movie or TV episode
+ * Generate unique storage key for a movie or TV episode or anime
  */
 export const getProgressKey = ({ mediaId, mediaType = 'movie', season, episode }) => {
   if (!mediaId) return null;
   const cleanId = String(mediaId).replace(/^(movie-|tv-)/, '');
+  const isAnime = mediaType === 'anime' || cleanId.startsWith('np_anime_');
+  if (isAnime) {
+    if (episode !== undefined && episode !== null) {
+      return `anime_${cleanId}_e${Number(episode) || 1}`;
+    }
+    return `anime_${cleanId}_latest`;
+  }
   const isTV = mediaType === 'tv' || (season !== undefined && season !== null) || (episode !== undefined && episode !== null);
   if (isTV && (season !== undefined || episode !== undefined)) {
     const s = Number(season) || 1;
@@ -68,11 +76,14 @@ export const getProgressKey = ({ mediaId, mediaType = 'movie', season, episode }
 };
 
 /**
- * Generate series latest watched episode pointer key
+ * Generate series/anime latest watched episode pointer key
  */
 export const getSeriesLatestKey = (mediaId) => {
   if (!mediaId) return null;
   const cleanId = String(mediaId).replace(/^(movie-|tv-)/, '');
+  if (cleanId.startsWith('np_anime_')) {
+    return `anime_${cleanId}_latest`;
+  }
   return `tv_${cleanId}_latest`;
 };
 
@@ -288,9 +299,10 @@ export const savePlaybackProgress = async ({
   const dur = Math.max(0, Number(duration) || 0);
 
   // Determine media type accurately
-  const isTV = mediaType === 'tv' || media.media_type === 'tv' || (season !== undefined && season !== null) || (episode !== undefined && episode !== null);
+  const isAnime = mediaType === 'anime' || media.media_type === 'anime' || media.isAnime || String(mediaId).startsWith('np_anime_');
+  const isTV = !isAnime && (mediaType === 'tv' || media.media_type === 'tv' || (season !== undefined && season !== null) || (episode !== undefined && episode !== null));
   const sNum = isTV ? (Number(season) || 1) : null;
-  const eNum = isTV ? (Number(episode) || 1) : null;
+  const eNum = (isTV || isAnime) ? (Number(episode) || 1) : null;
 
   // Calculate percentage progress
   const progressPercent = dur > 0 ? Math.min(100, Math.max(1, Math.round((curTime / dur) * 100))) : 0;
@@ -304,19 +316,20 @@ export const savePlaybackProgress = async ({
   const image = episodeImage || (media.image && media.image.startsWith('http') ? media.image : null) || (posterPath ? getPosterUrl(posterPath) : null) || (backdropPath ? getBackdropUrl(backdropPath) : null) || media.image || null;
   const quality = media.quality || 'HD';
 
-  const progressKey = getProgressKey({ mediaId: cleanId, mediaType: isTV ? 'tv' : 'movie', season: sNum, episode: eNum });
-  const latestKey = isTV ? getSeriesLatestKey(cleanId) : null;
+  const resolvedMediaType = isAnime ? 'anime' : (isTV ? 'tv' : 'movie');
+  const progressKey = getProgressKey({ mediaId: cleanId, mediaType: resolvedMediaType, season: sNum, episode: eNum });
+  const latestKey = (isTV || isAnime) ? getSeriesLatestKey(cleanId) : null;
 
   const record = {
     mediaId: cleanId,
-    mediaType: isTV ? 'tv' : 'movie',
+    mediaType: resolvedMediaType,
     title,
     poster_path: posterPath,
     backdrop_path: backdropPath,
     image,
     season: sNum,
     episode: eNum,
-    episodeTitle: episodeTitle || (isTV ? `Episode ${eNum}` : null),
+    episodeTitle: episodeTitle || (isAnime ? `Episode ${eNum}` : (isTV ? `Episode ${eNum}` : null)),
     currentTime: isCompleted ? 0 : curTime,
     duration: dur,
     progress: isCompleted ? 100 : progressPercent,
@@ -324,6 +337,21 @@ export const savePlaybackProgress = async ({
     quality,
     lastUpdated: Date.now(),
   };
+
+  // Sync with dedicated AnimeDatabase if anime content
+  if (isAnime && animeDatabase) {
+    try {
+      animeDatabase.saveEpisodeProgress(cleanId, {
+        episodeNumber: eNum,
+        currentTime: curTime,
+        duration: dur,
+        progress: progressPercent,
+        completed: isCompleted
+      });
+    } catch (e) {
+      console.warn('[PlaybackProgressManager] AnimeDatabase progress sync error:', e);
+    }
+  }
 
   // Update memory store
   _memoryPlaybackProgress[progressKey] = record;
@@ -349,14 +377,15 @@ export const savePlaybackProgress = async ({
   } else if (curTime >= MIN_TIME_TO_SAVE_SECS) {
     // Unfinished content -> Add or update in Continue Watching row!
     const timeLeftStr = formatRemainingTime(remainingSecs);
-    const subtitleStr = isTV
-      ? `S${sNum} E${eNum}${timeLeftStr ? `  •  ${timeLeftStr}` : ''}`
-      : (timeLeftStr || 'In Progress');
+    const subtitleStr = isAnime
+      ? `Ep ${eNum}${timeLeftStr ? `  •  ${timeLeftStr}` : ''}`
+      : (isTV ? `S${sNum} E${eNum}${timeLeftStr ? `  •  ${timeLeftStr}` : ''}` : (timeLeftStr || 'In Progress'));
 
     const historyEntry = {
       ...media,
       id: cleanId,
-      media_type: isTV ? 'tv' : 'movie',
+      media_type: resolvedMediaType,
+      isAnime: isAnime,
       title,
       name: title,
       poster_path: posterPath,
@@ -369,7 +398,7 @@ export const savePlaybackProgress = async ({
       season: sNum,
       episode: eNum,
       last_season: sNum,
-      last_episode: isTV ? `S${sNum} E${eNum}` : null,
+      last_episode: isAnime ? `Ep ${eNum}` : (isTV ? `S${sNum} E${eNum}` : null),
       subtitle: subtitleStr,
       time_left: timeLeftStr,
       quality,

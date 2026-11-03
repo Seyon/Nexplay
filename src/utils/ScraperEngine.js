@@ -89,7 +89,7 @@ function extractSeasonNumbers(str) {
   if (!str) return [];
   const s = String(str).toLowerCase();
   const seasons = new Set();
-  
+
   // Range check: e.g. "season 1-4", "season 1 to 4", "s01-s04", "s1-s4", "s1 to s4"
   const rangeMatches = s.matchAll(/\b(?:season|s)\s*0*(\d{1,2})\s*(?:-|–|to|&)\s*(?:season|s)?\s*0*(\d{1,2})\b/gi);
   for (const match of rangeMatches) {
@@ -123,12 +123,12 @@ function extractSeasonNumbers(str) {
  */
 export function getAudioTier(text) {
   const t = (text || '').toLowerCase();
-  
-  const hasMultiKeyword = t.includes('multi audio') || 
-                           t.includes('multi-audio') || 
-                           t.includes('multiaudio') || 
-                           /\bmulti\b/i.test(t) ||
-                           t.includes('org multi');
+
+  const hasMultiKeyword = t.includes('multi audio') ||
+    t.includes('multi-audio') ||
+    t.includes('multiaudio') ||
+    /\bmulti\b/i.test(t) ||
+    t.includes('org multi');
 
   const languages = [
     'hindi', 'tamil', 'telugu', 'english', 'malayalam', 'kannada'
@@ -142,10 +142,10 @@ export function getAudioTier(text) {
   const matchedOther = otherLangs.filter(l => new RegExp(`\\b${l}\\b`, 'i').test(t));
   const totalLangCount = matchedLangs.length + matchedOther.length;
 
-  const hasDualKeyword = t.includes('dual audio') || 
-                          t.includes('dual-audio') || 
-                          t.includes('dualaudio') || 
-                          /\bdual\b/i.test(t);
+  const hasDualKeyword = t.includes('dual audio') ||
+    t.includes('dual-audio') ||
+    t.includes('dualaudio') ||
+    /\bdual\b/i.test(t);
 
   const isDualHindiEnglish = (
     (/\bhindi\b/i.test(t) && (/\beng(?:lish)?\b/i.test(t))) ||
@@ -157,8 +157,8 @@ export function getAudioTier(text) {
 
   // Tier 1: Multi Audio or combinations with South Indian / Indian regional languages
   if (
-    hasMultiKeyword || 
-    totalLangCount >= 3 || 
+    hasMultiKeyword ||
+    totalLangCount >= 3 ||
     (hasRegionalSouth && (t.includes('hindi') || t.includes('english') || matchedLangs.length >= 2)) ||
     matchedLangs.length >= 3
   ) {
@@ -227,12 +227,12 @@ export function getAudioRichnessScore(text) {
  * Evaluates Token overlap, Candidate coverage, Release Year, Media Type (Movie vs TV Series), TV Season Number, and Multi-Audio
  */
 function calculateTitleMatchScore(
-  targetTitle, 
-  targetYear, 
-  targetType = 'movie', 
-  candidateTitle = '', 
-  candidateYear = '', 
-  candidateType = 'movie', 
+  targetTitle,
+  targetYear,
+  targetType = 'movie',
+  candidateTitle = '',
+  candidateYear = '',
+  candidateType = 'movie',
   targetSeason = null,
   candidateUrl = ''
 ) {
@@ -352,7 +352,7 @@ function calculateTitleMatchScore(
 
   // 6. Subtitle expansion bonus (e.g. "Stree 2: Sarkate Ka Aatank", "Spider-Man: No Way Home")
   // Only grant subtitle expansion if candidate starts with the target title tokens
-  const isTargetPrefix = cleanCandidate.startsWith(cleanTarget) || 
+  const isTargetPrefix = cleanCandidate.startsWith(cleanTarget) ||
     (filteredCandidateTokens.length >= compareTargetTokens.length && compareTargetTokens.every((t, i) => t === filteredCandidateTokens[i]));
 
   if (targetRecall === 1.0 && isTargetPrefix && yearMultiplier >= 1.0) {
@@ -381,11 +381,11 @@ function findBestMatch(targetTitle, targetYear, targetType = 'movie', candidates
 
   const scored = candidates.map(c => {
     const score = calculateTitleMatchScore(
-      targetTitle, 
-      targetYear, 
-      targetType, 
-      c.title, 
-      c.year, 
+      targetTitle,
+      targetYear,
+      targetType,
+      c.title,
+      c.year,
       c.type || c.mediaType || (c.url?.includes('-series-') ? 'series' : 'movie'),
       targetSeason,
       c.url || c.link || ''
@@ -407,12 +407,12 @@ function safeBase64Decode(str) {
     if (typeof atob === 'function') {
       return atob(str.trim());
     }
-  } catch (e) {}
+  } catch (e) { }
   try {
     if (typeof Buffer !== 'undefined') {
       return Buffer.from(str.trim(), 'base64').toString('utf8');
     }
-  } catch (e) {}
+  } catch (e) { }
   try {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
     let output = '';
@@ -431,12 +431,12 @@ function safeBase64Decode(str) {
       if (enc4 !== 64 && enc4 !== -1) output += String.fromCharCode(chr3);
     }
     return output;
-  } catch (e) {}
+  } catch (e) { }
   return '';
 }
 
 function rot13(str) {
-  return (str || '').replace(/[a-zA-Z]/g, function(c) {
+  return (str || '').replace(/[a-zA-Z]/g, function (c) {
     return String.fromCharCode(
       (c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 13)
         ? c
@@ -456,7 +456,7 @@ function decodeGreenmountToken(token) {
     if (json && json.o) {
       return safeBase64Decode(json.o);
     }
-  } catch(e) {}
+  } catch (e) { }
   return null;
 }
 
@@ -466,7 +466,7 @@ var ClientUtils = class {
     for (let attempt = 0; attempt < 2; attempt++) {
       const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
       const timeoutId = controller ? setTimeout(() => {
-        try { controller.abort(); } catch (_) {}
+        try { controller.abort(); } catch (_) { }
       }, timeoutMs) : null;
       try {
         const headers = {
@@ -485,7 +485,7 @@ var ClientUtils = class {
         if (res && res.ok) {
           const contentType = (res.headers.get("content-type") || "").toLowerCase();
           if (contentType.includes("video") || contentType.includes("octet-stream") || contentType.includes("audio")) {
-            try { if (controller) controller.abort(); } catch (_) {}
+            try { if (controller) controller.abort(); } catch (_) { }
             return "";
           }
           return await res.text();
@@ -514,12 +514,12 @@ var ClientUtils = class {
               return await retryRes.text();
             }
           }
-        } catch (dohErr) {}
+        } catch (dohErr) { }
 
         if (attempt === 1) return "";
       } finally {
         if (timeoutId) clearTimeout(timeoutId);
-        try { if (controller) controller.abort(); } catch (_) {}
+        try { if (controller) controller.abort(); } catch (_) { }
       }
     }
     return "";
@@ -531,10 +531,10 @@ var ClientUtils = class {
 
     // STRICTLY REJECT ALL ZIP AND COMPRESSED ARCHIVE FORMATS
     if (
-      lower.includes(".zip") || 
-      lower.includes(".rar") || 
-      lower.includes(".7z") || 
-      lower.includes(".tar") || 
+      lower.includes(".zip") ||
+      lower.includes(".rar") ||
+      lower.includes(".7z") ||
+      lower.includes(".tar") ||
       lower.includes(".gz") ||
       lower.includes("zippack") ||
       lower.includes("zip_pack")
@@ -575,14 +575,14 @@ var ClientUtils = class {
     if (
       lower.includes("googleusercontent.com") ||
       lower.includes("video-downloads") ||
-      lower.includes("r2.cloudflarestorage.com") || 
+      lower.includes("r2.cloudflarestorage.com") ||
       (lower.includes("workers.dev") && !lower.includes("/?id=")) ||
-      lower.includes("bunker.monster") || 
-      lower.includes("valentine.guru") || 
-      lower.includes("pongala.life") || 
-      lower.includes("lenin.buzz") || 
-      (lower.includes("pixeldrain.com/api/file") && !lower.includes("negn6f")) || 
-      (lower.includes("pixeldrain.dev/api/file") && !lower.includes("negn6f")) || 
+      lower.includes("bunker.monster") ||
+      lower.includes("valentine.guru") ||
+      lower.includes("pongala.life") ||
+      lower.includes("lenin.buzz") ||
+      (lower.includes("pixeldrain.com/api/file") && !lower.includes("negn6f")) ||
+      (lower.includes("pixeldrain.dev/api/file") && !lower.includes("negn6f")) ||
       (lower.includes("fastdl") && !lower.includes(".pages.dev"))
     ) {
       return true;
@@ -614,7 +614,7 @@ var ClientUtils = class {
 
   static detectQualityFromUrl(url, fallbackHint = "1080p") {
     if (!url || typeof url !== 'string') return fallbackHint.toLowerCase();
-    
+
     // Extract and decode filename from URL query params or path
     let target = url;
     try {
@@ -622,7 +622,7 @@ var ClientUtils = class {
       if (fnMatch && fnMatch[1]) {
         target = decodeURIComponent(fnMatch[1]);
       }
-    } catch {}
+    } catch { }
 
     // Strip known provider names & AWS query param keywords that collide with 4k / hd
     const cleanTarget = target
@@ -814,23 +814,36 @@ var ClientUtils = class {
   /**
    * Pre-flight video stream health check (verifies HTTP 206 Partial Content and 200 streaming availability)
    */
-  static async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 6000) {
+  static async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 2500) {
     if (!streamUrl || !streamUrl.startsWith("http")) return { isLive: false, supports206: false };
+    const u = streamUrl.toLowerCase();
+    if (
+      u.includes('r2.dev') ||
+      u.includes('r2.cloudflarestorage.com') ||
+      u.includes('pixeldrain.com/api/file/') ||
+      u.includes('pixeldrain.dev/api/file/') ||
+      u.includes('bunker.monster') ||
+      u.includes('valentine.guru') ||
+      u.includes('pongala.life') ||
+      u.includes('lenin.buzz')
+    ) {
+      return { isLive: true, supports206: true, status: 206 };
+    }
     let controller = null;
     let timeoutId = null;
     try {
       const safeUrl = this.sanitizeStreamUrl(streamUrl);
-      const isGoogleCdn = safeUrl.includes("googleusercontent.com") || 
-                          safeUrl.includes("video-downloads") || 
-                          safeUrl.includes("gpdl");
+      const isGoogleCdn = safeUrl.includes("googleusercontent.com") ||
+        safeUrl.includes("video-downloads") ||
+        safeUrl.includes("gpdl");
       const isHls = safeUrl.toLowerCase().includes('.m3u8');
       if (typeof AbortController !== "undefined") {
         controller = new AbortController();
         timeoutId = setTimeout(() => {
-          try { controller.abort(); } catch (_) {}
+          try { controller.abort(); } catch (_) { }
         }, timeoutMs);
       }
-      
+
       const reqHeaders = {
         "User-Agent": headers["User-Agent"] || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Range": "bytes=0-1024",
@@ -874,7 +887,7 @@ var ClientUtils = class {
       return { isLive: false, supports206: false };
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
-      try { if (controller) controller.abort(); } catch (_) {}
+      try { if (controller) controller.abort(); } catch (_) { }
     }
   }
 
@@ -883,7 +896,33 @@ var ClientUtils = class {
     const sorted = [...candidateList]
       .filter(c => c && c.url)
       .sort((a, b) => (a.priority || 50) - (b.priority || 50));
-    
+
+    // Fast-path: If top candidate is a known direct CDN (Cloudflare R2, PixelDrain API, Bunker, FastDL),
+    // return immediately without waiting for a blocking HTTP Range probe!
+    for (const item of sorted) {
+      if (item && item.url) {
+        const u = item.url.toLowerCase();
+        if (
+          u.includes('r2.dev') ||
+          u.includes('r2.cloudflarestorage.com') ||
+          u.includes('pixeldrain.com/api/file/') ||
+          u.includes('pixeldrain.dev/api/file/') ||
+          u.includes('bunker.monster') ||
+          u.includes('valentine.guru') ||
+          u.includes('pongala.life') ||
+          u.includes('lenin.buzz')
+        ) {
+          const detectedQ = this.detectQualityFromUrl(item.url, fallbackQuality);
+          const safeUrl = this.sanitizeStreamUrl(item.url);
+          return {
+            q: detectedQ,
+            url: safeUrl,
+            item: { ...item, url: safeUrl, supports206: true }
+          };
+        }
+      }
+    }
+
     // 1. Primary: Only return live streams that strictly support playback from top candidates (FSL -> FSLv2 -> Google CDN -> Pixeldrain)
     const topPrimary = sorted.filter(item => item && item.url && (item.priority || 50) <= 10).slice(0, 4);
     for (const item of topPrimary) {
@@ -932,7 +971,7 @@ var ClientUtils = class {
         const fn = new Function("return (" + evalMatch[0].replace(/^eval/, '') + ")");
         const unpacked = fn();
         const hlsMatch = unpacked.match(/https?:\/\/[^"'\s<>]+\.m3u8[^"'\s<>]*/i) ||
-                         unpacked.match(/["'](https?:\/\/[^"'\s<>]+\/master\.m3u8[^"'\s<>]*)["']/i);
+          unpacked.match(/["'](https?:\/\/[^"'\s<>]+\/master\.m3u8[^"'\s<>]*)["']/i);
         if (hlsMatch) {
           const directUrl = hlsMatch[0].replace(/\\/g, '');
           return [{
@@ -966,8 +1005,8 @@ var ClientUtils = class {
       }
     }
     const ogMatch = html.match(/<meta\s+[^>]*property=["']og:video(?::secure_url)?["'][^>]*content=["']([^"']+)["']/i) ||
-                    html.match(/<meta\s+[^>]*content=["']([^"']+)["'][^>]*property=["']og:video(?::secure_url)?["']/i) ||
-                    html.match(/https?:\/\/pixeldrain\.(?:dev|com)\/(?:api\/file|u)\/([a-zA-Z0-9_-]+)/i);
+      html.match(/<meta\s+[^>]*content=["']([^"']+)["'][^>]*property=["']og:video(?::secure_url)?["']/i) ||
+      html.match(/https?:\/\/pixeldrain\.(?:dev|com)\/(?:api\/file|u)\/([a-zA-Z0-9_-]+)/i);
     if (ogMatch) {
       const rawUrl = ogMatch[1] || ogMatch[0];
       const token = rawUrl.split('/u/')[1]?.split('?')[0]?.replace(/\/+$/, '') || rawUrl.split('/api/file/')[1]?.split('?')[0] || rawUrl.split('/').pop()?.split('?')[0];
@@ -991,7 +1030,7 @@ var ClientUtils = class {
     if (!url || typeof url !== 'string') return null;
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
     const timeoutId = controller ? setTimeout(() => {
-      try { controller.abort(); } catch (_) {}
+      try { controller.abort(); } catch (_) { }
     }, 5000) : null;
     try {
       const headers = {
@@ -1013,9 +1052,9 @@ var ClientUtils = class {
         }
         return loc;
       }
-    } catch (e) {} finally {
+    } catch (e) { } finally {
       if (timeoutId) clearTimeout(timeoutId);
-      try { if (controller) controller.abort(); } catch (_) {}
+      try { if (controller) controller.abort(); } catch (_) { }
     }
     return null;
   }
@@ -1058,6 +1097,61 @@ var ClientUtils = class {
     const results = [];
     let currentUrl = startUrl;
     try {
+      // 0. Unwrap Linksdrive intermediate bridge
+      if (currentUrl.includes("linksdrive.") || currentUrl.includes("/c2c/")) {
+        try {
+          const lHtml = await this.httpGet(currentUrl, startUrl, 3000);
+          const vcloudAnchors = [...lHtml.matchAll(/<a\s+[^>]*href=["'](https?:\/\/[^"']*(?:vcloud|fastdl)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+          let selectedVcloud = null;
+          if (vcloudAnchors.length > 0) {
+            const is4K = qualityHint === '4k' || qualityHint === '2160p';
+            const is1080p = qualityHint === '1080p';
+            const is720p = qualityHint === '720p';
+            const is480p = qualityHint === '480p';
+
+            const candidates = vcloudAnchors.map(m => {
+              const url = m[1];
+              const text = m[2].replace(/<[^>]+>/g, '').trim();
+              const pos = m.index;
+              const pre = lHtml.substring(Math.max(0, pos - 200), pos).replace(/<[^>]+>/g, ' ');
+              const combined = `${text} ${pre}`.toLowerCase();
+              return { url, text, combined };
+            });
+
+            if (is4K) {
+              selectedVcloud = candidates.find(c => /\b(2160p|4k|uhd|sdr|hdr)\b/i.test(c.combined));
+            } else if (is1080p) {
+              selectedVcloud = candidates.find(c => /\b1080p\b/i.test(c.combined));
+            } else if (is720p) {
+              selectedVcloud = candidates.find(c => /\b720p\b/i.test(c.combined));
+            } else if (is480p) {
+              selectedVcloud = candidates.find(c => /\b480p\b/i.test(c.combined));
+            }
+
+            if (!selectedVcloud) {
+              selectedVcloud = candidates.find(c => /\b1080p\b/i.test(c.combined)) ||
+                candidates.find(c => /\b720p\b/i.test(c.combined)) ||
+                candidates.find(c => /\b4k\b/i.test(c.combined)) ||
+                candidates[0];
+            }
+          }
+
+          if (selectedVcloud && selectedVcloud.url) {
+            currentUrl = selectedVcloud.url.replace(/\bvcloud\.zip\b/gi, 'vcloud.beer').replace(/\bfastdl\.zip\b/gi, 'fastdl.beer');
+          } else {
+            const vcloudMatch = lHtml.match(/https?:\/\/[^"'\s<>]*vcloud\.[^"'\s<>]*/i);
+            const fastdlMatch = lHtml.match(/https?:\/\/[^"'\s<>]*fastdl\.[^"'\s<>]*/i);
+            if (vcloudMatch && vcloudMatch[0]) {
+              currentUrl = vcloudMatch[0].replace(/\bvcloud\.zip\b/gi, 'vcloud.beer');
+            } else if (fastdlMatch && fastdlMatch[0]) {
+              currentUrl = fastdlMatch[0].replace(/\bfastdl\.zip\b/gi, 'fastdl.beer');
+            }
+          }
+        } catch (lErr) {
+          console.warn("[ClientUtils] Linksdrive unwrap error:", lErr?.message || lErr);
+        }
+      }
+
       // 1. Unwrap Greenmount / Greenmotors / Homelander intermediate bridges
       if (currentUrl.includes("greenmount.") || currentUrl.includes("greenmotors.") || currentUrl.includes("homelander")) {
         try {
@@ -1098,16 +1192,16 @@ var ClientUtils = class {
               selected = candidates.find(c => /\b(2160p|4k|uhd|sdr|hdr|dv)\b/i.test(c.combined));
             } else if (is1080p) {
               selected = candidates.find(c => /\b(1080p|fhd|hevc|10bit)\b/i.test(c.combined) && !/\b(2160p|4k)\b/i.test(c.combined)) ||
-                         candidates.find(c => /\b1080p\b/i.test(c.combined));
+                candidates.find(c => /\b1080p\b/i.test(c.combined));
             } else if (is720p) {
               selected = candidates.find(c => /\b720p\b/i.test(c.combined));
             }
 
             if (!selected) {
               selected = candidates.find(c => /\b(2160p|4k)\b/i.test(c.combined)) ||
-                         candidates.find(c => /\b1080p\b/i.test(c.combined)) ||
-                         candidates.find(c => /\b720p\b/i.test(c.combined)) ||
-                         candidates[0];
+                candidates.find(c => /\b1080p\b/i.test(c.combined)) ||
+                candidates.find(c => /\b720p\b/i.test(c.combined)) ||
+                candidates[0];
             }
           }
           if (selected && selected.url) {
@@ -1137,10 +1231,15 @@ var ClientUtils = class {
         hubcloudText = await this.httpGet(currentUrl, startUrl);
       }
 
-      // 5. Find gamerxyt or sportverse landing url
+      // 5. Find gamerxyt or sportverse landing url or handle direct vcloud / fastdl
       let vcloudLink = '';
-      const gamerMatch = (hubcloudText || hubdriveText).match(/href=["'](https?:\/\/[^"']*(?:gamerxyt|sportverse|hubcloud\.php)[^"']*)["']/i);
-      if (gamerMatch && gamerMatch[1]) vcloudLink = gamerMatch[1].replace(/&amp;/g, '&');
+      if (currentUrl.includes("vcloud.") || currentUrl.includes("fastdl.")) {
+        vcloudLink = currentUrl;
+      }
+      if (!vcloudLink) {
+        const gamerMatch = (hubcloudText || hubdriveText).match(/href=["'](https?:\/\/[^"']*(?:gamerxyt|sportverse|hubcloud\.php)[^"']*)["']/i);
+        if (gamerMatch && gamerMatch[1]) vcloudLink = gamerMatch[1].replace(/&amp;/g, '&');
+      }
       if (!vcloudLink) {
         const idMatch = (hubcloudText || hubdriveText).match(/<a[^>]*id=["']download["'][^>]*href=["']([^"']+)["']/i);
         if (idMatch && idMatch[1]) vcloudLink = idMatch[1].replace(/&amp;/g, '&');
@@ -1152,7 +1251,24 @@ var ClientUtils = class {
 
       let vcloudText = '';
       if (vcloudLink && vcloudLink.startsWith('http')) {
-        vcloudText = await this.httpGet(vcloudLink, vcloudLink);
+        vcloudText = await this.httpGet(vcloudLink, vcloudLink, 3000);
+
+        // Handle double atob in vcloud.beer
+        const b64Match = vcloudText.match(/atob\(atob\(['"]([^'"]+)['"]\)\)/);
+        if (b64Match && b64Match[1]) {
+          try {
+            const dec1 = safeBase64Decode(b64Match[1]);
+            const tokenPageUrl = safeBase64Decode(dec1);
+            if (tokenPageUrl && tokenPageUrl.startsWith('http')) {
+              const tokenText = await this.httpGet(tokenPageUrl, vcloudLink, 3000);
+              if (tokenText && tokenText.length > 200) {
+                vcloudText = tokenText + '\n' + vcloudText;
+              }
+            }
+          } catch (e) {
+            console.warn("[ClientUtils] atob unwrap error:", e?.message || e);
+          }
+        }
       }
 
       const defaultHeaders = {
@@ -1401,6 +1517,7 @@ function parseMediaBridges(html, pageTitle = '') {
 
     // STRICTLY IGNORE WATCH ONLINE LINKS, THIRD-PARTY EMBED PLAYERS & ARCHIVES FOR DIRECT FILE BRIDGES
     if (
+      lowerHub.includes('vfilm.pro') || lowerHub.includes('hdhub4u.') || lowerHub.includes('4khdhub.') ||
       lowerHub.includes('.zip') || lowerHub.includes('.rar') || lowerHub.includes('zippack') || lowerHub.includes('zip_pack') ||
       lowerHub.includes('hdstream4u') || lowerHub.includes('hubstream') || lowerHub.includes('streamhub') ||
       lowerText.includes('.zip') || lowerText.includes('zip pack') || lowerText.includes('batch') || lowerText.includes('all in one zip') || lowerText.includes('pack [') || lowerText.includes('pack]') ||
@@ -1427,9 +1544,9 @@ function parseMediaBridges(html, pageTitle = '') {
 
     // Check season and episode (Strictly prioritize linkText first, then closest precedingContext)
     const linkSeMatch = linkText.match(/\bS0*(\d{1,2})[\s._-]*E(?:P|pisode)?0*(\d{1,2})\b/i) ||
-                        linkText.match(/\bSeason\s*0*(\d{1,2})[\s._-]*Episode\s*0*(\d{1,2})\b/i);
+      linkText.match(/\bSeason\s*0*(\d{1,2})[\s._-]*Episode\s*0*(\d{1,2})\b/i);
     const linkEpMatch = linkText.match(/\b(?:Episode|EP|Ep)[\s._-]*0*(\d{1,2})\b/i) ||
-                        linkText.match(/\bE[\s._-]*0*(\d{1,2})\b/i);
+      linkText.match(/\bE[\s._-]*0*(\d{1,2})\b/i);
 
     const seRegex = /\bS0*(\d{1,2})[\s._-]*E(?:P|pisode)?0*(\d{1,2})\b|\bSeason\s*0*(\d{1,2})[\s._-]*Episode\s*0*(\d{1,2})\b/gi;
     let lastSeMatch = null;
@@ -1528,7 +1645,7 @@ function parseMediaBridges(html, pageTitle = '') {
 
     // Fidelity tag matching & scoring (x265, HEVC, HDR, SDR, DV, Multi, 10-bit, Remux, BluRay, WEB-DL)
     const targetKeywords = [
-      'hevc', 'hdr', 'hdr10', 'hdr10+', 'sdr', 'dv', 'dolby vision', 'multi audio', 'multi', 'dual audio', 
+      'hevc', 'hdr', 'hdr10', 'hdr10+', 'sdr', 'dv', 'dolby vision', 'multi audio', 'multi', 'dual audio',
       'x265', 'x264', 'h.265', 'h.264', '10bit', '10-bit', 'atmos', 'dts', 'ddp5.1', 'web-dl', 'webrip', 'bluray', 'remux'
     ];
     const highExtensionSet = new Set(['hevc', 'hdr', 'hdr10', 'hdr10+', 'sdr', 'dv', 'dolby vision', 'multi audio', 'multi', 'dual audio', 'x265', 'x264', 'h.265', 'h.264', '10bit', '10-bit']);
@@ -1543,7 +1660,7 @@ function parseMediaBridges(html, pageTitle = '') {
         }
       }
     }
-    
+
     // Resolution base score (4K: 500, 1080p: 250, 720p: 100, 480p: 50)
     const resScore = quality === '4k' ? 500 : (quality === '1080p' ? 250 : (quality === '720p' ? 100 : 50));
     const tagScore = matchedTags.length * 25 + (highExtMatches > 0 ? 50 : 0);
@@ -1633,14 +1750,12 @@ export function defaultSizeForQuality(q) {
 
 var HDHub4uClient = class {
   constructor() {
-    this.baseUrl = "https://new3.hdhub4u.free";
+    this.baseUrl = "https://new10.hdhub4u.cl";
     this.mirrors = [
-      "https://new3.hdhub4u.free",
-      "https://new2.hdhub4u.free",
-      "https://hdhub4u.bi",
-      "https://hdhub4u.ms",
-      "https://hdhub4u.pro",
-      "https://hdhub4u.tv"
+      "https://new10.hdhub4u.cl",
+      "https://vfilm.pro",
+      "https://hdhub4u.skin",
+      "https://hdhub4u.pro"
     ];
   }
 
@@ -1670,14 +1785,10 @@ var HDHub4uClient = class {
   async search(query) {
     const results = [];
     const cleanQuery = query.replace(/[:\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
-    const queryPlus = cleanQuery.replace(/\s+/g, '+');
     const baseTitle = cleanQuery.replace(/\b(19\d{2}|20\d{2})\b/g, '').trim();
 
     const searchQueries = [cleanQuery];
     if (baseTitle && baseTitle !== cleanQuery) searchQueries.push(baseTitle);
-
-    const noEra = cleanQuery.replace(/\b(?:ad|ce|bc|bce)\b/gi, '').replace(/\s+/g, ' ').trim();
-    if (noEra && noEra !== cleanQuery && !searchQueries.includes(noEra)) searchQueries.push(noEra);
 
     const firstWord = cleanQuery.split(' ')[0];
     if (firstWord && firstWord.length >= 4 && !searchQueries.includes(firstWord) && !['the', 'this', 'that', 'with'].includes(firstWord.toLowerCase())) {
@@ -1689,55 +1800,49 @@ var HDHub4uClient = class {
     for (const mirror of this.mirrors) {
       for (const q of searchQueries) {
         try {
-          const searchUrls = [
-            `${mirror}/search/${encodeURIComponent(q)}/`,
-            `${mirror}/?s=${encodeURIComponent(q)}`
-          ];
+          const sUrl = `${mirror}/?s=${encodeURIComponent(q)}`;
+          const html = await ClientUtils.httpGet(sUrl, mirror, 2800);
+          if (!html || html.includes("<title>Just a moment...</title>") || html.length < 500) continue;
 
-          for (const sUrl of searchUrls) {
-            const html = await ClientUtils.httpGet(sUrl, mirror, 3500);
-            if (!html || html.includes("<title>Just a moment...</title>") || html.length < 500) continue;
+          const linkRegex = /<a\s+[^>]*href=["']((?:https?:\/\/[^"']*\/|\/)([^"'\/\s]+)\/?)["']([^>]*)>([\s\S]*?)<\/a>/gi;
+          let m;
 
-            const linkRegex = /<a\s+[^>]*href=["']((?:https?:\/\/[^"']*\/|\/)([^"'\/\s]+)\/?)["']([^>]*)>([\s\S]*?)<\/a>/gi;
-            let m;
+          while ((m = linkRegex.exec(html)) !== null) {
+            const url = m[1];
+            const slug = m[2].toLowerCase();
+            const tagAttrs = m[3] || '';
+            const innerHtml = m[4] || '';
 
-            while ((m = linkRegex.exec(html)) !== null) {
-              const url = m[1];
-              const slug = m[2].toLowerCase();
-              const tagAttrs = m[3] || '';
-              const innerHtml = m[4] || '';
+            if (url.includes('/category/') || url.includes('/tag/') || ignoreSlugs.includes(slug) || slug.includes('request-a-movie') || slug.includes('feed') || slug.includes('wp-json') || slug.includes('xmlrpc')) continue;
 
-              if (ignoreSlugs.includes(slug) || slug.includes('request-a-movie') || slug.includes('feed') || slug.includes('wp-json') || slug.includes('xmlrpc')) continue;
+            const ariaMatch = tagAttrs.match(/aria-label=["']([^"']+)["']/i);
+            const titleMatch = ariaMatch ||
+              innerHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/i) ||
+              innerHtml.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/i) ||
+              innerHtml.match(/alt=["']([^"']+)["']/i);
 
-              const ariaMatch = tagAttrs.match(/aria-label=["']([^"']+)["']/i);
-              const titleMatch = ariaMatch ||
-                                 innerHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/i) || 
-                                 innerHtml.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/i) ||
-                                 innerHtml.match(/alt=["']([^"']+)["']/i);
-              
-              let title = titleMatch ? titleMatch[1] : innerHtml;
-              title = title.replace(/<[^>]+>/g, '').replace(/&#038;/g, '&').replace(/&#8217;/g, "'").replace(/&#8211;/g, '-').trim().replace(/\s+/g, ' ');
+            let title = titleMatch ? titleMatch[1] : innerHtml;
+            title = title.replace(/<[^>]+>/g, '').replace(/&#038;/g, '&').replace(/&#8217;/g, "'").replace(/&#8211;/g, '-').trim().replace(/\s+/g, ' ');
 
-              if (title && title.length > 5 && !title.toLowerCase().includes("how to download") && !title.toLowerCase().includes("disclaimer") && !title.toLowerCase().includes("join our group") && !title.toLowerCase().includes("whatsapp")) {
-                const fullUrl = url.startsWith('http') ? (url.endsWith('/') ? url : `${url}/`) : `${mirror}${url.startsWith('/') ? '' : '/'}${url}${url.endsWith('/') ? '' : '/'}`;
-                if (!results.some(r => r.url === fullUrl)) {
-                  const isSeries = fullUrl.includes("-series-") || fullUrl.includes("-all-episodes") || fullUrl.includes("-season-") || title.toLowerCase().includes("season") || title.toLowerCase().includes("series");
-                  const yearMatch = title.match(/\b(19\d{2}|20\d{2})\b/);
-                  results.push({
-                    title,
-                    cleanTitle: cleanTitleKeywords(title),
-                    url: fullUrl,
-                    link: fullUrl,
-                    year: yearMatch ? yearMatch[1] : '',
-                    type: isSeries ? 'series' : 'movie',
-                    mediaType: isSeries ? 'tv' : 'movie',
-                    provider: 'hdhub4u'
-                  });
-                }
+            if (title && title.length > 5 && !title.toLowerCase().includes("how to download") && !title.toLowerCase().includes("disclaimer") && !title.toLowerCase().includes("join our group") && !title.toLowerCase().includes("whatsapp")) {
+              const fullUrl = url.startsWith('http') ? (url.endsWith('/') ? url : `${url}/`) : `${mirror}${url.startsWith('/') ? '' : '/'}${url}${url.endsWith('/') ? '' : '/'}`;
+              if (!results.some(r => r.url === fullUrl)) {
+                const isSeries = fullUrl.includes("-series-") || fullUrl.includes("-all-episodes") || fullUrl.includes("-season-") || title.toLowerCase().includes("season") || title.toLowerCase().includes("series");
+                const yearMatch = title.match(/\b(19\d{2}|20\d{2})\b/);
+                results.push({
+                  title,
+                  cleanTitle: cleanTitleKeywords(title),
+                  url: fullUrl,
+                  link: fullUrl,
+                  year: yearMatch ? yearMatch[1] : '',
+                  type: isSeries ? 'series' : 'movie',
+                  mediaType: isSeries ? 'tv' : 'movie',
+                  provider: 'hdhub4u'
+                });
               }
             }
-            if (results.length > 0) return results;
           }
+          if (results.length > 0) return results;
         } catch (e) {
           // mirror failed fast, try next
         }
@@ -1818,9 +1923,9 @@ var HDHub4uClient = class {
 
     if (isSeries) {
       const exactBridges = episodeMap.get(`${targetSeason}-${targetEp}`) ||
-                           Array.from(episodeMap.entries()).find(([k]) => k.endsWith(`-${targetEp}`))?.[1] ||
-                           Array.from(episodeMap.values())[0] ||
-                           movieBridges;
+        Array.from(episodeMap.entries()).find(([k]) => k.endsWith(`-${targetEp}`))?.[1] ||
+        Array.from(episodeMap.values())[0] ||
+        movieBridges;
 
       if (exactBridges && exactBridges.length > 0) {
         const is4K = (b) => {
@@ -1829,7 +1934,7 @@ var HDHub4uClient = class {
           const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           return /\b(2160p?|4k\s*uhd|4k\s*hdr|\b4k\b|uhd)\b/i.test(cleanText) ||
-                 /\b(2160p?|\b4k\b|uhd)\b/i.test(cleanUrl);
+            /\b(2160p?|\b4k\b|uhd)\b/i.test(cleanUrl);
         };
         const is1080p = (b) => {
           if (is4K(b)) return false;
@@ -1838,7 +1943,7 @@ var HDHub4uClient = class {
           const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           return /\b(1080p?|fhd)\b/i.test(cleanText) ||
-                 /\b(1080p?|fhd)\b/i.test(cleanUrl);
+            /\b(1080p?|fhd)\b/i.test(cleanUrl);
         };
         const is720p = (b) => {
           if (is4K(b) || is1080p(b)) return false;
@@ -1847,7 +1952,7 @@ var HDHub4uClient = class {
           const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           return /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanText) ||
-                 /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanUrl);
+            /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanUrl);
         };
         const is480p = (b) => {
           if (is4K(b) || is1080p(b) || is720p(b)) return false;
@@ -1856,7 +1961,7 @@ var HDHub4uClient = class {
           const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           return /\b(480p?|480|sd)\b/i.test(cleanText) ||
-                 /\b(480p?|480|sd)\b/i.test(cleanUrl);
+            /\b(480p?|480|sd)\b/i.test(cleanUrl);
         };
 
         // Strict Server 1 & Server 2 rule: If both WEB-DL and WEBRip are available, consider ONLY WEB-DL
@@ -1898,7 +2003,7 @@ var HDHub4uClient = class {
                     });
                     if (live.q === '1080p') break;
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             })()
           );
@@ -1923,7 +2028,7 @@ var HDHub4uClient = class {
                     });
                     if (live.q === '4k') break;
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             })()
           );
@@ -1948,13 +2053,13 @@ var HDHub4uClient = class {
                     });
                     if (live.q === '720p') break;
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             })()
           );
         }
 
-// 480p eliminated per user requirement
+        // 480p eliminated per user requirement
 
         await Promise.allSettled(resolvePromises);
 
@@ -1975,7 +2080,7 @@ var HDHub4uClient = class {
                 });
                 break;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
@@ -1999,7 +2104,7 @@ var HDHub4uClient = class {
                   break;
                 }
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
@@ -2058,7 +2163,7 @@ var HDHub4uClient = class {
         const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         return /\b(2160p?|4k\s*uhd|4k\s*hdr|\b4k\b|uhd)\b/i.test(cleanText) ||
-               /\b(2160p?|\b4k\b|uhd)\b/i.test(cleanUrl);
+          /\b(2160p?|\b4k\b|uhd)\b/i.test(cleanUrl);
       };
       const is1080p = (b) => {
         if (is4K(b)) return false;
@@ -2067,7 +2172,7 @@ var HDHub4uClient = class {
         const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         return /\b(1080p?|fhd)\b/i.test(cleanText) ||
-               /\b(1080p?|fhd)\b/i.test(cleanUrl);
+          /\b(1080p?|fhd)\b/i.test(cleanUrl);
       };
       const is720p = (b) => {
         if (is4K(b) || is1080p(b)) return false;
@@ -2076,7 +2181,7 @@ var HDHub4uClient = class {
         const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         return /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanText) ||
-               /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanUrl);
+          /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanUrl);
       };
       const is480p = (b) => {
         if (is4K(b) || is1080p(b) || is720p(b)) return false;
@@ -2085,7 +2190,7 @@ var HDHub4uClient = class {
         const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         return /\b(480p?|480|sd)\b/i.test(cleanText) ||
-               /\b(480p?|480|sd)\b/i.test(cleanUrl);
+          /\b(480p?|480|sd)\b/i.test(cleanUrl);
       };
 
       const rankScore = (b) => {
@@ -2126,7 +2231,7 @@ var HDHub4uClient = class {
                   });
                   if (live.q === '1080p') break;
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           })()
         );
@@ -2152,7 +2257,7 @@ var HDHub4uClient = class {
                 });
                 if (live.q === '4k') break;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         })()
       );
@@ -2177,7 +2282,7 @@ var HDHub4uClient = class {
                   });
                   if (live.q === '720p') break;
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           })()
         );
@@ -2204,7 +2309,7 @@ var HDHub4uClient = class {
               });
               break;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
 
@@ -2228,7 +2333,7 @@ var HDHub4uClient = class {
                 break;
               }
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
 
@@ -2328,16 +2433,16 @@ var FourKHDHubClient = class {
           while ((m = linkRegex.exec(html)) !== null) {
             const href = m[1];
             const innerHtml = m[2];
-            
-            const titleMatch = innerHtml.match(/<h3[^>]*class=["'][^"']*movie-card-title[^"']*["'][^>]*>([\s\S]*?)<\/h3>/i) 
-                            || innerHtml.match(/alt=["']([^"']+)["']/i);
+
+            const titleMatch = innerHtml.match(/<h3[^>]*class=["'][^"']*movie-card-title[^"']*["'][^>]*>([\s\S]*?)<\/h3>/i)
+              || innerHtml.match(/alt=["']([^"']+)["']/i);
             const yearMatch = innerHtml.match(/<p[^>]*class=["'][^"']*movie-card-meta[^"']*["'][^>]*>([\s\S]*?)<\/p>/i);
             const imgMatch = innerHtml.match(/src=["'](https?:\/\/[^"']+)["']/i);
 
-            let cleanT = titleMatch 
-              ? titleMatch[1].replace(/<[^>]+>/g, "").trim() 
+            let cleanT = titleMatch
+              ? titleMatch[1].replace(/<[^>]+>/g, "").trim()
               : innerHtml.replace(/<[^>]+>/g, "").trim().replace(/\s+/g, " ");
-            
+
             const yearText = yearMatch ? yearMatch[1].replace(/<[^>]+>/g, "").trim() : "";
             const isSeries = href.includes("-series-") || yearText.includes("S0") || yearText.includes("S1") || yearText.includes("Season");
 
@@ -2435,9 +2540,9 @@ var FourKHDHubClient = class {
 
     if (isSeries) {
       const exactBridges = episodeMap.get(`${targetSeason}-${targetEp}`) ||
-                           Array.from(episodeMap.entries()).find(([k]) => k.endsWith(`-${targetEp}`))?.[1] ||
-                           Array.from(episodeMap.values())[0] ||
-                           movieBridges;
+        Array.from(episodeMap.entries()).find(([k]) => k.endsWith(`-${targetEp}`))?.[1] ||
+        Array.from(episodeMap.values())[0] ||
+        movieBridges;
 
       if (exactBridges && exactBridges.length > 0) {
         const is4K = (b) => {
@@ -2446,7 +2551,7 @@ var FourKHDHubClient = class {
           const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           return /\b(2160p?|4k\s*uhd|4k\s*hdr|\b4k\b|uhd)\b/i.test(cleanText) ||
-                 /\b(2160p?|\b4k\b|uhd)\b/i.test(cleanUrl);
+            /\b(2160p?|\b4k\b|uhd)\b/i.test(cleanUrl);
         };
         const is1080p = (b) => {
           if (is4K(b)) return false;
@@ -2455,7 +2560,7 @@ var FourKHDHubClient = class {
           const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           return /\b(1080p?|fhd)\b/i.test(cleanText) ||
-                 /\b(1080p?|fhd)\b/i.test(cleanUrl);
+            /\b(1080p?|fhd)\b/i.test(cleanUrl);
         };
         const is720p = (b) => {
           if (is4K(b) || is1080p(b)) return false;
@@ -2464,7 +2569,7 @@ var FourKHDHubClient = class {
           const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           return /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanText) ||
-                 /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanUrl);
+            /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanUrl);
         };
         const is480p = (b) => {
           if (is4K(b) || is1080p(b) || is720p(b)) return false;
@@ -2473,7 +2578,7 @@ var FourKHDHubClient = class {
           const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
           return /\b(480p?|480|sd)\b/i.test(cleanText) ||
-                 /\b(480p?|480|sd)\b/i.test(cleanUrl);
+            /\b(480p?|480|sd)\b/i.test(cleanUrl);
         };
 
         // Strict Server 1 & Server 2 rule: If both WEB-DL and WEBRip are available, consider ONLY WEB-DL
@@ -2515,7 +2620,7 @@ var FourKHDHubClient = class {
                     });
                     if (live.q === '1080p') break;
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             })()
           );
@@ -2540,7 +2645,7 @@ var FourKHDHubClient = class {
                     });
                     if (live.q === '4k') break;
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             })()
           );
@@ -2565,13 +2670,13 @@ var FourKHDHubClient = class {
                     });
                     if (live.q === '720p') break;
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             })()
           );
         }
 
-// 480p eliminated per user requirement
+        // 480p eliminated per user requirement
 
         await Promise.allSettled(resolvePromises);
 
@@ -2592,7 +2697,7 @@ var FourKHDHubClient = class {
                 });
                 break;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
@@ -2616,7 +2721,7 @@ var FourKHDHubClient = class {
                   break;
                 }
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
@@ -2633,17 +2738,17 @@ var FourKHDHubClient = class {
           let targetCand = null;
           if (prefQ === '4k' || prefQ === '2160p') {
             targetCand = liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false)
-                      || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
-                      || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false);
+              || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+              || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false);
           } else if (prefQ === '720p') {
             targetCand = liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
-                      || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
-                      || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
+              || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+              || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
           } else {
             // 1080p default
             targetCand = liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
-                      || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
-                      || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
+              || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
+              || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
           }
           const rawPrimary = targetCand?.url || bestCandidate.url;
           const primaryUrl = ClientUtils.sanitizeStreamUrl(rawPrimary);
@@ -2690,7 +2795,7 @@ var FourKHDHubClient = class {
         const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         return /\b(2160p?|4k\s*uhd|4k\s*hdr|\b4k\b|uhd)\b/i.test(cleanText) ||
-               /\b(2160p?|\b4k\b|uhd)\b/i.test(cleanUrl);
+          /\b(2160p?|\b4k\b|uhd)\b/i.test(cleanUrl);
       };
       const is1080p = (b) => {
         if (is4K(b)) return false;
@@ -2699,7 +2804,7 @@ var FourKHDHubClient = class {
         const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         return /\b(1080p?|fhd)\b/i.test(cleanText) ||
-               /\b(1080p?|fhd)\b/i.test(cleanUrl);
+          /\b(1080p?|fhd)\b/i.test(cleanUrl);
       };
       const is720p = (b) => {
         if (is4K(b) || is1080p(b)) return false;
@@ -2708,7 +2813,7 @@ var FourKHDHubClient = class {
         const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         return /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanText) ||
-               /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanUrl);
+          /\b(720p?|720)\b|\bhd\b(?!\s*hub|\s*stream|\s*r)/i.test(cleanUrl);
       };
       const is480p = (b) => {
         if (is4K(b) || is1080p(b) || is720p(b)) return false;
@@ -2717,7 +2822,7 @@ var FourKHDHubClient = class {
         const cleanText = (b.label || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         const cleanUrl = (b.url || '').replace(/4khdhub\.[a-z0-9]+/gi, '').replace(/hdhub4u\.[a-z0-9]+/gi, '').replace(/4khdhub|hdhub4u/gi, '');
         return /\b(480p?|480|sd)\b/i.test(cleanText) ||
-               /\b(480p?|480|sd)\b/i.test(cleanUrl);
+          /\b(480p?|480|sd)\b/i.test(cleanUrl);
       };
 
       const rankScore = (b) => {
@@ -2758,7 +2863,7 @@ var FourKHDHubClient = class {
                   });
                   if (live.q === '1080p') break;
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           })()
         );
@@ -2784,7 +2889,7 @@ var FourKHDHubClient = class {
                 });
                 if (live.q === '4k') break;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         })()
       );
@@ -2809,7 +2914,7 @@ var FourKHDHubClient = class {
                   });
                   if (live.q === '720p') break;
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           })()
         );
@@ -2836,7 +2941,7 @@ var FourKHDHubClient = class {
               });
               break;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
 
@@ -2860,7 +2965,7 @@ var FourKHDHubClient = class {
                 break;
               }
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
 
@@ -2877,17 +2982,17 @@ var FourKHDHubClient = class {
         let targetCand = null;
         if (prefQ === '4k' || prefQ === '2160p') {
           targetCand = liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false)
-                    || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
-                    || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false);
+            || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+            || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false);
         } else if (prefQ === '720p') {
           targetCand = liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
-                    || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
-                    || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
+            || liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
+            || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
         } else {
           // 1080p default
           targetCand = liveCandidates.find(c => (c.q === '1080p' || c.quality === '1080p') && c.supports206 !== false)
-                    || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
-                    || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
+            || liveCandidates.find(c => (c.q === '720p' || c.quality === '720p') && c.supports206 !== false)
+            || liveCandidates.find(c => (c.q === '4k' || c.quality === '4k' || c.q === '2160p') && c.supports206 !== false);
         }
         const rawPrimary = targetCand?.url || bestCandidate.url;
         const primaryUrl = ClientUtils.sanitizeStreamUrl(rawPrimary);
