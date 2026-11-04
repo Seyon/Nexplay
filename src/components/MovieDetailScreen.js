@@ -560,19 +560,19 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     };
   }, [isPlaying, hasStartedPlayback]);
 
-  // Adaptive Recovery Watchdog: if playback initiated but 0 frames rendered after 12s
+  // Adaptive Recovery Watchdog: if playback initiated but 0 frames rendered after 35s
   useEffect(() => {
     if (!hasStartedPlayback || isResolving || playbackError) return;
     const watchdogTimer = setTimeout(() => {
       if (!hasFirstFrameRendered && currentTimeRef.current <= 0 && isMounted.current) {
-        console.warn(`[MovieDetailScreen] Stream stalled: 0 frames rendered after 12s on Server ${activeServer}.`);
+        console.warn(`[MovieDetailScreen] Stream stalled: 0 frames rendered after 35s on Server ${activeServer}.`);
         setPlaybackError({
           title: 'Stream Slow or Unreachable',
           message: `Server ${activeServer} connection returned no video. Switching to an alternate server is recommended.`,
           server: activeServer
         });
       }
-    }, 12000);
+    }, 35000);
     return () => clearTimeout(watchdogTimer);
   }, [hasStartedPlayback, isResolving, hasFirstFrameRendered, activeServer, currentSourceUri, playbackError]);
   useEffect(() => {
@@ -1063,21 +1063,19 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const vlcSource = useMemo(() => {
     if (!currentSourceUri) return undefined;
     const mediaOptions = [
-      ':network-caching=300',
-      ':file-caching=300',
-      ':live-caching=300',
+      ':network-caching=2000',
+      ':file-caching=2000',
+      ':live-caching=2000',
       ':http-reconnect=true',
-      ':http-continuous=1',
+      ':clock-jitter=0',
+      ':clock-synchro=0',
+      ':drop-late-frames',
+      ':skip-frames',
       ':no-sub-autodetect-file',
       ':no-stats'
     ];
 
-    const initOptions = [
-      '--network-caching=300',
-      '--ipv4-timeout=2500',
-      '--tcp-timeout=2500',
-      '--no-stats'
-    ];
+    const initOptions = [];
 
     const ref = currentSourceHeaders?.Referer || currentSourceHeaders?.referer || '';
     if (ref) {
@@ -1093,7 +1091,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       uri: currentSourceUri,
       isNetwork: true,
       autoplay: true,
-      hwDecoderEnabled: VLCHardwareDecoder?.Automatic ?? -1,
+      hwDecoderEnabled: VLCHardwareDecoder?.Full ?? 2,
       mediaOptions,
       initOptions
     };
@@ -2247,6 +2245,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         {/* Playback Engine: in-app libvlc (Native VLC Media Player) */}
         <View style={StyleSheet.absoluteFill}>
           <VLCPlayerView
+            key={`vlc_${activeServer}_${currentSourceUri || 'idle'}`}
             ref={vlcPlayerRef}
             source={vlcSource}
             autoplay={true}
@@ -2444,13 +2443,15 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             }}
             onError={(err) => {
               console.warn('[VLCPlayer] Playback error event:', err);
-              if (!hasFirstFrameRendered) {
-                setPlaybackError({
-                  title: 'Playback Error',
-                  message: `Server ${activeServer} connection failed. Switching to an alternate server is recommended.`,
-                  server: activeServer
-                });
-              }
+              setTimeout(() => {
+                if (!hasFirstFrameRendered && isMounted.current && !isPlayingRef.current) {
+                  setPlaybackError({
+                    title: 'Playback Error',
+                    message: `Server ${activeServer} connection failed. Switching to an alternate server is recommended.`,
+                    server: activeServer
+                  });
+                }
+              }, 3500);
             }}
             onEnd={() => {
               console.log('[VLCPlayer] Playback reached end');
