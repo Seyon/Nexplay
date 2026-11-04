@@ -53,14 +53,6 @@ export {
 };
 
 export const PROVIDERS = {
-  net79: {
-    id: 'net79',
-    name: 'Server 1 (Net79 All-in-One)',
-    short: 'Net79',
-    serverNumber: 0,
-    client: Net79,
-    type: 'all_in_one'
-  },
   hdhub4u: {
     id: 'hdhub4u',
     name: 'Server 1 (HDHub4u)',
@@ -84,6 +76,14 @@ export const PROVIDERS = {
     serverNumber: 3,
     client: Movies4u,
     type: 'movies_and_shows'
+  },
+  net79: {
+    id: 'net79',
+    name: 'Server 4 (Net79 Direct Stream)',
+    short: 'Net79',
+    serverNumber: 4,
+    client: Net79,
+    type: 'all_in_one'
   },
   tamildhool: {
     id: 'tamildhool',

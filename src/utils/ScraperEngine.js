@@ -1787,6 +1787,61 @@ var HDHub4uClient = class {
     const cleanQuery = query.replace(/[:\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
     const baseTitle = cleanQuery.replace(/\b(19\d{2}|20\d{2})\b/g, '').trim();
 
+    // 1. Direct Pingora Instant Typesense Search (used by new10.hdhub4u.cl/search.html)
+    try {
+      const pingoraUrl = new URL("https://search.pingora.fyi/collections/post/documents/search");
+      pingoraUrl.searchParams.append("q", cleanQuery);
+      pingoraUrl.searchParams.append("query_by", "post_title,category,stars,director,imdb_id");
+      pingoraUrl.searchParams.append("query_by_weights", "4,2,2,2,4");
+      pingoraUrl.searchParams.append("sort_by", "sort_by_date:desc");
+      pingoraUrl.searchParams.append("limit", "15");
+      pingoraUrl.searchParams.append("highlight_fields", "none");
+      pingoraUrl.searchParams.append("use_cache", "true");
+      pingoraUrl.searchParams.append("page", "1");
+
+      const res = await fetch(pingoraUrl.toString(), {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Referer": `${this.baseUrl}/`
+        }
+      });
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.hits && data.hits.length > 0) {
+          for (const hit of data.hits) {
+            const doc = hit.document;
+            if (!doc || !doc.permalink) continue;
+            let path = "";
+            try {
+              path = new URL(doc.permalink).pathname;
+            } catch (_) {
+              path = doc.permalink.startsWith("/") ? doc.permalink : `/${doc.permalink}`;
+            }
+            if (!path.endsWith("/")) path += "/";
+            const fullUrl = `${this.baseUrl}${path}`;
+            const title = (doc.post_title || "").replace(/<[^>]+>/g, "").replace(/&#038;/g, "&").replace(/&#8217;/g, "'").replace(/&#8211;/g, "-").trim();
+            const isSeries = fullUrl.includes("-series-") || fullUrl.includes("-all-episodes") || fullUrl.includes("-season-") || title.toLowerCase().includes("season") || title.toLowerCase().includes("series");
+            const yearMatch = title.match(/\b(19\d{2}|20\d{2})\b/);
+
+            if (!results.some(r => r.url === fullUrl)) {
+              results.push({
+                title,
+                cleanTitle: cleanTitleKeywords(title),
+                url: fullUrl,
+                link: fullUrl,
+                thumbnail: doc.post_thumbnail,
+                year: yearMatch ? yearMatch[1] : "",
+                type: isSeries ? "series" : "movie",
+                mediaType: isSeries ? "tv" : "movie",
+                provider: "hdhub4u"
+              });
+            }
+          }
+          if (results.length > 0) return results;
+        }
+      }
+    } catch (_) {}
+
     const searchQueries = [cleanQuery];
     if (baseTitle && baseTitle !== cleanQuery) searchQueries.push(baseTitle);
 

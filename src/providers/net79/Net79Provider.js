@@ -17,6 +17,31 @@ export class Net79Client {
   constructor(baseUrl = DEFAULT_BASE_URL, proxyWorker = DEFAULT_PROXY_WORKER) {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.proxyWorker = proxyWorker.replace(/\/+$/, '');
+    this.mirrors = [this.baseUrl];
+  }
+
+  setBaseUrl(url) {
+    if (url && typeof url === 'string') {
+      this.baseUrl = url.replace(/\/+$/, '');
+      if (!this.mirrors.includes(this.baseUrl)) {
+        this.mirrors.unshift(this.baseUrl);
+      }
+    }
+  }
+
+  setMirrors(mirrors) {
+    if (Array.isArray(mirrors) && mirrors.length > 0) {
+      this.mirrors = mirrors.map(m => m.replace(/\/+$/, ''));
+      if (this.mirrors.length > 0) {
+        this.baseUrl = this.mirrors[0];
+      }
+    }
+  }
+
+  applyRemoteConfig(config = {}) {
+    if (config.baseUrl) this.setBaseUrl(config.baseUrl);
+    if (Array.isArray(config.mirrors)) this.setMirrors(config.mirrors);
+    if (config.proxyWorker) this.proxyWorker = config.proxyWorker.replace(/\/+$/, '');
   }
 
   async httpGet(url, customHeaders = {}) {
@@ -252,7 +277,7 @@ export class Net79Client {
               {
                 title: `Episode ${ep.episode}`,
                 url: `${this.baseUrl}/#w=${tmdbId}-tv&se=${sNum}&ep=${ep.episode}`,
-                server: 'NetMirror Server 1 [Universal Stream 1080p]',
+                server: 'NetMirror Server 4 [Universal Stream 1080p]',
                 quality: '1080p'
               }
             ]
@@ -343,13 +368,13 @@ export class Net79Client {
           const quality = `${s.resolution}p`;
           const sizeStr = s.size ? `${(s.size / (1024 * 1024)).toFixed(0)} MB` : undefined;
 
-          // 1. Universal Proxy Stream (Server 1)
+          // 1. Universal Proxy Stream (Server 4)
           const universalProxyUrl = `${this.baseUrl}/api/proxy/video?url=${encodeURIComponent(s.url)}&ref=${encodeURIComponent('https://moviebox.ph/')}&direct=1`;
           results.push({
             quality,
             url: universalProxyUrl,
             originalUrl: embedApiUrl,
-            server: `NetMirror Server 1 [Universal Stream ${quality}]${langSuffix}`,
+            server: `NetMirror Server 4 [Universal Stream ${quality}]${langSuffix}`,
             type: 'direct',
             size: sizeStr,
             audioLanguage: activeLangCode,
@@ -358,12 +383,12 @@ export class Net79Client {
             mimeType: 'video/mp4'
           });
 
-          // 2. Direct CDN Stream (Server 1)
+          // 2. Direct CDN Stream (Server 4)
           results.push({
             quality,
             url: s.url,
             originalUrl: embedApiUrl,
-            server: `NetMirror Server 1 [Direct CDN ${quality}]${langSuffix}`,
+            server: `NetMirror Server 4 [Direct CDN ${quality}]${langSuffix}`,
             type: 'direct',
             size: sizeStr,
             audioLanguage: activeLangCode,
@@ -375,14 +400,14 @@ export class Net79Client {
             mimeType: 'video/mp4'
           });
 
-          // 3. Cloudflare Signed Proxy (Server 1)
+          // 3. Cloudflare Signed Proxy (Server 4)
           if (sig && exp) {
             const workerUrl = `${this.proxyWorker}/?url=${encodeURIComponent(s.url)}&exp=${exp}&sig=${encodeURIComponent(sig)}`;
             results.push({
               quality,
               url: workerUrl,
               originalUrl: embedApiUrl,
-              server: `NetMirror Server 1 [Cloudflare Proxy ${quality}]${langSuffix}`,
+              server: `NetMirror Server 4 [Cloudflare Proxy ${quality}]${langSuffix}`,
               type: 'direct',
               size: sizeStr,
               audioLanguage: activeLangCode,

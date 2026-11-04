@@ -267,7 +267,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
 
   // Player & Scraper State
-  const [activeServer, setActiveServer] = useState(3); // Default to Server 3 (Movies4u / Pixeldrain primary)
+  const [activeServer, setActiveServer] = useState(1); // Default to Server 1 (HDHub4u primary)
   const lastPlayedServerRef = useRef(3);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
@@ -733,11 +733,12 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     }, 3500);
   };
 
-  // Strict Individual Servers: Server 1 (HDHub4u), Server 2 (4KHDHub), Server 3 (Movies4u)
+  // Strict Individual Servers: Server 1 (HDHub4u), Server 2 (4KHDHub), Server 3 (Movies4u), Server 4 (Net79)
   const servers = [
     { id: 1, label: 'Server 1', short: 'Server 1', desc: 'HDHub4u Direct Stream' },
     { id: 2, label: 'Server 2', short: 'Server 2', desc: '4KHDHub Ultra & HD Stream' },
     { id: 3, label: 'Server 3', short: 'Server 3', desc: 'Movies4u Direct Stream' },
+    { id: 4, label: 'Server 4', short: 'Server 4', desc: 'Net79 Direct Stream' },
   ];
 
   // Current selected episode / media item
@@ -1306,9 +1307,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       // Server 1: strictly hdhub4u
       // Server 2: strictly 4khdhub
       // Server 3: strictly movies4u
+      // Server 4: strictly net79
       let providerValue = 'hdhub4u';
       let providerLabel = 'Server 1 (HDHub4u)';
-      if (server === 3) {
+      if (server === 4) {
+        providerValue = 'net79';
+        providerLabel = 'Server 4 (Net79)';
+      } else if (server === 3) {
         providerValue = 'movies4u';
         providerLabel = 'Server 3 (Movies4u)';
       } else if (server === 2) {

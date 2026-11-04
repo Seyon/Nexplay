@@ -1,37 +1,11 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.2",
-  "updatedAt": "2026-11-03T18:32:17.439Z",
+  "version": "1.1.3",
+  "updatedAt": "2026-11-04T03:53:42.081Z",
   "commitSha": "ab5ac8e",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
   "providers": {
-    "net79": {
-      "id": "net79",
-      "name": "Server 1 (Net79 All in One)",
-      "enabled": true,
-      "priority": 1,
-      "baseUrl": "https://net79.cc",
-      "mirrors": [
-        "https://net79.cc",
-        "https://net77.cc",
-        "https://netmirrorr.net",
-        "https://netmirrors.vip"
-      ],
-      "headers": {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://moviebox.ph/"
-      },
-      "features": {
-        "allInOne": true,
-        "movies": true,
-        "tvShows": true,
-        "multiAudio": true,
-        "universalProxy": true,
-        "directMp4Streams": true,
-        "peachifyFallback": true
-      }
-    },
     "hdhub4u": {
       "id": "hdhub4u",
       "name": "Server 1 (HDHub4u)",
@@ -96,6 +70,32 @@
         "tvShowResolution": true,
         "packerUnpacker": true,
         "directR2Streams": true
+      }
+    },
+    "net79": {
+      "id": "net79",
+      "name": "Server 4 (Net79 Direct Stream)",
+      "enabled": true,
+      "priority": 4,
+      "baseUrl": "https://net79.cc",
+      "mirrors": [
+        "https://net79.cc",
+        "https://net77.cc",
+        "https://netmirrorr.net",
+        "https://netmirrors.vip"
+      ],
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": "https://moviebox.ph/"
+      },
+      "features": {
+        "allInOne": true,
+        "movies": true,
+        "tvShows": true,
+        "multiAudio": true,
+        "universalProxy": true,
+        "directMp4Streams": true,
+        "peachifyFallback": true
       }
     },
     "tamildhool": {

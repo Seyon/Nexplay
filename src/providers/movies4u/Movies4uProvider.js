@@ -399,8 +399,8 @@ export class Movies4uClient {
             baseUrl,
             this.liveBaseUrl,
             ...this.mirrors,
-            'https://new1.movies4u.garden',
-            'https://new2.movies4u.garden'
+            'https://new4.movies4u.garden',
+            'https://new3.movies4u.garden'
         ])).map(m => (m || '').replace(/\/+$/, '')).filter(Boolean);
 
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
@@ -412,7 +412,7 @@ export class Movies4uClient {
                     const resText = await fetcher(searchUrl, {
                         'User-Agent': DEFAULT_USER_AGENT,
                         'Referer': `${mirror}/search.html?q=${encodeURIComponent(q)}`
-                    }, 6000);
+                    }, 3500);
                     if (!resText || resText.startsWith('<') || resText.includes('<html')) {
                         continue; // Skip parked HTML or redirect responses
                     }
@@ -706,8 +706,22 @@ export class Movies4uClient {
         return clean;
     }
 
-    async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 4000) {
+    async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 2000) {
         if (!streamUrl || !streamUrl.startsWith("http")) return { isLive: false, supports206: false };
+        const u = streamUrl.toLowerCase();
+        // Instant bypass for known direct CDN streams (Cloudflare R2, PixelDrain API, Bunker, FastDL)
+        if (
+            u.includes('r2.dev') ||
+            u.includes('r2.cloudflarestorage.com') ||
+            u.includes('pixeldrain.com/api/file/') ||
+            u.includes('pixeldrain.dev/api/file/') ||
+            u.includes('bunker.monster') ||
+            u.includes('valentine.guru') ||
+            u.includes('pongala.life') ||
+            u.includes('lenin.buzz')
+        ) {
+            return { isLive: true, supports206: true, status: 206 };
+        }
         let controller = null;
         let timeoutId = null;
         try {

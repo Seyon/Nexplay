@@ -56,11 +56,11 @@ class ExtensionManagerService {
     console.log(`[ExtensionManager] Native search: "${searchQuery}" on ${provider}`);
     try {
       let engine;
-      if (provider === 'net79' || provider === '0') engine = Net79;
+      if (provider === 'net79' || provider === '4' || provider === 4 || provider === '0') engine = Net79;
       else if (provider === 'tamildhool' || provider === '6') engine = TamilDhool;
       else if (provider === 'tamilgun' || provider === '7') engine = TamilGun;
-      else if (provider === 'movies4u' || provider === '3') engine = Movies4u;
-      else if (provider === '4khdhub' || provider === '2') engine = FourKHDHub;
+      else if (provider === 'movies4u' || provider === '3' || provider === 3) engine = Movies4u;
+      else if (provider === '4khdhub' || provider === '2' || provider === 2) engine = FourKHDHub;
       else engine = HDHub4u;
       const results = await engine.search(searchQuery);
       return results.map(r => ({
@@ -308,11 +308,11 @@ class ExtensionManagerService {
    */
   async getPlayableStream(provider, link, isTVShow = false, episodeNumber = 1, seasonNumber = 1, audioLanguage) {
     let engine;
-    if (link.includes('net79') || link.includes('watch-tmdb') || provider === 'net79' || provider === '0') engine = Net79;
+    if (link.includes('net79') || link.includes('watch-tmdb') || provider === 'net79' || provider === '4' || provider === 4 || provider === '0') engine = Net79;
     else if (link.includes('tamildhool') || provider === 'tamildhool' || provider === '6') engine = TamilDhool;
     else if (link.includes('tamilgun') || link.includes('arivumani') || provider === 'tamilgun' || provider === '7') engine = TamilGun;
-    else if (link.includes('movies4u') || provider === 'movies4u' || provider === '3') engine = Movies4u;
-    else if (link.includes('4khdhub') || provider === '4khdhub' || provider === '2') engine = FourKHDHub;
+    else if (link.includes('movies4u') || provider === 'movies4u' || provider === '3' || provider === 3) engine = Movies4u;
+    else if (link.includes('4khdhub') || provider === '4khdhub' || provider === '2' || provider === 2) engine = FourKHDHub;
     else engine = HDHub4u;
     return await engine.getPlayableStream(link, isTVShow, episodeNumber, seasonNumber, audioLanguage);
   }
@@ -506,7 +506,7 @@ class ExtensionManagerService {
 
     if (!candidates || candidates.length === 0) {
       if (allowCrossProviderFallback) {
-        const otherProviders = ['movies4u', '4khdhub', 'hdhub4u'].filter(p => p !== activeProvider);
+        const otherProviders = ['hdhub4u', '4khdhub', 'movies4u', 'net79'].filter(p => p !== activeProvider);
         for (const alt of otherProviders) {
           try {
             console.log(`[ExtensionManager] Provider ${activeProvider} had no candidates, trying alternative provider: ${alt}`);
@@ -526,12 +526,14 @@ class ExtensionManagerService {
             });
             if (res) {
               let finalServer = res.server;
-              if (activeProvider === 'hdhub4u' || activeProvider === '1') {
+              if (activeProvider === 'hdhub4u' || activeProvider === '1' || activeProvider === 1) {
                 finalServer = 'Server 1 (Direct Stream)';
-              } else if (activeProvider === '4khdhub' || activeProvider === '2') {
+              } else if (activeProvider === '4khdhub' || activeProvider === '2' || activeProvider === 2) {
                 finalServer = 'Server 2 (Direct Stream)';
-              } else if (activeProvider === 'movies4u' || activeProvider === '3') {
+              } else if (activeProvider === 'movies4u' || activeProvider === '3' || activeProvider === 3) {
                 finalServer = 'Server 3 (Direct Stream)';
+              } else if (activeProvider === 'net79' || activeProvider === '4' || activeProvider === 4) {
+                finalServer = 'Server 4 (Direct Stream)';
               }
               return {
                 ...res,
@@ -564,10 +566,11 @@ class ExtensionManagerService {
             console.log(`[ExtensionManager] Utilizing [Server:10Gbps] Google CDN fallback stream from ${matchedProvider}`);
           }
           const supports206 = playable.supports206 ?? !isGoogleCdn;
-          const serverLabel = matchedProvider === 'tamildhool' ? 'Server 6 (TamilDhool)' 
+          const serverLabel = matchedProvider === 'net79' ? 'Server 4 (Net79)'
+            : (matchedProvider === 'tamildhool' ? 'Server 6 (TamilDhool)' 
             : (matchedProvider === 'tamilgun' ? 'Server 7 (TamilGun)' 
             : (matchedProvider === 'movies4u' ? 'Server 3 (Movies4u)' 
-            : (matchedProvider === '4khdhub' ? 'Server 2 (4KHDHub)' : 'Server 1 (HDHub4u)')));
+            : (matchedProvider === '4khdhub' ? 'Server 2 (4KHDHub)' : 'Server 1 (HDHub4u)'))));
           
           // Strictly default playback to 1080p if available among resolved stream qualities
           const qualities = { ...(playable.qualities || {}) };
@@ -631,7 +634,7 @@ class ExtensionManagerService {
 
     // Cross-provider fallback if stream not resolved on primary provider
     if (allowCrossProviderFallback) {
-      const otherProviders = ['movies4u', '4khdhub', 'hdhub4u'].filter(p => p !== activeProvider);
+      const otherProviders = ['hdhub4u', '4khdhub', 'movies4u', 'net79'].filter(p => p !== activeProvider);
       for (const alt of otherProviders) {
         try {
           console.log(`[ExtensionManager] Checking alternative provider ${alt} for stream...`);
