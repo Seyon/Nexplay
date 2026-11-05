@@ -2,7 +2,7 @@
   "expo": {
     "name": "NexPlay",
     "slug": "nexplay",
-    "version": "1.8.33.0.186-patch.20261103",
+    "version": "1.8.34.0.187-patch.20261104",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
