@@ -1,15 +1,23 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 35,
+  "patch": 36,
   "issue": 0,
-  "build": 188,
+  "build": 189,
   "updateType": "patch",
-  "timestamp": "20261104",
-  "versionName": "1.8.35.0.188-patch.20261104",
-  "versionCode": 2150188,
-  "lastSuccessfulBuild": "2026-11-05T06:27:57.677Z",
+  "timestamp": "20261105",
+  "versionName": "1.8.36.0.189-patch.20261105",
+  "versionCode": 2160189,
+  "lastSuccessfulBuild": "2026-11-05T18:01:12.272Z",
   "history": [
+    {
+      "versionName": "1.8.36.0.189-patch.20261105",
+      "versionCode": 2160189,
+      "updateType": "patch",
+      "build": 189,
+      "note": "Fix VLC aspect ratio default, disable auto subtitles, precise volume swipe and authentic VLC HUD",
+      "builtAt": "2026-11-05T18:01:12.272Z"
+    },
     {
       "versionName": "1.8.35.0.188-patch.20261104",
       "versionCode": 2150188,
@@ -401,14 +409,6 @@
       "build": 140,
       "note": "Server 4 (111477) direct scraper integration",
       "builtAt": "2026-10-06T14:33:27.671Z"
-    },
-    {
-      "versionName": "1.7.14.0.139-patch.20261006",
-      "versionCode": 1840139,
-      "updateType": "patch",
-      "build": 139,
-      "note": "Live TV & Serials UI overhaul, TMDB key validation & persistence, aligned navbar",
-      "builtAt": "2026-10-06T13:16:08.070Z"
     }
   ]
 }

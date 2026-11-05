@@ -388,7 +388,7 @@ export default function TvSerialsScreen({ onMoviePress, onDetailStateChange, onS
   };
 
   const toggleContentFitMode = () => {
-    setContentFitMode(prev => (prev === 'cover' ? 'contain' : 'cover'));
+    setContentFitMode(prev => (prev === 'contain' ? 'cover' : (prev === 'cover' ? 'stretch' : 'contain')));
     resetControlsTimeout();
   };
 
@@ -600,6 +600,8 @@ export default function TvSerialsScreen({ onMoviePress, onDetailStateChange, onS
     const initOptions = [];
 
     const mediaOptions = [
+      ':sub-track=-1',
+      ':no-sub',
       ':network-caching=3000',
       ':file-caching=3000',
       ':live-caching=3000',
@@ -740,7 +742,7 @@ export default function TvSerialsScreen({ onMoviePress, onDetailStateChange, onS
                       paused={!isPlaying}
                       muted={isMuted}
                       rate={playbackSpeed}
-                      resizeMode={contentFitMode === 'cover' ? 'cover' : 'contain'}
+                      resizeMode={contentFitMode}
                       style={StyleSheet.absoluteFill}
                       progressUpdateInterval={500}
                       showNowPlaying={false}
