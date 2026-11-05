@@ -245,6 +245,25 @@ export function getAudioRichnessScore(text) {
     return 1000;
 }
 
+/**
+ * Print Quality Ranking:
+ * - 1000: Pristine Disc Prints (BluRay, BDRip, BRRip, Remux)
+ * - 950: Pristine Digital Web Releases (WEB-DL, WEBDL, WEB DL, iTunes WEB, AMZN WEB, NF WEB)
+ * - 750: Good Digital Rips (WEBRip, WEB-Rip, HDRip, DVDRip)
+ * - 500: Standard / Unspecified Digital
+ * - 100: Old Theatre Prints (HDTC, HQ-HDTC, TC, TeleSync, Telesync)
+ * - 50: Old Camera / Screener Prints (HDCAM, HQ-HDCAM, CAMRip, CAM, PreDVD, DVDScr, SCR)
+ */
+export function getPrintQualityScore(text) {
+    const t = (text || '').toLowerCase();
+    if (/\b(hdcam|hq[-._]?hdcam|camrip|cam|predvd|pre[-._]?dvd|dvdscr|scr)\b/i.test(t)) return 50;
+    if (/\b(hdtc|hq[-._]?hdtc|tc|tele[-._]?sync|telesync)\b/i.test(t)) return 100;
+    if (/\b(bluray|bd[-._]?rip|brrip|remux)\b/i.test(t)) return 1000;
+    if (/\b(web[-._]?dl|webdl|itunes\s*web|amzn\s*web|netflix\s*web|hotstar\s*web)\b/i.test(t)) return 950;
+    if (/\b(web[-._]?rip|webrip|hdrip|dvdrip)\b/i.test(t)) return 750;
+    return 500;
+}
+
 export function sortBridgesByFidelity(bridges) {
     if (!bridges || !Array.isArray(bridges)) return [];
     const isZip = (b) => {
@@ -259,6 +278,12 @@ export function sortBridgesByFidelity(bridges) {
         else if (/\b(1080p|fhd)\b/i.test(text)) score += 250;
         else if (/\b(720p)\b/i.test(text)) score += 100;
         else if (/\b(480p)\b/i.test(text)) score += 50;
+
+        // Print Quality Priority: Clean WEB-DL / BluRay decisively beats old theatre/cam prints
+        const printScore = getPrintQualityScore(b.label || text);
+        if (printScore >= 950) score += 500000;
+        else if (printScore >= 750) score += 250000;
+        else if (printScore <= 100) score -= 500000;
 
         // Strict Audio Richness Priority: Multi Audio (Tamil, Telugu, Hindi, English, Malayalam, Kannada) decisively beats Dual Audio
         const tier = getAudioTier(b.label || text);
@@ -421,6 +446,16 @@ export class Movies4uClient {
                     if (hits.length === 0) {
                         continue;
                     }
+
+                    // Sort hits so newly updated and higher print quality (WEB-DL/BluRay) appear first
+                    hits.sort((a, b) => {
+                        const aPrint = getPrintQualityScore(a.post_title || '');
+                        const bPrint = getPrintQualityScore(b.post_title || '');
+                        if (aPrint !== bPrint) return bPrint - aPrint;
+                        const aId = parseInt(a.id || 0, 10);
+                        const bId = parseInt(b.id || 0, 10);
+                        return bId - aId;
+                    });
                     this.liveBaseUrl = mirror;
                     this.domainResolved = true;
                     return hits.map((hit) => {
@@ -549,6 +584,12 @@ export class Movies4uClient {
                     }
                 }
 
+                let maxPrintScore = 0;
+                for (const item of items) {
+                    const pScore = getPrintQualityScore(item.label || '');
+                    if (pScore > maxPrintScore) maxPrintScore = pScore;
+                }
+
                 const avgScore = totalScore / items.length;
                 const multiRatio = multiAudioCount / items.length;
 
@@ -564,6 +605,11 @@ export class Movies4uClient {
                 }
 
                 let compositeScore = 0;
+                // High print quality (WEB-DL / BluRay) decisively beats old theatre prints
+                if (maxPrintScore >= 950) compositeScore += 500000;
+                else if (maxPrintScore >= 750) compositeScore += 250000;
+                else if (maxPrintScore <= 100) compositeScore -= 500000;
+
                 if (overallTier === 1) compositeScore += 100000;
                 else if (overallTier === 2) compositeScore += 50000;
                 compositeScore += (multiRatio * 10000);
@@ -834,8 +880,14 @@ export class Movies4uClient {
             // Resolve all available qualities in parallel for maximum speed and complete quality availability
             const qualityPromises = Object.entries(qualityBuckets).map(async ([qKey, bucket]) => {
                 if (!bucket || bucket.length === 0) return null;
-                // Strictly prioritize Multi Audio (Tier 1) > Dual Audio / IMAX (Tier 2) > Single Audio (Tier 3)
+                // Strictly prioritize Clean Print (WEB-DL, BluRay) > Multi Audio (Tier 1) > Dual Audio / IMAX (Tier 2) > Single Audio (Tier 3)
                 const sortedBucket = [...bucket].sort((a, b) => {
+                    const aPrint = getPrintQualityScore(a.label || a.server || '');
+                    const bPrint = getPrintQualityScore(b.label || b.server || '');
+                    if (aPrint !== bPrint && (aPrint >= 700 || bPrint >= 700)) {
+                        return bPrint - aPrint;
+                    }
+
                     const aTier = a.audioTier ?? 3;
                     const bTier = b.audioTier ?? 3;
                     if (aTier !== bTier) return aTier - bTier;
@@ -890,6 +942,12 @@ export class Movies4uClient {
                 }
                 if (bucketCandidates.length > 0) {
                     bucketCandidates.sort((a, b) => {
+                        const aUrlPrint = getPrintQualityScore(decodeURIComponent(a.url || ''));
+                        const bUrlPrint = getPrintQualityScore(decodeURIComponent(b.url || ''));
+                        if (aUrlPrint !== bUrlPrint && (aUrlPrint >= 700 || bUrlPrint >= 700)) {
+                            return bUrlPrint - aUrlPrint;
+                        }
+
                         const aTier = a.audioTier ?? 3;
                         const bTier = b.audioTier ?? 3;
                         if (aTier !== bTier) return aTier - bTier; // Tier 1 Multi Audio always wins!

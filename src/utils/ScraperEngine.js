@@ -223,6 +223,25 @@ export function getAudioRichnessScore(text) {
 }
 
 /**
+ * Print Quality Ranking:
+ * - 1000: Pristine Disc Prints (BluRay, BDRip, BRRip, Remux)
+ * - 950: Pristine Digital Web Releases (WEB-DL, WEBDL, WEB DL, iTunes WEB, AMZN WEB, NF WEB)
+ * - 750: Good Digital Rips (WEBRip, WEB-Rip, HDRip, DVDRip)
+ * - 500: Standard / Unspecified Digital
+ * - 100: Old Theatre Prints (HDTC, HQ-HDTC, TC, TeleSync, Telesync)
+ * - 50: Old Camera / Screener Prints (HDCAM, HQ-HDCAM, CAMRip, CAM, PreDVD, DVDScr, SCR)
+ */
+function getPrintQualityScore(text) {
+  const t = (text || '').toLowerCase();
+  if (/\b(hdcam|hq[-._]?hdcam|camrip|cam|predvd|pre[-._]?dvd|dvdscr|scr)\b/i.test(t)) return 50;
+  if (/\b(hdtc|hq[-._]?hdtc|tc|tele[-._]?sync|telesync)\b/i.test(t)) return 100;
+  if (/\b(bluray|bd[-._]?rip|brrip|remux)\b/i.test(t)) return 1000;
+  if (/\b(web[-._]?dl|webdl|itunes\s*web|amzn\s*web|netflix\s*web|hotstar\s*web)\b/i.test(t)) return 950;
+  if (/\b(web[-._]?rip|webrip|hdrip|dvdrip)\b/i.test(t)) return 750;
+  return 500;
+}
+
+/**
  * Intelligent Media & Title Matching Scorer
  * Evaluates Token overlap, Candidate coverage, Release Year, Media Type (Movie vs TV Series), TV Season Number, and Multi-Audio
  */
@@ -242,6 +261,17 @@ function calculateTitleMatchScore(
   const cleanCandidate = normalizeNumbers(cleanTitleKeywords(candidateTitle));
 
   if (!normTarget || !normCandidate) return 0.0;
+
+  // Print Quality multiplier: clean digital print (WEB-DL, BluRay) decisively beats old theatre prints (HDTC, HDCAM, CAM)
+  const printScore = getPrintQualityScore(candidateTitle);
+  let printMultiplier = 1.0;
+  if (printScore >= 950) {
+    printMultiplier = 1.25; // 25% bonus for WEB-DL / BluRay
+  } else if (printScore >= 750) {
+    printMultiplier = 1.1; // 10% bonus for WEBRip / HDRip
+  } else if (printScore <= 100) {
+    printMultiplier = 0.55; // 45% penalty for HDTC / CAM / PreDVD / TeleSync old print
+  }
 
   // Audio richness priority (Multi-Audio with Tamil, Telugu, Hindi, English prioritized over Dual Audio)
   const audioScore = getAudioRichnessScore(candidateTitle);
@@ -304,7 +334,7 @@ function calculateTitleMatchScore(
 
   // 1. Exact string match (strong bonus so exact titles decisively beat partials)
   if (normTarget === normCandidate || cleanTarget === cleanCandidate) {
-    return 2.0 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier;
+    return 2.0 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier;
   }
 
   const targetTokens = cleanTarget.split(' ').filter(t => t.length > 0);
@@ -329,7 +359,7 @@ function calculateTitleMatchScore(
   const compareTargetTokens = filteredTargetTokens.length > 0 ? filteredTargetTokens : targetTokens;
 
   if (compareTargetTokens.length === filteredCandidateTokens.length && compareTargetTokens.every((t, i) => t === filteredCandidateTokens[i])) {
-    return 1.8 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier;
+    return 1.8 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier;
   }
 
   // 3. Target Token Recall: What portion of target words appear in candidate
@@ -356,7 +386,7 @@ function calculateTitleMatchScore(
     (filteredCandidateTokens.length >= compareTargetTokens.length && compareTargetTokens.every((t, i) => t === filteredCandidateTokens[i]));
 
   if (targetRecall === 1.0 && isTargetPrefix && yearMultiplier >= 1.0) {
-    return Math.min(1.85, (1.2 + candidatePrecision * 0.4) * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier);
+    return Math.min(1.85, (1.2 + candidatePrecision * 0.4) * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier);
   }
 
   // Severe penalty for single-word targets (like "From") when candidate has extra non-meta words ("The Girl From Plainville", "Agent from Above")
@@ -370,7 +400,7 @@ function calculateTitleMatchScore(
     baseScore *= 0.4; // Strong penalty if target word appears in the middle of an unrelated title
   }
   // Cap partial matches at 0.98 so exact/core matches (>1.0) always take priority
-  return Math.min(0.98, baseScore * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier);
+  return Math.min(0.98, baseScore * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier);
 }
 
 /**
@@ -3173,6 +3203,7 @@ export {
   UniversalScraper,
   calculateTitleMatchScore,
   findBestMatch,
+  getPrintQualityScore,
   normalizeString,
   cleanTitleKeywords,
   parseMediaBridges,

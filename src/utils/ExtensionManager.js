@@ -9,7 +9,8 @@ import {
   cleanTitleKeywords, 
   normalizeString,
   getAudioTier,
-  getAudioRichnessScore
+  getAudioRichnessScore,
+  getPrintQualityScore
 } from './ScraperEngine.js';
 
 import { TamilDhool } from '../providers/tamildhool/index.js';
@@ -222,41 +223,61 @@ class ExtensionManagerService {
       }
     }
 
+    // 1. Strict Print Quality Elimination: If any candidate matches have a clean digital/disc print (WEB-DL, BluRay, WEBRip),
+    // strictly eliminate old theatre/cam prints (HDTC, HDCAM, CAM, PreDVD, TeleSync)
+    const hasCleanDigitalPrint = allMatches.some(m => getPrintQualityScore(m.match?.title) >= 700);
+    if (hasCleanDigitalPrint) {
+      const beforeCount = allMatches.length;
+      allMatches = allMatches.filter(m => getPrintQualityScore(m.match?.title) >= 500);
+      if (allMatches.length < beforeCount) {
+        console.log(`[ExtensionManager] 🎬 Filtered out ${beforeCount - allMatches.length} old theatre/cam print(s) in favor of newly updated clean WEB-DL/BluRay print.`);
+      }
+    }
+
     allMatches.sort((a, b) => {
+      const aPrint = getPrintQualityScore(a.match?.title || '');
+      const bPrint = getPrintQualityScore(b.match?.title || '');
       const aAudio = getAudioRichnessScore(a.match?.title || '');
       const bAudio = getAudioRichnessScore(b.match?.title || '');
       const aTier = getAudioTier(a.match?.title || '');
       const bTier = getAudioTier(b.match?.title || '');
 
-      // Server 3 (Movies4u): When candidate match scores are close (within 0.35),
-      // prioritize Multi Audio or Indian languages (Hindi, Tamil, Telugu, English, Malayalam, Kannada),
-      // then Dual Audio (e.g. Hindi English), then single audio.
+      // 1. Print Quality Priority: Clean WEB-DL / BluRay decisively beats inferior prints
+      if (aPrint !== bPrint && (aPrint >= 700 || bPrint >= 700)) {
+        return bPrint - aPrint;
+      }
+
+      // 2. Audio fidelity & richness priority
       if (activeProvider === 'movies4u') {
         if (Math.abs(a.matchScore - b.matchScore) < 0.35) {
           if (aTier !== bTier) {
-            return aTier - bTier; // Tier 1 < Tier 2 < Tier 3
+            return aTier - bTier;
           }
           if (aAudio !== bAudio) {
             return bAudio - aAudio;
           }
         }
-        return b.matchScore - a.matchScore;
+      } else {
+        if (Math.abs(a.matchScore - b.matchScore) < 0.25 && aAudio !== bAudio) {
+          return bAudio - aAudio;
+        }
       }
 
-      // Default providers (HDHub4u, 4KHDHub): Audio richness priority when match scores are close
-      if (Math.abs(a.matchScore - b.matchScore) < 0.25 && aAudio !== bAudio) {
-        return bAudio - aAudio;
+      // 3. Newest post priority when print quality and audio tier are equal
+      const aId = parseInt(a.match?.id || 0, 10);
+      const bId = parseInt(b.match?.id || 0, 10);
+      if (bId && aId && bId !== aId && Math.abs(a.matchScore - b.matchScore) < 0.20) {
+        return bId - aId; // Higher ID = newly updated post
       }
+
       return b.matchScore - a.matchScore;
     });
 
-    // Strict Server 1 (HDHub4u) & Server 2 (4KHDHub) rule: If both WEB-DL and WEBRip are available, consider ONLY WEB-DL
-    if (activeProvider === 'hdhub4u' || activeProvider === '4khdhub') {
-      const isDl = (m) => /\bweb[-._]?dl\b/i.test(m.match?.title || '');
-      const isRipOnly = (m) => /\b(?:web[-._]?rip|webrip)\b/i.test(m.match?.title || '') && !isDl(m);
-      if (allMatches.some(isDl) && allMatches.some(isRipOnly)) {
-        allMatches = allMatches.filter(m => !isRipOnly(m));
-      }
+    // If both WEB-DL and WEBRip are available across all providers, prioritize WEB-DL
+    const isDl = (m) => /\bweb[-._]?dl\b/i.test(m.match?.title || '');
+    const isRipOnly = (m) => /\b(?:web[-._]?rip|webrip)\b/i.test(m.match?.title || '') && !isDl(m);
+    if (allMatches.some(isDl) && allMatches.some(isRipOnly)) {
+      allMatches = allMatches.filter(m => !isRipOnly(m));
     }
 
     return allMatches;
