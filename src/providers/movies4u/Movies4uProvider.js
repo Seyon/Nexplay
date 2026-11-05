@@ -283,8 +283,8 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
  * Optimized for Android Media3 ExoPlayer & Stitch-Nexplay Integration
  */
 export class Movies4uClient {
-    liveBaseUrl = 'https://new4.movies4u.garden';
-    mirrors = ['https://new4.movies4u.garden', 'https://new3.movies4u.garden', 'https://movies4u.foo'];
+    liveBaseUrl = 'https://new5.movies4u.garden';
+    mirrors = ['https://new5.movies4u.garden', 'https://new3.movies4u.garden', 'https://movies4u.foo'];
     domainResolved = false;
     constructor(customBaseUrl) {
         if (customBaseUrl) {
@@ -362,7 +362,7 @@ export class Movies4uClient {
                     redirect: 'follow',
                     headers: { 'User-Agent': DEFAULT_USER_AGENT }
                 });
-                if (res.url && !res.url.includes('tinyurl.com')) {
+                if (res.url && !res.url.includes('tinyurl.com') && !res.url.includes('google.com')) {
                     const resolvedOrigin = new URL(res.url).origin;
                     this.liveBaseUrl = resolvedOrigin;
                     this.domainResolved = true;
@@ -377,7 +377,7 @@ export class Movies4uClient {
         catch (e) {
             console.warn('[Movies4u] Note resolving live domain from movies4u.foo:', e?.message || e);
         }
-        this.liveBaseUrl = 'https://new4.movies4u.garden';
+        this.liveBaseUrl = 'https://new5.movies4u.garden';
         this.domainResolved = true;
         return this.liveBaseUrl;
     }
@@ -399,9 +399,9 @@ export class Movies4uClient {
             baseUrl,
             this.liveBaseUrl,
             ...this.mirrors,
-            'https://new4.movies4u.garden',
+            'https://new5.movies4u.garden',
             'https://new3.movies4u.garden'
-        ])).map(m => (m || '').replace(/\/+$/, '')).filter(Boolean);
+        ])).map(m => (m || '').replace(/\/+$/, '')).filter(m => m && !m.includes('new4.movies4u.garden'));
 
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
 
@@ -429,7 +429,7 @@ export class Movies4uClient {
                         const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
                         const isSeries = /\b(?:season|s\d+|series|episodes?)\b/i.test(rawTitle);
                         const permalink = hit.permalink?.startsWith('http')
-                            ? hit.permalink.replace(/new[1-8]\.movies4u\.clinic/g, 'new1.movies4u.garden')
+                            ? hit.permalink.replace(/new[1-8]\.movies4u\.(clinic|garden)/g, 'new5.movies4u.garden')
                             : `${mirror}${hit.permalink?.startsWith('/') ? '' : '/'}${hit.permalink || ''}`;
                         return {
                             id: String(hit.id || ''),
@@ -458,7 +458,7 @@ export class Movies4uClient {
      */
     async extractDetails(pageUrl, targetSeason = 1, customHttpGet) {
         const baseUrl = await this.resolveLiveDomain(customHttpGet);
-        let cleanPageUrl = (pageUrl || '').replace(/new[1-8]\.movies4u\.clinic/g, 'new1.movies4u.garden');
+        let cleanPageUrl = (pageUrl || '').replace(/new[1-8]\.movies4u\.(clinic|garden)/g, 'new5.movies4u.garden');
         const targetUrl = cleanPageUrl.startsWith('http') ? cleanPageUrl : `${baseUrl}/${cleanPageUrl.replace(/^\/+/, '')}`;
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
         const html = await fetcher(targetUrl, {

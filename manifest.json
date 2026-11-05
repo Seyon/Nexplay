@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.3",
-  "updatedAt": "2026-11-04T03:53:42.081Z",
+  "version": "1.1.4",
+  "updatedAt": "2026-11-05T05:51:50.000Z",
   "commitSha": "ab5ac8e",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
@@ -55,15 +55,15 @@
       "name": "Server 3 (Movies4u)",
       "enabled": true,
       "priority": 3,
-      "baseUrl": "https://new4.movies4u.garden",
+      "baseUrl": "https://new5.movies4u.garden",
       "mirrors": [
-        "https://new4.movies4u.garden",
+        "https://new5.movies4u.garden",
         "https://new3.movies4u.garden",
         "https://movies4u.foo"
       ],
       "headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://new4.movies4u.garden/"
+        "Referer": "https://new5.movies4u.garden/"
       },
       "features": {
         "movieResolution": true,
@@ -157,6 +157,7 @@
     ]
   },
   "changeLog": [
+    "Updated Server 3 (Movies4u) domain to https://new5.movies4u.garden/ with active mirrors",
     "Updated Server 1 (HDHub4u) domain to https://new10.hdhub4u.cl/ and Server 3 (Movies4u) domain to https://new4.movies4u.garden/",
     "Updated Server 1 (HDHub4u) baseUrl to new3.hdhub4u.free with active mirrors (hdhub4u.pro, hdhub4u.bi, hdhub4u.tv)",
     "Updated Server 3 (Movies4u) baseUrl to new1.movies4u.garden with active mirrors (new3.movies4u.garden, movies4u.foo, movies4u.vip)",
