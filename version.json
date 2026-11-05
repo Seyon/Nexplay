@@ -1,15 +1,23 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 34,
+  "patch": 35,
   "issue": 0,
-  "build": 187,
+  "build": 188,
   "updateType": "patch",
   "timestamp": "20261104",
-  "versionName": "1.8.34.0.187-patch.20261104",
-  "versionCode": 2140187,
-  "lastSuccessfulBuild": "2026-11-05T06:00:02.388Z",
+  "versionName": "1.8.35.0.188-patch.20261104",
+  "versionCode": 2150188,
+  "lastSuccessfulBuild": "2026-11-05T06:27:57.677Z",
   "history": [
+    {
+      "versionName": "1.8.35.0.188-patch.20261104",
+      "versionCode": 2150188,
+      "updateType": "patch",
+      "build": 188,
+      "note": "Prioritize newly updated clean WEB-DL/BluRay prints over old theatre/cam prints across all providers",
+      "builtAt": "2026-11-05T06:27:57.677Z"
+    },
     {
       "versionName": "1.8.34.0.187-patch.20261104",
       "versionCode": 2140187,
@@ -401,14 +409,6 @@
       "build": 139,
       "note": "Live TV & Serials UI overhaul, TMDB key validation & persistence, aligned navbar",
       "builtAt": "2026-10-06T13:16:08.070Z"
-    },
-    {
-      "versionName": "1.7.13.0.138-patch.20260928",
-      "versionCode": 1830138,
-      "updateType": "patch",
-      "build": 138,
-      "note": "TMDB API Key prompt, Donation modal & Account Key Management",
-      "builtAt": "2026-09-28T17:37:41.042Z"
     }
   ]
 }
