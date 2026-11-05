@@ -615,54 +615,34 @@ class VLCPlayerView(context: ThemedReactContext) :
             when (resizeMode) {
                 "stretch" -> {
                     // Stretches to fill view without preserving aspect ratio
+                    player.scale = 0f
+                    player.aspectRatio = if (videoWidth > 0 && videoHeight > 0) "$videoWidth:$videoHeight" else null
                     setTransform(null)
                 }
                 "cover", "fill" -> {
+                    // Zoom to fill (crop): scale both axes uniformly around center to preserve natural aspect ratio
+                    player.scale = 0f
+                    player.aspectRatio = null
                     if (fw > 0 && fh > 0) {
                         val viewRatio = videoWidth.toFloat() / videoHeight.toFloat()
                         val videoRatio = fw.toFloat() / fh.toFloat()
-                        var scaleX = 1f
-                        var scaleY = 1f
-                        if (videoRatio > viewRatio) {
-                            scaleX = videoRatio / viewRatio
-                        } else {
-                            scaleY = viewRatio / videoRatio
-                        }
-                        matrix.setScale(scaleX, scaleY, videoWidth / 2f, videoHeight / 2f)
+                        val zoom = if (videoRatio > viewRatio) videoRatio / viewRatio else viewRatio / videoRatio
+                        matrix.setScale(zoom, zoom, videoWidth / 2f, videoHeight / 2f)
                         setTransform(matrix)
                     } else {
                         setTransform(null)
                     }
                 }
                 "center", "none", "original" -> {
-                    if (fw > 0 && fh > 0) {
-                        val scaleX = fw.toFloat() / videoWidth.toFloat()
-                        val scaleY = fh.toFloat() / videoHeight.toFloat()
-                        matrix.setScale(scaleX, scaleY, videoWidth / 2f, videoHeight / 2f)
-                        setTransform(matrix)
-                    } else {
-                        setTransform(null)
-                    }
+                    player.scale = 1f
+                    player.aspectRatio = null
+                    setTransform(null)
                 }
-                // contain / fit / default provider ratio (strictly preserve provider aspect ratio, letterbox/pillarbox without stretching)
+                // contain / fit / default provider ratio: strictly preserve natural aspect ratio without extra matrix squeezing
                 else -> {
-                    if (fw > 0 && fh > 0) {
-                        val viewRatio = videoWidth.toFloat() / videoHeight.toFloat()
-                        val videoRatio = fw.toFloat() / fh.toFloat()
-                        var scaleX = 1f
-                        var scaleY = 1f
-                        if (videoRatio > viewRatio) {
-                            // Video is wider than view -> letterbox top/bottom
-                            scaleY = viewRatio / videoRatio
-                        } else {
-                            // Video is narrower than view -> pillarbox left/right
-                            scaleX = videoRatio / viewRatio
-                        }
-                        matrix.setScale(scaleX, scaleY, videoWidth / 2f, videoHeight / 2f)
-                        setTransform(matrix)
-                    } else {
-                        setTransform(null)
-                    }
+                    player.scale = 0f
+                    player.aspectRatio = null
+                    setTransform(null)
                 }
             }
             invalidate()
@@ -1048,9 +1028,6 @@ class VLCPlayerView(context: ThemedReactContext) :
                 vout.attachViews(newVideoLayoutListener)
             }
             vout.setWindowSize(width, height)
-            if (autoAspectRatio) {
-                player.aspectRatio = "$width:$height"
-            }
             applyResizeMode()
 
             if (!player.isPlaying && player.time > 0) {
@@ -1079,9 +1056,6 @@ class VLCPlayerView(context: ThemedReactContext) :
             videoHeight = height
             mediaPlayer?.let { player ->
                 player.vlcVout.setWindowSize(width, height)
-                if (autoAspectRatio) {
-                    player.aspectRatio = "$width:$height"
-                }
                 applyResizeMode()
             }
             post {
