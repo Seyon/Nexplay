@@ -1069,7 +1069,6 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       ':file-caching=2000',
       ':live-caching=2000',
       ':http-reconnect=true',
-      ':http-continuous=1',
       ':no-sub-autodetect-file',
       ':no-stats'
     ];
@@ -1090,7 +1089,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       uri: currentSourceUri,
       isNetwork: true,
       autoplay: true,
-      hwDecoderEnabled: VLCHardwareDecoder?.Automatic ?? -1,
+      hwDecoderEnabled: VLCHardwareDecoder?.Full ?? 2,
       mediaOptions,
       initOptions
     };

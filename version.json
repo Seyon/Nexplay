@@ -1,15 +1,23 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 39,
+  "patch": 40,
   "issue": 0,
-  "build": 192,
+  "build": 193,
   "updateType": "patch",
   "timestamp": "20261105",
-  "versionName": "1.8.39.0.192-patch.20261105",
-  "versionCode": 2190192,
-  "lastSuccessfulBuild": "2026-11-06T01:35:11.761Z",
+  "versionName": "1.8.40.0.193-patch.20261105",
+  "versionCode": 2200193,
+  "lastSuccessfulBuild": "2026-11-06T01:57:20.547Z",
   "history": [
+    {
+      "versionName": "1.8.40.0.193-patch.20261105",
+      "versionCode": 2200193,
+      "updateType": "patch",
+      "build": 193,
+      "note": "Fix black screen with hardware decoding and clean mediaOptions",
+      "builtAt": "2026-11-06T01:57:20.547Z"
+    },
     {
       "versionName": "1.8.39.0.192-patch.20261105",
       "versionCode": 2190192,
@@ -401,14 +409,6 @@
       "build": 144,
       "note": "Added Server 5 Netmirror, fixed Server 2 4KHDHub streams, reordered servers, removed download section",
       "builtAt": "2026-10-10T16:33:15.141Z"
-    },
-    {
-      "versionName": "1.7.17.2.143-bugfix.20261007",
-      "versionCode": 1870143,
-      "updateType": "bugfix",
-      "build": 143,
-      "note": "Fix Server 4 black screen and seek loading",
-      "builtAt": "2026-10-07T18:07:33.009Z"
     }
   ]
 }
