@@ -1069,10 +1069,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       ':file-caching=2000',
       ':live-caching=2000',
       ':http-reconnect=true',
-      ':clock-jitter=0',
-      ':clock-synchro=0',
-      ':drop-late-frames',
-      ':skip-frames',
+      ':http-continuous=1',
       ':no-sub-autodetect-file',
       ':no-stats'
     ];
@@ -1093,7 +1090,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       uri: currentSourceUri,
       isNetwork: true,
       autoplay: true,
-      hwDecoderEnabled: VLCHardwareDecoder?.Full ?? 2,
+      hwDecoderEnabled: VLCHardwareDecoder?.Automatic ?? -1,
       mediaOptions,
       initOptions
     };
@@ -2282,6 +2279,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             volume={isMuted ? 0 : Math.round(volumeLevel * 100)}
             rate={playbackSpeed || 1.0}
             resizeMode={contentFitMode}
+            autoAspectRatio={false}
             style={StyleSheet.absoluteFill}
             progressUpdateInterval={500}
             showNowPlaying={false}

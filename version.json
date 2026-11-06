@@ -1,15 +1,23 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 38,
+  "patch": 39,
   "issue": 0,
-  "build": 191,
+  "build": 192,
   "updateType": "patch",
   "timestamp": "20261105",
-  "versionName": "1.8.38.0.191-patch.20261105",
-  "versionCode": 2180191,
-  "lastSuccessfulBuild": "2026-11-06T01:07:37.030Z",
+  "versionName": "1.8.39.0.192-patch.20261105",
+  "versionCode": 2190192,
+  "lastSuccessfulBuild": "2026-11-06T01:35:11.761Z",
   "history": [
+    {
+      "versionName": "1.8.39.0.192-patch.20261105",
+      "versionCode": 2190192,
+      "updateType": "patch",
+      "build": 192,
+      "note": "Restore automatic HW decoder and enforce default video aspect ratio",
+      "builtAt": "2026-11-06T01:35:11.761Z"
+    },
     {
       "versionName": "1.8.38.0.191-patch.20261105",
       "versionCode": 2180191,
@@ -401,14 +409,6 @@
       "build": 143,
       "note": "Fix Server 4 black screen and seek loading",
       "builtAt": "2026-10-07T18:07:33.009Z"
-    },
-    {
-      "versionName": "1.7.17.0.142-patch.20261007",
-      "versionCode": 1870142,
-      "updateType": "patch",
-      "build": 142,
-      "note": "Server 5 (Netmirror) direct TMDB-based scraper integration",
-      "builtAt": "2026-10-07T15:20:00.000Z"
     }
   ]
 }

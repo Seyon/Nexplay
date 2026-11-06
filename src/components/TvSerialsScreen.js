@@ -621,7 +621,7 @@ export default function TvSerialsScreen({ onMoviePress, onDetailStateChange, onS
 
     return {
       uri: playUri,
-      hwDecoderEnabled: VLCHardwareDecoder?.Full ?? 2,
+      hwDecoderEnabled: VLCHardwareDecoder?.Automatic ?? -1,
       mediaOptions,
       initOptions
     };
@@ -743,6 +743,7 @@ export default function TvSerialsScreen({ onMoviePress, onDetailStateChange, onS
                       muted={isMuted}
                       rate={playbackSpeed}
                       resizeMode={contentFitMode}
+                      autoAspectRatio={false}
                       style={StyleSheet.absoluteFill}
                       progressUpdateInterval={500}
                       showNowPlaying={false}
