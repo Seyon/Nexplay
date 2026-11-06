@@ -185,7 +185,12 @@ class VLCPlayerView(context: ThemedReactContext) :
 
     private val eventListener = MediaPlayer.EventListener { event ->
         when (event.type) {
-            MediaPlayer.Event.TimeChanged -> if (progressIntervalMs <= 0) progressChanged()
+            MediaPlayer.Event.TimeChanged -> {
+                if (progressIntervalMs <= 0) progressChanged()
+                if (frameWidth <= 0 || frameHeight <= 0) {
+                    updateFrameSizeFromMedia()
+                }
+            }
             MediaPlayer.Event.EndReached -> {
                 if (repeat) {
                     mediaPlayer?.let { it.time = 0L; it.play() }
@@ -208,6 +213,15 @@ class VLCPlayerView(context: ThemedReactContext) :
                     putBoolean("isBuffering", false)
                     emit("onBuffer", this)
                 }
+            }
+            MediaPlayer.Event.Vout -> {
+                updateFrameSizeFromMedia()
+            }
+            MediaPlayer.Event.ESAdded -> {
+                updateFrameSizeFromMedia()
+            }
+            MediaPlayer.Event.ESSelected -> {
+                updateFrameSizeFromMedia()
             }
             MediaPlayer.Event.Opening -> {
                 val player = mediaPlayer
@@ -264,9 +278,11 @@ class VLCPlayerView(context: ThemedReactContext) :
             if (sarNum > 0 && sarDen > 0 && sarNum != sarDen) {
                 w = Math.round(w.toFloat() * sarNum.toFloat() / sarDen.toFloat())
             }
-            frameWidth = w
-            frameHeight = h
-            mainHandler.post { applyResizeMode() }
+            if (w > 0 && h > 0 && (frameWidth != w || frameHeight != h)) {
+                frameWidth = w
+                frameHeight = h
+                mainHandler.post { applyResizeMode() }
+            }
         }
     }
 
@@ -305,6 +321,8 @@ class VLCPlayerView(context: ThemedReactContext) :
 
     private fun createPlayer(autoplay: Boolean) {
         releasePlayer()
+        frameWidth = 0
+        frameHeight = 0
         val surfaceTexture = this.surfaceTexture ?: savedSurfaceTexture ?: return
         savedSurfaceTexture = surfaceTexture
         val src = srcMap ?: return
@@ -560,6 +578,23 @@ class VLCPlayerView(context: ThemedReactContext) :
     // decoded frame size from the media's video track to drive cover / center.
     private fun updateFrameSizeFromMedia() {
         val player = mediaPlayer ?: return
+        try {
+            val curTrack = player.currentVideoTrack
+            if (curTrack != null && curTrack.width > 0 && curTrack.height > 0) {
+                var w = curTrack.width
+                var h = curTrack.height
+                if (curTrack.sarNum > 0 && curTrack.sarDen > 0 && curTrack.sarNum != curTrack.sarDen) {
+                    w = Math.round(w.toFloat() * curTrack.sarNum.toFloat() / curTrack.sarDen.toFloat())
+                }
+                if (w > 0 && h > 0 && (frameWidth != w || frameHeight != h)) {
+                    frameWidth = w
+                    frameHeight = h
+                    mainHandler.post { applyResizeMode() }
+                    return
+                }
+            }
+        } catch (_: Exception) {}
+
         val media = player.media ?: return
         val count = media.trackCount
         if (count <= 0) return
@@ -572,9 +607,11 @@ class VLCPlayerView(context: ThemedReactContext) :
                     if (t.sarNum > 0 && t.sarDen > 0 && t.sarNum != t.sarDen) {
                         w = Math.round(w.toFloat() * t.sarNum.toFloat() / t.sarDen.toFloat())
                     }
-                    frameWidth = w
-                    frameHeight = h
-                    mainHandler.post { applyResizeMode() }
+                    if (w > 0 && h > 0 && (frameWidth != w || frameHeight != h)) {
+                        frameWidth = w
+                        frameHeight = h
+                        mainHandler.post { applyResizeMode() }
+                    }
                 }
                 break
             }
@@ -587,6 +624,22 @@ class VLCPlayerView(context: ThemedReactContext) :
             if (videoWidth <= 0 || videoHeight <= 0) return@post
             var fw = frameWidth
             var fh = frameHeight
+            if (fw <= 0 || fh <= 0) {
+                try {
+                    val curTrack = player.currentVideoTrack
+                    if (curTrack != null && curTrack.width > 0 && curTrack.height > 0) {
+                        var w = curTrack.width
+                        var h = curTrack.height
+                        if (curTrack.sarNum > 0 && curTrack.sarDen > 0 && curTrack.sarNum != curTrack.sarDen) {
+                            w = Math.round(w.toFloat() * curTrack.sarNum.toFloat() / curTrack.sarDen.toFloat())
+                        }
+                        fw = w
+                        fh = h
+                        frameWidth = fw
+                        frameHeight = fh
+                    }
+                } catch (_: Exception) {}
+            }
             if (fw <= 0 || fh <= 0) {
                 val media = player.media
                 if (media != null) {
@@ -607,9 +660,6 @@ class VLCPlayerView(context: ThemedReactContext) :
                     }
                 }
             }
-
-            player.scale = 0f
-            player.aspectRatio = null
 
             val matrix = Matrix()
             when (resizeMode) {
@@ -636,13 +686,38 @@ class VLCPlayerView(context: ThemedReactContext) :
                 "center", "none", "original" -> {
                     player.scale = 1f
                     player.aspectRatio = null
-                    setTransform(null)
+                    if (fw > 0 && fh > 0) {
+                        val scaleX = fw.toFloat() / videoWidth.toFloat()
+                        val scaleY = fh.toFloat() / videoHeight.toFloat()
+                        matrix.setScale(scaleX, scaleY, videoWidth / 2f, videoHeight / 2f)
+                        setTransform(matrix)
+                    } else {
+                        setTransform(null)
+                    }
                 }
-                // contain / fit / default provider ratio: strictly preserve natural aspect ratio without extra matrix squeezing
+                // contain / fit / default provider ratio: strictly preserve natural aspect ratio, automatically detecting screen size
                 else -> {
                     player.scale = 0f
                     player.aspectRatio = null
-                    setTransform(null)
+                    if (fw > 0 && fh > 0) {
+                        val viewRatio = videoWidth.toFloat() / videoHeight.toFloat()
+                        val videoRatio = fw.toFloat() / fh.toFloat()
+                        var scaleX = 1f
+                        var scaleY = 1f
+                        if (videoRatio > viewRatio) {
+                            // Video is wider than screen (e.g. CinemaScope 2.39:1 on 16:9 or 2.2:1 screen)
+                            // Letterbox top and bottom: shrink Y to fit screen width
+                            scaleY = viewRatio / videoRatio
+                        } else {
+                            // Video is narrower than screen (e.g. 16:9 on ultra-wide 20:9 phone, or 4:3 on 16:9 screen)
+                            // Pillarbox left and right: shrink X to fit screen height
+                            scaleX = videoRatio / viewRatio
+                        }
+                        matrix.setScale(scaleX, scaleY, videoWidth / 2f, videoHeight / 2f)
+                        setTransform(matrix)
+                    } else {
+                        setTransform(null)
+                    }
                 }
             }
             invalidate()

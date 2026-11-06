@@ -194,8 +194,18 @@ try {
         exit 0
     }
 
+    $processedSerials = @{}
     foreach ($devLine in $deviceLines) {
         $devId = ($devLine -split '\tdevice')[0].Trim()
+        if (-not $devId) { continue }
+        $roSerial = (adb -s "$devId" shell getprop ro.serialno 2>$null)
+        if ($roSerial) { $roSerial = $roSerial.Trim() }
+        $dedupKey = if ($roSerial) { $roSerial } else { $devId }
+        if ($processedSerials.ContainsKey($dedupKey)) {
+            Write-Host "Device $devId ($dedupKey) already processed. Skipping duplicate connection." -ForegroundColor DarkGray
+            continue
+        }
+        $processedSerials[$dedupKey] = $true
         Write-Host "Connected Device Found: $devId" -ForegroundColor Green
 
         # Check device CPU ABI

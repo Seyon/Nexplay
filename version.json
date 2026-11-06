@@ -1,15 +1,31 @@
 {
   "major": 1,
   "minor": 8,
-  "patch": 36,
+  "patch": 38,
   "issue": 0,
-  "build": 189,
+  "build": 191,
   "updateType": "patch",
   "timestamp": "20261105",
-  "versionName": "1.8.36.0.189-patch.20261105",
-  "versionCode": 2160189,
-  "lastSuccessfulBuild": "2026-11-05T18:01:12.272Z",
+  "versionName": "1.8.38.0.191-patch.20261105",
+  "versionCode": 2180191,
+  "lastSuccessfulBuild": "2026-11-06T01:07:37.030Z",
   "history": [
+    {
+      "versionName": "1.8.38.0.191-patch.20261105",
+      "versionCode": 2180191,
+      "updateType": "patch",
+      "build": 191,
+      "note": "Auto-detect screen size and strictly play native video aspect ratio",
+      "builtAt": "2026-11-06T01:07:37.030Z"
+    },
+    {
+      "versionName": "1.8.37.0.190-patch.20261105",
+      "versionCode": 2170190,
+      "updateType": "patch",
+      "build": 190,
+      "note": "Fix VLC player aspect ratio horizontal squish and black side bars on contain mode",
+      "builtAt": "2026-11-05T18:38:45.191Z"
+    },
     {
       "versionName": "1.8.36.0.189-patch.20261105",
       "versionCode": 2160189,
@@ -393,22 +409,6 @@
       "build": 142,
       "note": "Server 5 (Netmirror) direct TMDB-based scraper integration",
       "builtAt": "2026-10-07T15:20:00.000Z"
-    },
-    {
-      "versionName": "1.7.16.0.141-patch.20261006",
-      "versionCode": 1860141,
-      "updateType": "patch",
-      "build": 141,
-      "note": "Ultra low-latency VLC playback and parallel scraper acceleration",
-      "builtAt": "2026-10-06T15:10:15.709Z"
-    },
-    {
-      "versionName": "1.7.15.0.140-patch.20261006",
-      "versionCode": 1850140,
-      "updateType": "patch",
-      "build": 140,
-      "note": "Server 4 (111477) direct scraper integration",
-      "builtAt": "2026-10-06T14:33:27.671Z"
     }
   ]
 }
