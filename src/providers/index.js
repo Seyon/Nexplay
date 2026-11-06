@@ -13,7 +13,7 @@
 import { HDHub4u, HDHub4uClient } from './hdhub4u/index.js';
 import { FourKHDHub, FourKHDHubClient } from './4khdhub/index.js';
 import { Movies4u, Movies4uClient, unpack } from './movies4u/index.js';
-import { Net79, Net79Client } from './net79/index.js';
+import { AnimeSalt, AnimeSaltClient } from './animesalt/index.js';
 
 import { 
   TamilDhool, 
@@ -31,8 +31,8 @@ import {
 import { parseDateInput } from './common/index.js';
 
 export {
-  Net79,
-  Net79Client,
+  AnimeSalt,
+  AnimeSaltClient,
   HDHub4u,
   HDHub4uClient,
   FourKHDHub,
@@ -77,13 +77,13 @@ export const PROVIDERS = {
     client: Movies4u,
     type: 'movies_and_shows'
   },
-  net79: {
-    id: 'net79',
-    name: 'Server 4 (Net79 Direct Stream)',
-    short: 'Net79',
+  animesalt: {
+    id: 'animesalt',
+    name: 'Server 4 (AnimeSalt.cx)',
+    short: 'AnimeSalt',
     serverNumber: 4,
-    client: Net79,
-    type: 'all_in_one'
+    client: AnimeSalt,
+    type: 'anime_series_and_movies'
   },
   tamildhool: {
     id: 'tamildhool',
@@ -105,14 +105,14 @@ export const PROVIDERS = {
 
 /**
  * Get provider instance by ID string or server number
- * @param {string|number} identifier e.g. 'movies4u', 3, '3', 'hdhub4u', 1, 'net79'
+ * @param {string|number} identifier e.g. 'movies4u', 3, '3', 'hdhub4u', 1, 'animesalt', 4
  * @returns {object|null}
  */
 export function getProviderById(identifier) {
   if (!identifier) return null;
   const str = String(identifier).toLowerCase().trim();
   
-  if (str === '0' || str === 'net79' || str === 'allinone') return PROVIDERS.net79;
+  if (str === '4' || str === 'animesalt' || str === 'anime') return PROVIDERS.animesalt;
   if (str === '1' || str === 'hdhub4u') return PROVIDERS.hdhub4u;
   if (str === '2' || str === '4khdhub') return PROVIDERS['4khdhub'];
   if (str === '3' || str === 'movies4u') return PROVIDERS.movies4u;

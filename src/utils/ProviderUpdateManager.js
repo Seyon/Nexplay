@@ -12,7 +12,7 @@
 
 import { HDHub4u, FourKHDHub, UniversalScraper } from './ScraperEngine.js';
 import { Movies4u } from './Movies4uProvider.js';
-import { Net79 } from '../providers/net79/index.js';
+import { AnimeSalt } from '../providers/animesalt/index.js';
 
 // Default GitHub Endpoints
 const GITHUB_OWNER = 'ajith3211996-netizen';
@@ -311,10 +311,10 @@ class ProviderUpdateManagerService {
       console.log(`[ProviderUpdateManager] Live BaseUrl for Movies4u set to: ${Movies4u.liveBaseUrl}`);
     }
 
-    // Server 4: Net79
-    if (manifest.providers.net79 && Net79) {
-      Net79.applyRemoteConfig(manifest.providers.net79);
-      console.log(`[ProviderUpdateManager] Live BaseUrl for Net79 set to: ${Net79.baseUrl}`);
+    // Server 4: AnimeSalt.cx (Anime Series & Movies)
+    if (manifest.providers.animesalt && AnimeSalt) {
+      AnimeSalt.applyRemoteConfig(manifest.providers.animesalt);
+      console.log(`[ProviderUpdateManager] Live BaseUrl for AnimeSalt set to: ${AnimeSalt.baseUrl}`);
     }
 
     // Universal Scraper

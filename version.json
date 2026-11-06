@@ -1,15 +1,23 @@
 {
   "major": 1,
-  "minor": 8,
-  "patch": 40,
+  "minor": 9,
+  "patch": 0,
   "issue": 0,
-  "build": 193,
-  "updateType": "patch",
+  "build": 194,
+  "updateType": "minor",
   "timestamp": "20261105",
-  "versionName": "1.8.40.0.193-patch.20261105",
-  "versionCode": 2200193,
-  "lastSuccessfulBuild": "2026-11-06T01:57:20.547Z",
+  "versionName": "1.9.0.0.194-minor.20261105",
+  "versionCode": 1900194,
+  "lastSuccessfulBuild": "2026-11-06T05:56:48.055Z",
   "history": [
+    {
+      "versionName": "1.9.0.0.194-minor.20261105",
+      "versionCode": 1900194,
+      "updateType": "minor",
+      "build": 194,
+      "note": "Add Server 4 AnimeSalt anime provider and remove Net79",
+      "builtAt": "2026-11-06T05:56:48.055Z"
+    },
     {
       "versionName": "1.8.40.0.193-patch.20261105",
       "versionCode": 2200193,
@@ -401,14 +409,6 @@
       "build": 145,
       "note": "Fix black screen watchdog premature timeout and optimize OkHttp DNS for real-time network speed",
       "builtAt": "2026-10-10T16:56:16.143Z"
-    },
-    {
-      "versionName": "1.8.0.0.144-minor.20261010",
-      "versionCode": 1800144,
-      "updateType": "minor",
-      "build": 144,
-      "note": "Added Server 5 Netmirror, fixed Server 2 4KHDHub streams, reordered servers, removed download section",
-      "builtAt": "2026-10-10T16:33:15.141Z"
     }
   ]
 }

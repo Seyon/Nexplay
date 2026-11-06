@@ -267,8 +267,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
 
   // Player & Scraper State
-  const [activeServer, setActiveServer] = useState(1); // Default to Server 1 (HDHub4u primary)
-  const lastPlayedServerRef = useRef(3);
+  const [activeServer, setActiveServer] = useState(isAnimeContent ? 4 : 1); // Default to Server 4 for Anime, Server 1 for Movies
+  const lastPlayedServerRef = useRef(isAnimeContent ? 4 : 3);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [hasFirstFrameRendered, setHasFirstFrameRendered] = useState(false);
@@ -733,12 +733,12 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     }, 3500);
   };
 
-  // Strict Individual Servers: Server 1 (HDHub4u), Server 2 (4KHDHub), Server 3 (Movies4u), Server 4 (Net79)
+  // Strict Individual Servers: Server 1 (HDHub4u), Server 2 (4KHDHub), Server 3 (Movies4u), Server 4 (AnimeSalt.cx Anime)
   const servers = [
     { id: 1, label: 'Server 1', short: 'Server 1', desc: 'HDHub4u Direct Stream' },
     { id: 2, label: 'Server 2', short: 'Server 2', desc: '4KHDHub Ultra & HD Stream' },
     { id: 3, label: 'Server 3', short: 'Server 3', desc: 'Movies4u Direct Stream' },
-    { id: 4, label: 'Server 4', short: 'Server 4', desc: 'Net79 Direct Stream' },
+    { id: 4, label: 'Server 4', short: 'Server 4', desc: 'AnimeSalt.cx (Anime Series & Movies)' },
   ];
 
   // Current selected episode / media item
@@ -812,6 +812,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
           if (animeRes?.success && animeRes.data) {
             const animeData = animeRes.data;
             setDetails(animeData);
+            setActiveServer(4);
+            lastPlayedServerRef.current = 4;
 
             if (isTVShow) {
               const totalEps = animeData.episodes || animeData.number_of_episodes || 12;
@@ -1312,12 +1314,24 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       // Server 1: strictly hdhub4u
       // Server 2: strictly 4khdhub
       // Server 3: strictly movies4u
-      // Server 4: strictly net79
+      // Server 4: strictly animesalt (Dedicated to Anime Series & Movies Only)
       let providerValue = 'hdhub4u';
       let providerLabel = 'Server 1 (HDHub4u)';
       if (server === 4) {
-        providerValue = 'net79';
-        providerLabel = 'Server 4 (Net79)';
+        if (!isAnimeContent) {
+          console.warn('[MovieDetailScreen] Server 4 is dedicated to Anime series and movies only.');
+          setIsResolvingPlayable(false);
+          isResolvingRef.current = false;
+          setResolvingStatus('');
+          setPlaybackError({
+            title: 'Anime Dedicated Server',
+            message: 'Server 4 (AnimeSalt.cx) is dedicated to Anime series and movies only. Please select Server 1, Server 2, or Server 3 for Hollywood and Bollywood titles.',
+            server: 4
+          });
+          return;
+        }
+        providerValue = 'animesalt';
+        providerLabel = 'Server 4 (AnimeSalt.cx)';
       } else if (server === 3) {
         providerValue = 'movies4u';
         providerLabel = 'Server 3 (Movies4u)';
@@ -1429,7 +1443,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
       setControlsVisible(true);
       resetControlsTimeout();
 
-      // If provider exposes multi-language audio dubs (e.g. Net79 / OTT providers), register them in audio selector
+      // If provider exposes multi-language audio dubs (e.g. AnimeSalt / OTT providers), register them in audio selector
       if (Array.isArray(playable?.audioTracks) && playable.audioTracks.length > 0) {
         setAvailableAudioTracks(playable.audioTracks);
         availableAudioTracksRef.current = playable.audioTracks;
@@ -1559,7 +1573,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
         const sNum = currentEpisodeRef.current?.seasonNumber || 1;
 
         const newPlayable = await ExtensionManager.getPlayableStream(
-          activeServer || 'net79',
+          activeServer === 4 ? 'animesalt' : (activeServer || 'hdhub4u'),
           String(effectiveMediaId),
           isTV,
           epNum,
