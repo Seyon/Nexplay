@@ -13,15 +13,17 @@
 import { HDHub4u, FourKHDHub, UniversalScraper } from './ScraperEngine.js';
 import { Movies4u } from './Movies4uProvider.js';
 import { AnimeSalt } from '../providers/animesalt/index.js';
+import StorageAdapterService from '../services/StorageAdapter.js';
 
-// Default GitHub Endpoints
-const GITHUB_OWNER = 'ajith3211996-netizen';
-const GITHUB_REPO = 'Providers-Nexplay';
-const GITHUB_BRANCH = 'main';
+// Multi-Tier GitHub Endpoints with automatic fallback across repositories and CDNs
+const PRIMARY_MANIFEST_URLS = [
+  'https://raw.githubusercontent.com/Seyon/Providers-Nexplay/main/manifest.json',
+  'https://raw.githubusercontent.com/ajith3211996-netizen/Providers-Nexplay/main/manifest.json',
+  'https://cdn.jsdelivr.net/gh/Seyon/Providers-Nexplay@main/manifest.json',
+  'https://cdn.jsdelivr.net/gh/ajith3211996-netizen/Providers-Nexplay@main/manifest.json'
+];
 
-const PRIMARY_MANIFEST_URL = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/manifest.json`;
-const CDN_MANIFEST_URL = `https://cdn.jsdelivr.net/gh/${GITHUB_OWNER}/${GITHUB_REPO}@${GITHUB_BRANCH}/manifest.json`;
-
+const MANIFEST_FILENAME = 'providers_manifest.json';
 const STORAGE_KEY_MANIFEST = '@nexplay_providers_manifest';
 const STORAGE_KEY_VERSION = '@nexplay_providers_version';
 const STORAGE_KEY_LAST_CHECK = '@nexplay_providers_last_check';
@@ -47,6 +49,12 @@ class StorageAdapter {
   }
 
   async getItem(key) {
+    try {
+      if (StorageAdapterService && typeof StorageAdapterService.readText === 'function') {
+        const text = await StorageAdapterService.readText(MANIFEST_FILENAME);
+        if (text) return text;
+      }
+    } catch (_) {}
     if (this.asyncStorage && typeof this.asyncStorage.getItem === 'function') {
       try {
         return await this.asyncStorage.getItem(key);
@@ -61,19 +69,22 @@ class StorageAdapter {
   }
 
   async setItem(key, value) {
+    this.memoryStore.set(key, value);
+    try {
+      if (StorageAdapterService && typeof StorageAdapterService.writeText === 'function') {
+        await StorageAdapterService.writeText(MANIFEST_FILENAME, value);
+      }
+    } catch (_) {}
     if (this.asyncStorage && typeof this.asyncStorage.setItem === 'function') {
       try {
         await this.asyncStorage.setItem(key, value);
-        return;
       } catch (e) {}
     }
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.setItem(key, value);
-        return;
       } catch (e) {}
     }
-    this.memoryStore.set(key, value);
   }
 }
 
@@ -168,10 +179,7 @@ class ProviderUpdateManagerService {
    * Fetch manifest with dual endpoints (GitHub Raw -> jsDelivr CDN fallback)
    */
   async fetchRemoteManifest() {
-    const endpoints = [
-      `${PRIMARY_MANIFEST_URL}?_t=${Date.now()}`,
-      `${CDN_MANIFEST_URL}?_t=${Date.now()}`
-    ];
+    const endpoints = PRIMARY_MANIFEST_URLS.map(u => `${u}?_t=${Date.now()}`);
 
     let lastError = null;
     for (const url of endpoints) {

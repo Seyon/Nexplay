@@ -138,7 +138,14 @@ class ExtensionManagerService {
 
     const candidateQueries = [];
     let primaryQueries = [];
-    if (isTVShow) {
+    if (activeProvider === 'animesalt' || activeProvider === '4' || activeProvider === 4) {
+      // AnimeSalt.cx indexes anime titles by their direct show name (e.g. "Jujutsu Kaisen", "One Piece", "Solo Leveling").
+      // Appending "Season 1" produces 0 search matches on WordPress. Pure title search is instantaneous and 100% accurate.
+      primaryQueries = [cleanTitle];
+      if (mainTitle && mainTitle !== cleanTitle && mainTitle.length >= 3) {
+        candidateQueries.push(mainTitle);
+      }
+    } else if (isTVShow) {
       primaryQueries = [
         `${cleanTitle} Season ${seasonNumber}`,
         cleanTitle

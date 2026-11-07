@@ -45,6 +45,8 @@ export class AnimeSaltClient {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.mirrors = [this.baseUrl];
     this.providerName = 'animesalt';
+    this.searchCache = new Map();
+    this.streamCache = new Map();
   }
 
   setBaseUrl(url) {
@@ -140,6 +142,12 @@ export class AnimeSaltClient {
     const cleanQuery = this.cleanTitle(query);
     if (!cleanQuery) return [];
 
+    const cacheKey = `${cleanQuery.toLowerCase()}_p${page}`;
+    const cached = this.searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 30 * 60 * 1000) {
+      return cached.data;
+    }
+
     const searchUrl = page === 1 
       ? `${this.baseUrl}/?s=${encodeURIComponent(cleanQuery)}`
       : `${this.baseUrl}/page/${page}/?s=${encodeURIComponent(cleanQuery)}`;
@@ -189,6 +197,7 @@ export class AnimeSaltClient {
         }
       }
 
+      this.searchCache.set(cacheKey, { timestamp: Date.now(), data: results });
       return results;
     } catch (err) {
       console.warn('[AnimeSalt] Search error:', err?.message || err);
@@ -226,19 +235,24 @@ export class AnimeSaltClient {
     let episodes = [];
 
     if (isSeries) {
-      const seasonBtnRegex = /class=["'][^"']*season-btn[^"']*["'][^>]*data-season=["'](\d+)["'][^>]*data-post=["'](\d+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+      const seasonBtnRegex = /class=["'][^"']*season-btn[^"']*["']([^>]*?)>([\s\S]*?)<\/a>/gi;
       let sMatch;
       while ((sMatch = seasonBtnRegex.exec(html)) !== null) {
-        const seasonNum = parseInt(sMatch[1], 10);
-        const postId = sMatch[2];
-        const sTitle = this.cleanTitle(sMatch[3]) || `Season ${seasonNum}`;
-        const episodesAjaxUrl = `${this.baseUrl}/wp-admin/admin-ajax.php?action=action_select_season&season=${encodeURIComponent(seasonNum)}&post=${encodeURIComponent(postId)}`;
-        seasons.push({
-          id: seasonNum,
-          seasonNumber: seasonNum,
-          title: sTitle,
-          episodesLink: episodesAjaxUrl
-        });
+        const attrs = sMatch[1] || '';
+        const sTitle = this.cleanTitle(sMatch[2]);
+        const sNumMatch = attrs.match(/data-season=["'](\d+)["']/i);
+        const pIdMatch = attrs.match(/data-post=["'](\d+)["']/i);
+        if (sNumMatch) {
+          const seasonNum = parseInt(sNumMatch[1], 10);
+          const postId = pIdMatch ? pIdMatch[1] : '';
+          const episodesAjaxUrl = `${this.baseUrl}/wp-admin/admin-ajax.php?action=action_select_season&season=${encodeURIComponent(seasonNum)}&post=${encodeURIComponent(postId)}`;
+          seasons.push({
+            id: seasonNum,
+            seasonNumber: seasonNum,
+            title: sTitle || `Season ${seasonNum}`,
+            episodesLink: postId ? episodesAjaxUrl : fullUrl
+          });
+        }
       }
 
       if (seasons.length === 0) {
@@ -383,10 +397,15 @@ export class AnimeSaltClient {
         headers: masterHeaders
       });
 
-      // Parse Master .m3u8 playlist for individual qualities
+      // Master HLS manifest contains all audio dubs and sub-qualities natively for VLC Player.
+      // Parse sub-qualities in parallel with a fast 1200ms timeout so playback is never delayed.
       try {
-        const m3u8Text = await this.httpGet(streamUrl, masterHeaders, 6000);
-        if (m3u8Text.includes('#EXT-X-STREAM-INF')) {
+        const m3u8Promise = this.httpGet(streamUrl, masterHeaders, 1200);
+        const m3u8Text = await Promise.race([
+          m3u8Promise,
+          new Promise(r => setTimeout(() => r(null), 1200))
+        ]);
+        if (m3u8Text && m3u8Text.includes('#EXT-X-STREAM-INF')) {
           const lines = m3u8Text.split('\n');
           for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -465,21 +484,51 @@ export class AnimeSaltClient {
    * Returns direct 1-Click Playable Stream with Multi-Quality support
    */
   async getPlayableStream(idOrUrl, isTVShow = false, episodeNumber = 1, seasonNumber = 1, audioLanguage) {
+    const cacheKey = `${idOrUrl}_${isTVShow ? 'tv' : 'movie'}_${seasonNumber}_${episodeNumber}`;
+    const cachedStream = this.streamCache.get(cacheKey);
+    if (cachedStream && Date.now() - cachedStream.timestamp < 15 * 60 * 1000) {
+      console.log(`[AnimeSalt] ⚡ Instant in-memory stream cache HIT for: ${cacheKey}`);
+      return cachedStream.data;
+    }
+
     let targetUrl = idOrUrl;
     const isEpisodeUrl = targetUrl.includes('/episode/');
+    let streams = null;
 
     if (!isEpisodeUrl && (isTVShow || targetUrl.includes('/series/'))) {
-      const details = await this.extractDetails(targetUrl, seasonNumber);
-      if (details.episodes && details.episodes.length > 0) {
-        const ep = details.episodes.find(e => e.episodeNumber === episodeNumber) || details.episodes[episodeNumber - 1] || details.episodes[0];
-        if (ep && ep.link) {
-          targetUrl = ep.link;
+      // 1. High-Speed Direct Prediction for Anime TV Episodes:
+      // AnimeSalt URLs follow: https://animesalt.cx/episode/{slug}-{season}x{episode}/
+      const slugMatch = targetUrl.match(/\/series\/([a-zA-Z0-9_-]+)/i);
+      if (slugMatch) {
+        const seriesSlug = slugMatch[1];
+        const directEpUrl = `${this.baseUrl}/episode/${seriesSlug}-${seasonNumber}x${episodeNumber}/`;
+        try {
+          console.log(`[AnimeSalt] ⚡ Fast predicting episode URL: ${directEpUrl}`);
+          const directStreams = await this.getStreams(directEpUrl);
+          if (directStreams && directStreams.length > 0) {
+            targetUrl = directEpUrl;
+            streams = directStreams;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Fallback to full details & episode list if direct prediction didn't find streams
+      if (!streams || streams.length === 0) {
+        console.log(`[AnimeSalt] Fallback to full season/episode discovery for: ${targetUrl} (Season ${seasonNumber})`);
+        const details = await this.extractDetails(targetUrl, seasonNumber);
+        if (details.episodes && details.episodes.length > 0) {
+          const ep = details.episodes.find(e => e.episodeNumber === episodeNumber) || details.episodes[episodeNumber - 1] || details.episodes[0];
+          if (ep && ep.link) {
+            targetUrl = ep.link;
+          }
         }
       }
     }
 
-    console.log(`[AnimeSalt] Resolving anime stream for: ${targetUrl}`);
-    const streams = await this.getStreams(targetUrl);
+    if (!streams || streams.length === 0) {
+      console.log(`[AnimeSalt] Resolving anime stream for: ${targetUrl}`);
+      streams = await this.getStreams(targetUrl);
+    }
 
     if (!streams || streams.length === 0) {
       throw new Error(`No working anime video streams found on AnimeSalt.cx for ${targetUrl}`);
@@ -513,7 +562,7 @@ export class AnimeSaltClient {
       });
     });
 
-    return {
+    const result = {
       streamUrl: masterStream.link,
       qualities,
       quality: '1080p',
@@ -528,6 +577,9 @@ export class AnimeSaltClient {
       audioTracks: audioTracks.length > 0 ? audioTracks : undefined,
       subtitles: []
     };
+
+    this.streamCache.set(cacheKey, { timestamp: Date.now(), data: result });
+    return result;
   }
 }
 
