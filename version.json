@@ -1,15 +1,23 @@
 {
   "major": 1,
   "minor": 9,
-  "patch": 0,
-  "issue": 0,
-  "build": 194,
-  "updateType": "minor",
-  "timestamp": "20261105",
-  "versionName": "1.9.0.0.194-minor.20261105",
-  "versionCode": 1900194,
-  "lastSuccessfulBuild": "2026-11-06T05:56:48.055Z",
+  "patch": 8,
+  "issue": 2,
+  "build": 195,
+  "updateType": "bugfix",
+  "timestamp": "20261111",
+  "versionName": "1.9.8.2.195-bugfix.20261111",
+  "versionCode": 1980195,
+  "lastSuccessfulBuild": "2026-11-11T17:46:03.603Z",
   "history": [
+    {
+      "versionName": "1.9.8.2.195-bugfix.20261111",
+      "versionCode": 1980195,
+      "updateType": "bugfix",
+      "build": 195,
+      "note": "Anime episodes pagination 20 per page with Next/Previous navigation",
+      "builtAt": "2026-11-11T17:46:03.603Z"
+    },
     {
       "versionName": "1.9.0.0.194-minor.20261105",
       "versionCode": 1900194,
@@ -401,14 +409,6 @@
       "build": 146,
       "note": "Remove Server 4 and 5, enable instant server switching, and 30s watchdog",
       "builtAt": "2026-10-10T19:31:40.843Z"
-    },
-    {
-      "versionName": "1.8.9.0.145-patch.20261010",
-      "versionCode": 1890145,
-      "updateType": "patch",
-      "build": 145,
-      "note": "Fix black screen watchdog premature timeout and optimize OkHttp DNS for real-time network speed",
-      "builtAt": "2026-10-10T16:56:16.143Z"
     }
   ]
 }
