@@ -44,9 +44,13 @@ class NexPlayAnimeApi {
    * Helper to normalize pagination parameters
    */
   parsePagination(params = {}) {
+    const isAll = params.all === true || params.limit === 'all' || params.limit === -1 || (parseInt(params.limit, 10) >= 1000);
+    const requestedLimit = parseInt(params.limit, 10);
+    const maxLimit = isAll ? 5000 : (requestedLimit > 50 ? Math.min(requestedLimit, 5000) : 50);
     return {
       page: Math.max(1, parseInt(params.page, 10) || 1),
-      limit: Math.min(Math.max(1, parseInt(params.limit, 10) || 20), 50)
+      limit: isAll ? 5000 : Math.min(Math.max(1, requestedLimit || 20), maxLimit),
+      all: isAll
     };
   }
 
@@ -371,20 +375,46 @@ class NexPlayAnimeApi {
     if (!id) return { success: false, error: 'Missing anime ID' };
     await this.ensureInitialized();
 
-    const { page, limit } = this.parsePagination(params);
+    const { page, limit, all } = this.parsePagination(params);
     const malId = animeDatabase.extractMalId(id);
 
     // Check local database episodes
     let result = animeDatabase.getEpisodes(id, page, limit);
 
-    // If local database has no episodes for this anime, fetch from Tenrai
-    if (result.data.length === 0) {
+    // Check expected total episodes from anime metadata
+    const anime = animeDatabase.getAnimeById(id);
+    const totalExpected = anime?.episodes || anime?.number_of_episodes || 0;
+
+    // If local database has no episodes or has fewer than expected (e.g. only page 1 was loaded),
+    // fetch from Tenrai
+    if (result.data.length === 0 || (totalExpected > 0 && result.pagination.total_items < totalExpected)) {
       try {
-        const epRes = await tenraiApiService.getAnimeEpisodes(malId, page);
-        if (epRes?.data && Array.isArray(epRes.data)) {
-          animeDatabase.ingestEpisodes(id, epRes.data);
-          result = animeDatabase.getEpisodes(id, page, limit);
+        let fetchPage = 1;
+        let hasMore = true;
+
+        if (!all && params.page && params.limit && params.limit <= 50) {
+          // Specific single page requested
+          fetchPage = page;
+          const epRes = await tenraiApiService.getAnimeEpisodes(malId, fetchPage);
+          if (epRes?.data && Array.isArray(epRes.data)) {
+            animeDatabase.ingestEpisodes(id, epRes.data);
+          }
+        } else {
+          // Ingest all episode pages from Tenrai up to 25 pages (2500 episodes)
+          while (hasMore && fetchPage <= 25) {
+            const epRes = await tenraiApiService.getAnimeEpisodes(malId, fetchPage);
+            if (epRes?.data && Array.isArray(epRes.data) && epRes.data.length > 0) {
+              animeDatabase.ingestEpisodes(id, epRes.data);
+              const lastVisPage = epRes.pagination?.last_visible_page || 1;
+              const hasNextTenrai = epRes.pagination?.has_next_page === true;
+              hasMore = hasNextTenrai && fetchPage < lastVisPage;
+              fetchPage++;
+            } else {
+              hasMore = false;
+            }
+          }
         }
+        result = animeDatabase.getEpisodes(id, page, limit);
       } catch (err) {
         console.warn(`[NexPlayAnimeApi] Failed fetching episodes for ${id}:`, err?.message || err);
       }

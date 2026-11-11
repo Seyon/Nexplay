@@ -264,6 +264,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [isSeasonModalVisible, setIsSeasonModalVisible] = useState(false);
   const [episodesList, setEpisodesList] = useState([]);
+  const [episodePage, setEpisodePage] = useState(1);
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
 
   // Player & Scraper State
@@ -827,20 +828,50 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               setSelectedSeason(1);
               selectedSeasonRef.current = 1;
 
-              const epRes = await nexPlayAnimeApi.getAnimeEpisodes(movie.id);
+              const epRes = await nexPlayAnimeApi.getAnimeEpisodes(movie.id, { all: true, limit: totalEps || 1000 });
               if (!isMounted) return;
-              if (epRes?.success && Array.isArray(epRes.data) && epRes.data.length > 0) {
-                const formattedEps = epRes.data.map(ep => ({
-                  id: ep.id || `ep-s1-e${ep.episode_number}`,
-                  seasonNumber: 1,
-                  episodeNumber: ep.episode_number,
-                  title: `${ep.episode_number}. ${ep.title || `Episode ${ep.episode_number}`}`,
-                  name: ep.title || `Episode ${ep.episode_number}`,
-                  overview: ep.synopsis,
-                  duration: animeData.duration || '24m',
-                  image: ep.image || animeData.backdrop_path || animeData.poster_path,
-                  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
-                }));
+              const rawEps = (epRes?.success && Array.isArray(epRes.data)) ? epRes.data : [];
+
+              // Map existing episodes by episode number
+              const existingMap = new Map();
+              rawEps.forEach(ep => {
+                const num = Number(ep.episode_number || ep.episode);
+                if (num) existingMap.set(num, ep);
+              });
+
+              // Ensure full episode list up to max(totalEps, rawEps.length)
+              const maxEpisodes = Math.max(totalEps, rawEps.length);
+              const formattedEps = [];
+              for (let i = 1; i <= maxEpisodes; i++) {
+                const ep = existingMap.get(i);
+                if (ep) {
+                  formattedEps.push({
+                    id: ep.id || `ep-s1-e${ep.episode_number || i}`,
+                    seasonNumber: 1,
+                    episodeNumber: ep.episode_number || i,
+                    title: `${ep.episode_number || i}. ${ep.title || `Episode ${ep.episode_number || i}`}`,
+                    name: ep.title || `Episode ${ep.episode_number || i}`,
+                    overview: ep.synopsis,
+                    duration: animeData.duration || '24m',
+                    image: ep.image || animeData.backdrop_path || animeData.poster_path,
+                    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+                  });
+                } else {
+                  formattedEps.push({
+                    id: `ep-s1-e${i}`,
+                    seasonNumber: 1,
+                    episodeNumber: i,
+                    title: `${i}. Episode ${i}`,
+                    name: `Episode ${i}`,
+                    overview: `Episode ${i} of ${animeData.title || movie.title || 'Anime'}`,
+                    duration: animeData.duration || '24m',
+                    image: animeData.backdrop_path || animeData.poster_path,
+                    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+                  });
+                }
+              }
+
+              if (formattedEps.length > 0) {
                 setEpisodesList(formattedEps);
 
                 const latestSeriesRecord = getLatestSeriesProgress(movie.id);
@@ -848,6 +879,9 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 const match = formattedEps.find(e => Number(e.episodeNumber) === targetEpisode) || formattedEps[0];
                 setCurrentEpisode(match);
                 currentEpisodeRef.current = match;
+
+                const targetPage = Math.floor((targetEpisode - 1) / 20) + 1;
+                setEpisodePage(targetPage);
               }
             } else {
               // Anime Feature Film
@@ -994,6 +1028,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
           }
           setCurrentEpisode(chosen);
           currentEpisodeRef.current = chosen;
+          const targetPage = targetEpNumber ? (Math.floor((Number(targetEpNumber) - 1) / 20) + 1) : 1;
+          setEpisodePage(targetPage);
         }
       } else {
         setEpisodesList([]);
@@ -1012,6 +1048,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     setSelectedSeason(seasonNum);
     selectedSeasonRef.current = seasonNum;
     setIsSeasonModalVisible(false);
+    setEpisodePage(1);
     loadSeasonEpisodes(movie.id, seasonNum, details, 1);
   };
 
@@ -4459,70 +4496,149 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               </TouchableOpacity>
             )}
 
-            {/* Episode List matching Screen 5 */}
+            {/* Episode List matching Screen 5 with 20 Episodes per page and Next/Previous navigation */}
             {episodesList.length > 0 ? (
               <View style={detailStyles.episodeVerticalList}>
-                {episodesList.map((item, index) => {
-                  const isPlayingThisEp = currentEpisode.id === item.id || currentEpisode.episodeNumber === item.episodeNumber;
-                  const epNum = item.episodeNumber || (index + 1);
-                  const epDuration = item.duration || '55m';
-                  const displayEpTitle = item.name ? `${epNum}. ${item.name}` : (item.title || `Episode ${epNum}`);
+                {(() => {
+                  const EPISODES_PER_PAGE = 20;
+                  const totalEpisodesCount = episodesList.length;
+                  const totalEpisodePages = Math.ceil(totalEpisodesCount / EPISODES_PER_PAGE) || 1;
+                  const safeEpisodePage = Math.min(Math.max(1, episodePage), totalEpisodePages);
+                  const startIndex = (safeEpisodePage - 1) * EPISODES_PER_PAGE;
+                  const endIndex = Math.min(startIndex + EPISODES_PER_PAGE, totalEpisodesCount);
+                  const visibleEpisodes = episodesList.slice(startIndex, endIndex);
 
-                  const epProgress = getPlaybackProgress({
-                    mediaId: details?.id || movie?.id,
-                    mediaType: 'tv',
-                    season: selectedSeason,
-                    episode: epNum,
-                  });
+                  // Formatting as requested:
+                  // Page 1: 1-20
+                  // Page 2: 20-40 (or 20-35 if 35 available)
+                  const startEpisodeNum = safeEpisodePage === 1 ? 1 : ((safeEpisodePage - 1) * EPISODES_PER_PAGE);
+                  const endEpisodeNum = Math.min(safeEpisodePage * EPISODES_PER_PAGE, totalEpisodesCount);
+                  const episodeRangeText = `${startEpisodeNum}-${endEpisodeNum}`;
 
                   return (
-                    <TouchableOpacity
-                      key={`ep-row-${item.id || index}`}
-                      onPress={() => selectEpisode(item)}
-                      style={detailStyles.episodeRowCard}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ position: 'relative' }}>
-                        <Image
-                          source={{ uri: item.image || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop' }}
-                          style={detailStyles.episodeRowThumb}
-                          resizeMode="cover"
-                        />
-                        {epProgress && !epProgress.completed && epProgress.progress > 0 && (
-                          <View style={detailStyles.epProgressTrack}>
-                            <View style={[detailStyles.epProgressFill, { width: `${epProgress.progress}%` }]} />
+                    <>
+                      {visibleEpisodes.map((item, index) => {
+                        const isPlayingThisEp = currentEpisode.id === item.id || currentEpisode.episodeNumber === item.episodeNumber;
+                        const epNum = item.episodeNumber || (startIndex + index + 1);
+                        const epDuration = item.duration || '24m';
+                        const displayEpTitle = item.name ? `${epNum}. ${item.name}` : (item.title || `Episode ${epNum}`);
+
+                        const epProgress = getPlaybackProgress({
+                          mediaId: details?.id || movie?.id,
+                          mediaType: 'tv',
+                          season: selectedSeason,
+                          episode: epNum,
+                        });
+
+                        return (
+                          <TouchableOpacity
+                            key={`ep-row-${item.id || (startIndex + index)}`}
+                            onPress={() => selectEpisode(item)}
+                            style={detailStyles.episodeRowCard}
+                            activeOpacity={0.8}
+                          >
+                            <View style={{ position: 'relative' }}>
+                              <Image
+                                source={{ uri: item.image || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop' }}
+                                style={detailStyles.episodeRowThumb}
+                                resizeMode="cover"
+                              />
+                              {epProgress && !epProgress.completed && epProgress.progress > 0 && (
+                                <View style={detailStyles.epProgressTrack}>
+                                  <View style={[detailStyles.epProgressFill, { width: `${epProgress.progress}%` }]} />
+                                </View>
+                              )}
+                              {epProgress && epProgress.completed && (
+                                <View style={detailStyles.epCompletedBadge}>
+                                  <Ionicons name="checkmark-circle" size={scale(11)} color="#10B981" />
+                                </View>
+                              )}
+                            </View>
+                            <View style={detailStyles.episodeRowInfo}>
+                              <Text style={detailStyles.episodeRowTitle} numberOfLines={1}>
+                                {displayEpTitle}
+                              </Text>
+                              <Text style={detailStyles.episodeRowSubtitle}>
+                                S{selectedSeason || 1} E{epNum} • {epProgress && !epProgress.completed && epProgress.currentTime >= 3 ? formatRemainingTime(epProgress.duration - epProgress.currentTime) : (epProgress && epProgress.completed ? 'Completed' : epDuration)}
+                              </Text>
+                            </View>
+                            {/* Play Circle Icon on Right (Screen 5 style) */}
+                            <View style={detailStyles.episodePlayRightCircle}>
+                              {isPlayingThisEp && isBufferingState ? (
+                                <ActivityIndicator size="small" color="#E50914" />
+                              ) : (
+                                <Ionicons 
+                                  name={isPlayingThisEp && isPlaying ? "pause" : "play"} 
+                                  size={scale(14)} 
+                                  color="#E50914" 
+                                  style={(!isPlayingThisEp || !isPlaying) ? { marginLeft: scale(1.5) } : null}
+                                />
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+
+                      {/* Pagination Controls below 20th Episode */}
+                      {totalEpisodePages > 1 && (
+                        <View style={detailStyles.episodePaginationContainer}>
+                          {/* Previous Button (Bottom Left of 20th episode) */}
+                          <TouchableOpacity
+                            onPress={() => setEpisodePage(prev => Math.max(1, prev - 1))}
+                            disabled={safeEpisodePage <= 1}
+                            style={[
+                              detailStyles.episodeNavButton,
+                              safeEpisodePage <= 1 && detailStyles.episodeNavButtonDisabled
+                            ]}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons 
+                              name="chevron-back" 
+                              size={scale(15)} 
+                              color={safeEpisodePage > 1 ? "#FFFFFF" : "#9CA3AF"} 
+                            />
+                            <Text style={[
+                              detailStyles.episodeNavButtonText,
+                              safeEpisodePage <= 1 && detailStyles.episodeNavButtonTextDisabled
+                            ]}>
+                              Previous
+                            </Text>
+                          </TouchableOpacity>
+
+                          {/* Centre Area showing episode range: 1-20, 20-40, 20-35 */}
+                          <View style={detailStyles.episodeRangeBadge}>
+                            <Text style={detailStyles.episodeRangeText}>
+                              {episodeRangeText}
+                            </Text>
                           </View>
-                        )}
-                        {epProgress && epProgress.completed && (
-                          <View style={detailStyles.epCompletedBadge}>
-                            <Ionicons name="checkmark-circle" size={scale(11)} color="#10B981" />
-                          </View>
-                        )}
-                      </View>
-                      <View style={detailStyles.episodeRowInfo}>
-                        <Text style={detailStyles.episodeRowTitle} numberOfLines={1}>
-                          {displayEpTitle}
-                        </Text>
-                        <Text style={detailStyles.episodeRowSubtitle}>
-                          S{selectedSeason || 1} E{epNum} • {epProgress && !epProgress.completed && epProgress.currentTime >= 3 ? formatRemainingTime(epProgress.duration - epProgress.currentTime) : (epProgress && epProgress.completed ? 'Completed' : epDuration)}
-                        </Text>
-                      </View>
-                      {/* Play Circle Icon on Right (Screen 5 style) */}
-                      <View style={detailStyles.episodePlayRightCircle}>
-                        {isPlayingThisEp && isBufferingState ? (
-                          <ActivityIndicator size="small" color="#E50914" />
-                        ) : (
-                          <Ionicons 
-                            name={isPlayingThisEp && isPlaying ? "pause" : "play"} 
-                            size={scale(14)} 
-                            color="#E50914" 
-                            style={(!isPlayingThisEp || !isPlaying) ? { marginLeft: scale(1.5) } : null}
-                          />
-                        )}
-                      </View>
-                    </TouchableOpacity>
+
+                          {/* Next Button (Bottom Right of 20th episode) */}
+                          <TouchableOpacity
+                            onPress={() => setEpisodePage(prev => Math.min(totalEpisodePages, prev + 1))}
+                            disabled={safeEpisodePage >= totalEpisodePages}
+                            style={[
+                              detailStyles.episodeNavButton,
+                              safeEpisodePage >= totalEpisodePages && detailStyles.episodeNavButtonDisabled
+                            ]}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[
+                              detailStyles.episodeNavButtonText,
+                              safeEpisodePage >= totalEpisodePages && detailStyles.episodeNavButtonTextDisabled
+                            ]}>
+                              Next
+                            </Text>
+                            <Ionicons 
+                              name="chevron-forward" 
+                              size={scale(15)} 
+                              color={safeEpisodePage < totalEpisodePages ? "#FFFFFF" : "#9CA3AF"} 
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </>
                   );
-                })}
+                })()}
               </View>
             ) : (
               <View style={{ paddingVertical: verticalScale(20), alignItems: 'center' }}>
@@ -5074,6 +5190,56 @@ const detailStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: scale(4),
+  },
+  episodePaginationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: verticalScale(14),
+    paddingHorizontal: scale(2),
+    marginTop: verticalScale(8),
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  episodeNavButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#111827',
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(8),
+    borderRadius: scale(20),
+    minWidth: scale(88),
+    gap: scale(4),
+  },
+  episodeNavButtonDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  episodeNavButtonText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(12),
+    fontWeight: '700',
+  },
+  episodeNavButtonTextDisabled: {
+    color: '#9CA3AF',
+  },
+  episodeRangeBadge: {
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(6),
+    backgroundColor: '#F3F4F6',
+    borderRadius: scale(16),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  episodeRangeText: {
+    color: '#111827',
+    fontSize: moderateScale(13),
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   // Details tab card
   detailMetaCard: {

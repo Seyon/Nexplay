@@ -631,17 +631,19 @@ class AnimeDatabase {
     eps.sort((a, b) => a.episode_number - b.episode_number);
 
     const total = eps.length;
-    const startIndex = (page - 1) * limit;
-    const paginatedEps = eps.slice(startIndex, startIndex + limit);
+    const isFetchAll = limit === 'all' || limit === -1 || limit >= 5000;
+    const effectiveLimit = isFetchAll ? Math.max(total, 1) : limit;
+    const startIndex = isFetchAll ? 0 : (page - 1) * effectiveLimit;
+    const paginatedEps = isFetchAll ? eps : eps.slice(startIndex, startIndex + effectiveLimit);
 
     return {
       data: paginatedEps,
       pagination: {
-        current_page: page,
-        has_next_page: startIndex + limit < total,
+        current_page: isFetchAll ? 1 : page,
+        has_next_page: isFetchAll ? false : (startIndex + effectiveLimit < total),
         total_items: total,
-        total_pages: Math.ceil(total / limit) || 1,
-        per_page: limit
+        total_pages: isFetchAll ? 1 : (Math.ceil(total / effectiveLimit) || 1),
+        per_page: effectiveLimit
       }
     };
   }
