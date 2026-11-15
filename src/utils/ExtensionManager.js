@@ -249,20 +249,21 @@ class ExtensionManagerService {
       const aTier = getAudioTier(a.match?.title || '');
       const bTier = getAudioTier(b.match?.title || '');
 
-      // 1. Print Quality Priority: Clean WEB-DL / BluRay decisively beats inferior prints
-      if (aPrint !== bPrint && (aPrint >= 700 || bPrint >= 700)) {
-        return bPrint - aPrint;
+      // 1. Digital Print vs Cam Print: Clean digital print (WEB-DL/BluRay/WEBRip >= 500) decisively beats cam/theatre prints (<= 100)
+      const aIsCam = aPrint <= 100;
+      const bIsCam = bPrint <= 100;
+      if (aIsCam !== bIsCam) {
+        return aIsCam ? 1 : -1;
       }
 
-      // 2. Audio fidelity & richness priority
-      if (activeProvider === 'movies4u') {
-        if (Math.abs(a.matchScore - b.matchScore) < 0.35) {
-          if (aTier !== bTier) {
-            return aTier - bTier;
-          }
-          if (aAudio !== bAudio) {
-            return bAudio - aAudio;
-          }
+      // 2. Strict Audio Tier Priority for Server 1 (HDHub4u) & Server 3 (Movies4u):
+      // First look for Multi Language Audio Track (Tier 1), then Dual Audio (Tier 2), then Single Audio (Tier 3)
+      if (activeProvider === 'hdhub4u' || activeProvider === 'movies4u') {
+        if (aTier !== bTier) {
+          return aTier - bTier; // Tier 1 < Tier 2 < Tier 3
+        }
+        if (aAudio !== bAudio) {
+          return bAudio - aAudio;
         }
       } else {
         if (Math.abs(a.matchScore - b.matchScore) < 0.25 && aAudio !== bAudio) {
@@ -270,7 +271,12 @@ class ExtensionManagerService {
         }
       }
 
-      // 3. Newest post priority when print quality and audio tier are equal
+      // 3. Print Quality within same audio tier (BluRay > WEB-DL > WEBRip)
+      if (aPrint !== bPrint) {
+        return bPrint - aPrint;
+      }
+
+      // 4. Newest post priority when print quality and audio tier are equal
       const aId = parseInt(a.match?.id || 0, 10);
       const bId = parseInt(b.match?.id || 0, 10);
       if (bId && aId && bId !== aId && Math.abs(a.matchScore - b.matchScore) < 0.20) {
@@ -533,7 +539,7 @@ class ExtensionManagerService {
     });
 
     if (!candidates || candidates.length === 0) {
-      if (allowCrossProviderFallback) {
+      if (allowCrossProviderFallback && activeProvider !== 'hdhub4u' && activeProvider !== 'movies4u' && activeProvider !== '4khdhub' && activeProvider !== 'animesalt') {
         const otherProviders = ['hdhub4u', '4khdhub', 'movies4u'].filter(p => p !== activeProvider);
         for (const alt of otherProviders) {
           try {
@@ -661,8 +667,8 @@ class ExtensionManagerService {
     }
 
     // Cross-provider fallback if stream not resolved on primary provider
-    if (allowCrossProviderFallback) {
-      const otherProviders = ['hdhub4u', '4khdhub', 'movies4u'].filter(p => p !== activeProvider);
+    if (allowCrossProviderFallback && activeProvider !== 'hdhub4u' && activeProvider !== 'movies4u' && activeProvider !== '4khdhub' && activeProvider !== 'animesalt') {
+        const otherProviders = ['hdhub4u', '4khdhub', 'movies4u'].filter(p => p !== activeProvider);
       for (const alt of otherProviders) {
         try {
           console.log(`[ExtensionManager] Checking alternative provider ${alt} for stream...`);

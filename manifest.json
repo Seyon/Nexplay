@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.7",
-  "updatedAt": "2026-11-15T12:40:00.000Z",
+  "version": "1.1.8",
+  "updatedAt": "2026-11-15T13:35:00.000Z",
   "commitSha": "96f0c4c",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
@@ -151,6 +151,8 @@
     ]
   },
   "changeLog": [
+    "Strict multi-language audio track prioritization for Server 1 (HDHub4u) & Server 3 (Movies4u): first inspect post title for Multi Audio (Tier 1), if not available then Dual Audio (Tier 2), then Single Audio (Tier 3)",
+    "Strict stream isolation: Zero link mixing between Server 1 and Server 3. Completely clears previous server stream URI and disables cross-provider fallback",
     "Removed dead mirrors (new14.hdhub4u.cl, new5.movies4u.garden, new3.movies4u.garden); set Server 1 active mirror to https://new15.hdhub4u.cl/ and Server 3 active mirror to https://new8.movies4u.garden/",
     "Updated Server 1 (HDHub4u) baseUrl to https://new14.hdhub4u.cl/ and Server 3 (Movies4u) baseUrl to https://new8.movies4u.garden/ with active mirrors",
     "Updated Server 3 (Movies4u) domain to https://new5.movies4u.garden/ with active mirrors",

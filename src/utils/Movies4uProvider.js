@@ -146,59 +146,61 @@ export function selectBestStreamCandidate(candidateStreams) {
  */
 export function getAudioTier(text) {
     const t = (text || '').toLowerCase();
-    
-    const hasMultiKeyword = t.includes('multi audio') || 
-                             t.includes('multi-audio') || 
-                             t.includes('multiaudio') || 
-                             /\bmulti\b/i.test(t) ||
-                             t.includes('org multi');
 
-    const languages = [
-        'hindi', 'tamil', 'telugu', 'english', 'malayalam', 'kannada'
+    const hasMultiKeyword = t.includes('multi audio') ||
+        t.includes('multi-audio') ||
+        t.includes('multiaudio') ||
+        /\bmulti\b/i.test(t) ||
+        t.includes('org multi') ||
+        t.includes('[multi') ||
+        t.includes('(multi');
+
+    const langPatterns = [
+        /\b(?:hindi|hin)\b/i,
+        /\b(?:tamil|tam)\b/i,
+        /\b(?:telugu|tel)\b/i,
+        /\b(?:english|eng)\b/i,
+        /\b(?:malayalam|mal)\b/i,
+        /\b(?:kannada|kan)\b/i,
+        /\b(?:bengali|ben)\b/i,
+        /\b(?:marathi|mar)\b/i,
+        /\b(?:punjabi|pun)\b/i,
+        /\b(?:gujarati|guj)\b/i,
+        /\b(?:korean|kor)\b/i,
+        /\b(?:japanese|jap)\b/i,
+        /\b(?:spanish|spa)\b/i,
+        /\b(?:french|fre)\b/i,
+        /\burdu\b/i
     ];
-    const matchedLangs = languages.filter(l => {
-        const regex = new RegExp(`\\b${l}\\b|${l}-|-${l}`, 'i');
-        return regex.test(t);
-    });
+    let matchedLangCount = 0;
+    for (const p of langPatterns) {
+        if (p.test(t)) matchedLangCount++;
+    }
 
-    const otherLangs = ['bengali', 'marathi', 'punjabi', 'gujarati', 'urdu', 'odia', 'bhojpuri', 'korean', 'japanese', 'spanish', 'french'];
-    const matchedOther = otherLangs.filter(l => new RegExp(`\\b${l}\\b`, 'i').test(t));
-    const totalLangCount = matchedLangs.length + matchedOther.length;
-
-    const hasDualKeyword = t.includes('dual audio') || 
-                            t.includes('dual-audio') || 
-                            t.includes('dualaudio') || 
-                            /\bdual\b/i.test(t);
+    const hasDualKeyword = t.includes('dual audio') ||
+        t.includes('dual-audio') ||
+        t.includes('dualaudio') ||
+        /\bdual\b/i.test(t) ||
+        t.includes('[dual') ||
+        t.includes('(dual');
 
     const isDualHindiEnglish = (
-        (/\bhindi\b/i.test(t) && (/\beng(?:lish)?\b/i.test(t))) ||
+        (/\b(?:hindi|hin)\b/i.test(t) && /\b(?:english|eng)\b/i.test(t)) ||
         /\b(?:hin|hindi)[-_\s+]+(?:eng|english)\b/i.test(t) ||
         /\b(?:eng|english)[-_\s+]+(?:hin|hindi)\b/i.test(t)
     );
 
-    const hasRegionalSouth = ['tamil', 'telugu', 'malayalam', 'kannada'].some(l => t.includes(l));
-
-    // Tier 1: Multi Audio or combinations with South Indian / Indian regional languages
-    if (
-        hasMultiKeyword || 
-        totalLangCount >= 3 || 
-        (hasRegionalSouth && (t.includes('hindi') || t.includes('english') || matchedLangs.length >= 2)) ||
-        matchedLangs.length >= 3
-    ) {
+    // Tier 1: Multi Audio (Explicit Multi keyword OR 3+ languages detected)
+    if (hasMultiKeyword || matchedLangCount >= 3) {
         return 1;
     }
 
-    // Tier 2: Dual Audio (e.g. Hindi English)
-    if (hasDualKeyword || (isDualHindiEnglish && totalLangCount === 2) || (totalLangCount === 2 && !hasRegionalSouth)) {
+    // Tier 2: Dual Audio (Explicit Dual keyword OR exactly 2 languages / Hindi-English)
+    if (hasDualKeyword || isDualHindiEnglish || matchedLangCount === 2) {
         return 2;
     }
 
-    // South Indian regional single language release
-    if (hasRegionalSouth) {
-        return 1;
-    }
-
-    // Tier 3: Single audio English or other languages
+    // Tier 3: Single audio English or other single language
     return 3;
 }
 
@@ -206,15 +208,33 @@ export function getAudioRichnessScore(text) {
     const t = (text || '').toLowerCase();
     const tier = getAudioTier(t);
 
-    const languages = [
-        'hindi', 'tamil', 'telugu', 'english', 'malayalam', 'kannada'
+    const langPatterns = [
+        /\b(?:hindi|hin)\b/i,
+        /\b(?:tamil|tam)\b/i,
+        /\b(?:telugu|tel)\b/i,
+        /\b(?:english|eng)\b/i,
+        /\b(?:malayalam|mal)\b/i,
+        /\b(?:kannada|kan)\b/i,
+        /\b(?:bengali|ben)\b/i,
+        /\b(?:marathi|mar)\b/i,
+        /\b(?:punjabi|pun)\b/i,
+        /\b(?:gujarati|guj)\b/i,
+        /\burdu\b/i
     ];
     let langCount = 0;
-    for (const lang of languages) {
-        if (t.includes(lang)) langCount++;
+    for (const p of langPatterns) {
+        if (p.test(t)) langCount++;
     }
-    const southLangs = ['tamil', 'telugu', 'malayalam', 'kannada'];
-    const southCount = southLangs.filter(l => t.includes(l)).length;
+    const southPatterns = [
+        /\b(?:tamil|tam)\b/i,
+        /\b(?:telugu|tel)\b/i,
+        /\b(?:malayalam|mal)\b/i,
+        /\b(?:kannada|kan)\b/i
+    ];
+    let southCount = 0;
+    for (const p of southPatterns) {
+        if (p.test(t)) southCount++;
+    }
 
     if (tier === 1) {
         let score = 10000;
@@ -232,15 +252,19 @@ export function getAudioRichnessScore(text) {
             score += 1000;
         }
         score += (langCount * 200);
+        score += (southCount * 300);
         return score;
     }
 
     // Tier 3: Single audio
-    if (t.includes('english') || /\beng\b/i.test(t)) {
-        return 2000;
+    if (southCount > 0) {
+        return 3000 + (southCount * 200);
     }
     if (t.includes('hindi') || /\bhin\b/i.test(t)) {
-        return 1500;
+        return 2500;
+    }
+    if (t.includes('english') || /\beng\b/i.test(t)) {
+        return 2000;
     }
     return 1000;
 }
@@ -287,8 +311,8 @@ export function sortBridgesByFidelity(bridges) {
 
         // Strict Audio Richness Priority: Multi Audio (Tamil, Telugu, Hindi, English, Malayalam, Kannada) decisively beats Dual Audio
         const tier = getAudioTier(b.label || text);
-        if (tier === 1) score += 100000;
-        else if (tier === 2) score += 50000;
+        if (tier === 1) score += 1000000;
+        else if (tier === 2) score += 500000;
         score += getAudioRichnessScore(b.label || text);
 
         const targetKeywords = ['hevc', 'hdr', 'hdr10', 'hdr10+', 'sdr', 'dv', 'dolby vision', 'x265', 'x264', 'h.265', 'h.264', '10bit', '10-bit', 'atmos', 'dts', 'ddp5.1', 'web-dl', 'bluray', 'remux'];
@@ -327,7 +351,7 @@ export class Movies4uClient {
             if (typeof Buffer !== 'undefined') {
                 return Buffer.from(str, 'base64').toString('utf-8');
             }
-        } catch (_) {}
+        } catch (_) { }
         return '';
     }
 
@@ -378,7 +402,7 @@ export class Movies4uClient {
                             targetTinyUrl = found[0];
                             break;
                         }
-                    } catch (_) {}
+                    } catch (_) { }
                 }
             }
             if (targetTinyUrl) {
@@ -450,7 +474,20 @@ export class Movies4uClient {
                     hits.sort((a, b) => {
                         const aPrint = getPrintQualityScore(a.post_title || '');
                         const bPrint = getPrintQualityScore(b.post_title || '');
+                        const aIsCam = aPrint <= 100;
+                        const bIsCam = bPrint <= 100;
+                        if (aIsCam !== bIsCam) return aIsCam ? 1 : -1;
+
+                        const aTier = getAudioTier(a.post_title || '');
+                        const bTier = getAudioTier(b.post_title || '');
+                        if (aTier !== bTier) return aTier - bTier;
+
+                        const aAudio = getAudioRichnessScore(a.post_title || '');
+                        const bAudio = getAudioRichnessScore(b.post_title || '');
+                        if (aAudio !== bAudio) return bAudio - aAudio;
+
                         if (aPrint !== bPrint) return bPrint - aPrint;
+
                         const aId = parseInt(a.id || 0, 10);
                         const bId = parseInt(b.id || 0, 10);
                         return bId - aId;
@@ -639,7 +676,7 @@ export class Movies4uClient {
                         hl.bridgeUrl = bUrl;
                     }
                     streamingLinks.push(...hubLinks);
-                } catch (_) {}
+                } catch (_) { }
             }
             return {
                 title: rawTitle,
@@ -715,14 +752,14 @@ export class Movies4uClient {
         // Direct link fallback
         if (this.isDirectMediaStream(bridgeUrl)) {
             return [{
-                    quality: qualityHint,
-                    url: bridgeUrl,
-                    originalUrl: bridgeUrl,
-                    server: 'Direct Media Stream',
-                    type: 'direct',
-                    headers: { 'User-Agent': DEFAULT_USER_AGENT },
-                    mimeType: this.detectMimeType(bridgeUrl)
-                }];
+                quality: qualityHint,
+                url: bridgeUrl,
+                originalUrl: bridgeUrl,
+                server: 'Direct Media Stream',
+                type: 'direct',
+                headers: { 'User-Agent': DEFAULT_USER_AGENT },
+                mimeType: this.detectMimeType(bridgeUrl)
+            }];
         }
         return [];
     }
@@ -770,21 +807,21 @@ export class Movies4uClient {
         let controller = null;
         let timeoutId = null;
         try {
-            const isGoogleCdn = streamUrl.includes("googleusercontent.com") || 
-                                streamUrl.includes("video-downloads") || 
-                                streamUrl.includes("gpdl");
+            const isGoogleCdn = streamUrl.includes("googleusercontent.com") ||
+                streamUrl.includes("video-downloads") ||
+                streamUrl.includes("gpdl");
             const isHls = streamUrl.toLowerCase().includes('.m3u8');
             if (typeof AbortController !== "undefined") {
                 controller = new AbortController();
                 timeoutId = setTimeout(() => {
-                    try { controller.abort(); } catch (_) {}
+                    try { controller.abort(); } catch (_) { }
                 }, timeoutMs);
             }
-            const isDirectCdn = streamUrl.includes("pixeldrain") || 
-                                streamUrl.includes("cloudflarestorage.com") || 
-                                streamUrl.includes("r2.dev") || 
-                                streamUrl.includes("fastdl") || 
-                                streamUrl.includes("bunker.monster");
+            const isDirectCdn = streamUrl.includes("pixeldrain") ||
+                streamUrl.includes("cloudflarestorage.com") ||
+                streamUrl.includes("r2.dev") ||
+                streamUrl.includes("fastdl") ||
+                streamUrl.includes("bunker.monster");
             const reqHeaders = {
                 "User-Agent": headers["User-Agent"] || DEFAULT_USER_AGENT,
                 "Range": "bytes=0-1024",
@@ -828,7 +865,7 @@ export class Movies4uClient {
             return { isLive: false, supports206: false };
         } finally {
             if (timeoutId) clearTimeout(timeoutId);
-            try { if (controller) controller.abort(); } catch (_) {}
+            try { if (controller) controller.abort(); } catch (_) { }
         }
     }
 
@@ -838,7 +875,7 @@ export class Movies4uClient {
     async getPlayableStream(pageUrl, isTVShow = false, episodeNumber = 1, seasonNumber = 1, customHttpGet) {
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
         const details = await this.extractDetails(pageUrl, seasonNumber, fetcher);
-        
+
         if (!isTVShow && details.mediaType === 'movie') {
             const qualities = {};
             const qualitySizes = {};
@@ -937,7 +974,7 @@ export class Movies4uClient {
                         if (bucketCandidates.some(c => c.audioTier === 1 && c.supports206 && c.priority === 1)) {
                             break;
                         }
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (bucketCandidates.length > 0) {
                     bucketCandidates.sort((a, b) => {
@@ -982,7 +1019,10 @@ export class Movies4uClient {
             const bestCandidate = selectBestStreamCandidate(liveCandidates);
             if (bestCandidate) {
                 const multiCandidates = liveCandidates.filter(c => c.audioTier === 1);
-                const pool = multiCandidates.length > 0 ? multiCandidates : liveCandidates;
+                const dualCandidates = liveCandidates.filter(c => c.audioTier === 2);
+                const pool = multiCandidates.length > 0 
+                    ? multiCandidates 
+                    : (dualCandidates.length > 0 ? dualCandidates : liveCandidates);
                 const best1080 = pool.find(c => (c.quality === '1080p' || c.quality === '1080') && c.supports206 !== false);
                 const primaryCandidate = best1080 || selectBestStreamCandidate(pool) || bestCandidate;
                 const primaryUrl = primaryCandidate.url;
@@ -1067,7 +1107,7 @@ export class Movies4uClient {
                                 if (epCandidates.some(c => c.audioTier === 1 && c.supports206 && c.priority === 1)) {
                                     break;
                                 }
-                            } catch (_) {}
+                            } catch (_) { }
                         }
                         if (epCandidates.length > 0) {
                             epCandidates.sort((a, b) => {
@@ -1086,7 +1126,7 @@ export class Movies4uClient {
                             };
                         }
                     }
-                } catch (_) {}
+                } catch (_) { }
                 return null;
             });
 
@@ -1156,7 +1196,7 @@ export class Movies4uClient {
                                 }
                             }
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                 }
             }
         }
@@ -1185,7 +1225,7 @@ export class Movies4uClient {
                             if (directStreams.length > 0) {
                                 return { quality: bridge.quality, streams: directStreams };
                             }
-                        } catch (e) {}
+                        } catch (e) { }
                     }
                 }
             }
@@ -1234,17 +1274,17 @@ export class Movies4uClient {
                     || unpacked.match(/https?:\/\/[^\s"'`\\]+master\.m3u8[^\s"'`\\]*/i)?.[0];
                 if (masterM3u8) {
                     return [{
-                            quality: qualityHint,
-                            url: masterM3u8,
-                            originalUrl: embedUrl,
-                            server: 'M4UPlay (Adaptive HLS Master Stream)',
-                            type: 'direct',
-                            headers: {
-                                'User-Agent': DEFAULT_USER_AGENT,
-                                'Referer': 'https://m4uplay.store/'
-                            },
-                            mimeType: 'application/vnd.apple.mpegurl'
-                        }];
+                        quality: qualityHint,
+                        url: masterM3u8,
+                        originalUrl: embedUrl,
+                        server: 'M4UPlay (Adaptive HLS Master Stream)',
+                        type: 'direct',
+                        headers: {
+                            'User-Agent': DEFAULT_USER_AGENT,
+                            'Referer': 'https://m4uplay.store/'
+                        },
+                        mimeType: 'application/vnd.apple.mpegurl'
+                    }];
                 }
             }
         }
@@ -1257,7 +1297,7 @@ export class Movies4uClient {
         if (!gpdlUrl || !gpdlUrl.startsWith('http')) return null;
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timeoutId = controller ? setTimeout(() => {
-            try { controller.abort(); } catch (_) {}
+            try { controller.abort(); } catch (_) { }
         }, 6000) : null;
         try {
             const res = await fetch(gpdlUrl, {
@@ -1282,9 +1322,9 @@ export class Movies4uClient {
                 const unwrapped = this.extractDirectCdnUrl(res.url);
                 if (unwrapped && unwrapped.startsWith('http')) return unwrapped;
             }
-        } catch {} finally {
+        } catch { } finally {
             if (timeoutId) clearTimeout(timeoutId);
-            try { if (controller) controller.abort(); } catch (_) {}
+            try { if (controller) controller.abort(); } catch (_) { }
         }
         return null;
     }
@@ -1323,7 +1363,7 @@ export class Movies4uClient {
                                 'Referer': hubUrl
                             });
                         }
-                    } catch (_) {}
+                    } catch (_) { }
                 }
             }
 
@@ -1356,7 +1396,7 @@ export class Movies4uClient {
                 const label = rawLabel.replace(/<[^>]+>/g, '').trim();
                 const lowerHref = href.toLowerCase();
                 const lowerLabel = label.toLowerCase();
-                
+
                 // Strictly ignore ZIP and compressed archive links
                 if (
                     lowerHref.includes('.zip') || lowerHref.includes('.rar') || lowerHref.includes('.7z') || lowerHref.includes('.tar') || lowerHref.includes('.gz') || lowerHref.includes('zippack') ||
@@ -1481,12 +1521,12 @@ export class Movies4uClient {
                 if (!directCdn || directCdn.includes('busycdn')) {
                     const busyController = typeof AbortController !== "undefined" ? new AbortController() : null;
                     const busyTimer = busyController ? setTimeout(() => {
-                        try { busyController.abort(); } catch (_) {}
+                        try { busyController.abort(); } catch (_) { }
                     }, 5000) : null;
                     try {
                         const res = await fetch(busyUrl, {
                             method: 'GET',
-                            headers: { 
+                            headers: {
                                 'User-Agent': DEFAULT_USER_AGENT,
                                 'Range': 'bytes=0-1024'
                             },
@@ -1496,9 +1536,9 @@ export class Movies4uClient {
                         if (res.url) {
                             directCdn = this.extractDirectCdnUrl(res.url);
                         }
-                    } catch (e) {} finally {
+                    } catch (e) { } finally {
                         if (busyTimer) clearTimeout(busyTimer);
-                        try { if (busyController) busyController.abort(); } catch (_) {}
+                        try { if (busyController) busyController.abort(); } catch (_) { }
                     }
                 }
                 const finalUrl = (directCdn && directCdn.startsWith('http')) ? directCdn : busyUrl;
@@ -1538,7 +1578,7 @@ export class Movies4uClient {
                         continue;
                     }
                     const qKey = (detectedQ === '2160p' || heading.toLowerCase().includes('4k') || heading.toLowerCase().includes('2160')) ? '4k' : detectedQ;
-                    
+
                     // TARGET HUBCLOUD & VCLOUD
                     const links = [...content.matchAll(/<a[^>]+href=["'](https?:\/\/[^"']*(?:hubcloud|vcloud|drive|hubcdn)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)];
                     for (const [_, href, rawText] of links) {
@@ -1710,7 +1750,7 @@ export class Movies4uClient {
     async defaultHttpGet(url, headers, timeoutMs = 10000) {
         const controller = new AbortController();
         const timer = setTimeout(() => {
-            try { controller.abort(); } catch (_) {}
+            try { controller.abort(); } catch (_) { }
         }, timeoutMs);
         try {
             const res = await fetch(url, {
@@ -1721,14 +1761,14 @@ export class Movies4uClient {
                 throw new Error(`HTTP ${res.status} fetching ${url}`);
             const contentType = (res.headers.get('content-type') || '').toLowerCase();
             if (contentType.includes('video') || contentType.includes('octet-stream') || contentType.includes('audio')) {
-                try { controller.abort(); } catch (_) {}
+                try { controller.abort(); } catch (_) { }
                 return '';
             }
             return await res.text();
         }
         finally {
             clearTimeout(timer);
-            try { controller.abort(); } catch (_) {}
+            try { controller.abort(); } catch (_) { }
         }
     }
 }

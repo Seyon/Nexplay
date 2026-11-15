@@ -128,54 +128,56 @@ export function getAudioTier(text) {
     t.includes('multi-audio') ||
     t.includes('multiaudio') ||
     /\bmulti\b/i.test(t) ||
-    t.includes('org multi');
+    t.includes('org multi') ||
+    t.includes('[multi') ||
+    t.includes('(multi');
 
-  const languages = [
-    'hindi', 'tamil', 'telugu', 'english', 'malayalam', 'kannada'
+  const langPatterns = [
+    /\b(?:hindi|hin)\b/i,
+    /\b(?:tamil|tam)\b/i,
+    /\b(?:telugu|tel)\b/i,
+    /\b(?:english|eng)\b/i,
+    /\b(?:malayalam|mal)\b/i,
+    /\b(?:kannada|kan)\b/i,
+    /\b(?:bengali|ben)\b/i,
+    /\b(?:marathi|mar)\b/i,
+    /\b(?:punjabi|pun)\b/i,
+    /\b(?:gujarati|guj)\b/i,
+    /\b(?:korean|kor)\b/i,
+    /\b(?:japanese|jap)\b/i,
+    /\b(?:spanish|spa)\b/i,
+    /\b(?:french|fre)\b/i,
+    /\burdu\b/i
   ];
-  const matchedLangs = languages.filter(l => {
-    const regex = new RegExp(`\\b${l}\\b|${l}-|-${l}`, 'i');
-    return regex.test(t);
-  });
-
-  const otherLangs = ['bengali', 'marathi', 'punjabi', 'gujarati', 'urdu', 'odia', 'bhojpuri', 'korean', 'japanese', 'spanish', 'french'];
-  const matchedOther = otherLangs.filter(l => new RegExp(`\\b${l}\\b`, 'i').test(t));
-  const totalLangCount = matchedLangs.length + matchedOther.length;
+  let matchedLangCount = 0;
+  for (const p of langPatterns) {
+    if (p.test(t)) matchedLangCount++;
+  }
 
   const hasDualKeyword = t.includes('dual audio') ||
     t.includes('dual-audio') ||
     t.includes('dualaudio') ||
-    /\bdual\b/i.test(t);
+    /\bdual\b/i.test(t) ||
+    t.includes('[dual') ||
+    t.includes('(dual');
 
   const isDualHindiEnglish = (
-    (/\bhindi\b/i.test(t) && (/\beng(?:lish)?\b/i.test(t))) ||
+    (/\b(?:hindi|hin)\b/i.test(t) && /\b(?:english|eng)\b/i.test(t)) ||
     /\b(?:hin|hindi)[-_\s+]+(?:eng|english)\b/i.test(t) ||
     /\b(?:eng|english)[-_\s+]+(?:hin|hindi)\b/i.test(t)
   );
 
-  const hasRegionalSouth = ['tamil', 'telugu', 'malayalam', 'kannada'].some(l => t.includes(l));
-
-  // Tier 1: Multi Audio or combinations with South Indian / Indian regional languages
-  if (
-    hasMultiKeyword ||
-    totalLangCount >= 3 ||
-    (hasRegionalSouth && (t.includes('hindi') || t.includes('english') || matchedLangs.length >= 2)) ||
-    matchedLangs.length >= 3
-  ) {
+  // Tier 1: Multi Audio (Explicit Multi keyword OR 3+ languages detected)
+  if (hasMultiKeyword || matchedLangCount >= 3) {
     return 1;
   }
 
-  // Tier 2: Dual Audio (e.g. Hindi English)
-  if (hasDualKeyword || (isDualHindiEnglish && totalLangCount === 2) || (totalLangCount === 2 && !hasRegionalSouth)) {
+  // Tier 2: Dual Audio (Explicit Dual keyword OR exactly 2 languages / Hindi-English)
+  if (hasDualKeyword || isDualHindiEnglish || matchedLangCount === 2) {
     return 2;
   }
 
-  // South Indian regional single language release
-  if (hasRegionalSouth) {
-    return 1;
-  }
-
-  // Tier 3: Single audio English or other languages
+  // Tier 3: Single audio English or other single language
   return 3;
 }
 
@@ -183,15 +185,33 @@ export function getAudioRichnessScore(text) {
   const t = (text || '').toLowerCase();
   const tier = getAudioTier(t);
 
-  const languages = [
-    'hindi', 'tamil', 'telugu', 'english', 'malayalam', 'kannada'
+  const langPatterns = [
+    /\b(?:hindi|hin)\b/i,
+    /\b(?:tamil|tam)\b/i,
+    /\b(?:telugu|tel)\b/i,
+    /\b(?:english|eng)\b/i,
+    /\b(?:malayalam|mal)\b/i,
+    /\b(?:kannada|kan)\b/i,
+    /\b(?:bengali|ben)\b/i,
+    /\b(?:marathi|mar)\b/i,
+    /\b(?:punjabi|pun)\b/i,
+    /\b(?:gujarati|guj)\b/i,
+    /\burdu\b/i
   ];
   let langCount = 0;
-  for (const lang of languages) {
-    if (t.includes(lang)) langCount++;
+  for (const p of langPatterns) {
+    if (p.test(t)) langCount++;
   }
-  const southLangs = ['tamil', 'telugu', 'malayalam', 'kannada'];
-  const southCount = southLangs.filter(l => t.includes(l)).length;
+  const southPatterns = [
+    /\b(?:tamil|tam)\b/i,
+    /\b(?:telugu|tel)\b/i,
+    /\b(?:malayalam|mal)\b/i,
+    /\b(?:kannada|kan)\b/i
+  ];
+  let southCount = 0;
+  for (const p of southPatterns) {
+    if (p.test(t)) southCount++;
+  }
 
   if (tier === 1) {
     let score = 10000;
@@ -209,15 +229,19 @@ export function getAudioRichnessScore(text) {
       score += 1000;
     }
     score += (langCount * 200);
+    score += (southCount * 300);
     return score;
   }
 
   // Tier 3: Single audio
-  if (t.includes('english') || /\beng\b/i.test(t)) {
-    return 2000;
+  if (southCount > 0) {
+    return 3000 + (southCount * 200);
   }
   if (t.includes('hindi') || /\bhin\b/i.test(t)) {
-    return 1500;
+    return 2500;
+  }
+  if (t.includes('english') || /\beng\b/i.test(t)) {
+    return 2000;
   }
   return 1000;
 }
@@ -2060,11 +2084,22 @@ var HDHub4uClient = class {
           return bList;
         };
 
+        const rankSeriesBridge = (b) => {
+          let score = (b.sizeMB || 0);
+          const label = ((b.label || '') + ' ' + (b.url || '')).toLowerCase();
+          const tier = getAudioTier(label);
+          if (tier === 1) score += 200000;
+          else if (tier === 2) score += 100000;
+          score += getAudioRichnessScore(label);
+          if (label.includes('web-dl') || label.includes('bluray') || label.includes('remux')) score += 50000;
+          return score;
+        };
+
         const activeBridges = filterWebDl(exactBridges);
-        const fourK = filterWebDl(activeBridges.filter(is4K).sort((a, b) => b.sizeMB - a.sizeMB));
-        const tenEighty = filterWebDl(activeBridges.filter(is1080p).sort((a, b) => b.sizeMB - a.sizeMB));
-        const sevenTwenty = filterWebDl(activeBridges.filter(is720p).sort((a, b) => b.sizeMB - a.sizeMB));
-        const fourEighty = filterWebDl(activeBridges.filter(is480p).sort((a, b) => b.sizeMB - a.sizeMB));
+        const fourK = filterWebDl(activeBridges.filter(is4K).sort((a, b) => rankSeriesBridge(b) - rankSeriesBridge(a)));
+        const tenEighty = filterWebDl(activeBridges.filter(is1080p).sort((a, b) => rankSeriesBridge(b) - rankSeriesBridge(a)));
+        const sevenTwenty = filterWebDl(activeBridges.filter(is720p).sort((a, b) => rankSeriesBridge(b) - rankSeriesBridge(a)));
+        const fourEighty = filterWebDl(activeBridges.filter(is480p).sort((a, b) => rankSeriesBridge(b) - rankSeriesBridge(a)));
 
         const resolvePromises = [];
         const liveCandidates = [];
@@ -2282,7 +2317,10 @@ var HDHub4uClient = class {
       const rankScore = (b) => {
         let score = (b.sizeMB || 0);
         const label = ((b.label || '') + ' ' + (b.url || '')).toLowerCase();
-        if (label.includes('multi') || label.includes('dual')) score += 100000;
+        const tier = getAudioTier(label);
+        if (tier === 1) score += 200000;
+        else if (tier === 2) score += 100000;
+        score += getAudioRichnessScore(label);
         if (label.includes('web-dl') || label.includes('bluray') || label.includes('remux') || label.includes('ds4k')) score += 50000;
         if (label.includes('ddp') || label.includes('atmos') || label.includes('5.1') || label.includes('7.1')) score += 30000;
         return score;
@@ -2677,11 +2715,22 @@ var FourKHDHubClient = class {
           return bList;
         };
 
+        const rankSeriesBridge = (b) => {
+          let score = (b.sizeMB || 0);
+          const label = ((b.label || '') + ' ' + (b.url || '')).toLowerCase();
+          const tier = getAudioTier(label);
+          if (tier === 1) score += 200000;
+          else if (tier === 2) score += 100000;
+          score += getAudioRichnessScore(label);
+          if (label.includes('web-dl') || label.includes('bluray') || label.includes('remux')) score += 50000;
+          return score;
+        };
+
         const activeBridges = filterWebDl(exactBridges);
-        const fourK = filterWebDl(activeBridges.filter(is4K).sort((a, b) => b.sizeMB - a.sizeMB));
-        const tenEighty = filterWebDl(activeBridges.filter(is1080p).sort((a, b) => b.sizeMB - a.sizeMB));
-        const sevenTwenty = filterWebDl(activeBridges.filter(is720p).sort((a, b) => b.sizeMB - a.sizeMB));
-        const fourEighty = filterWebDl(activeBridges.filter(is480p).sort((a, b) => b.sizeMB - a.sizeMB));
+        const fourK = filterWebDl(activeBridges.filter(is4K).sort((a, b) => rankSeriesBridge(b) - rankSeriesBridge(a)));
+        const tenEighty = filterWebDl(activeBridges.filter(is1080p).sort((a, b) => rankSeriesBridge(b) - rankSeriesBridge(a)));
+        const sevenTwenty = filterWebDl(activeBridges.filter(is720p).sort((a, b) => rankSeriesBridge(b) - rankSeriesBridge(a)));
+        const fourEighty = filterWebDl(activeBridges.filter(is480p).sort((a, b) => rankSeriesBridge(b) - rankSeriesBridge(a)));
 
         const resolvePromises = [];
         const liveCandidates = [];
@@ -2914,7 +2963,10 @@ var FourKHDHubClient = class {
       const rankScore = (b) => {
         let score = (b.sizeMB || 0);
         const label = ((b.label || '') + ' ' + (b.url || '')).toLowerCase();
-        if (label.includes('multi') || label.includes('dual')) score += 100000;
+        const tier = getAudioTier(label);
+        if (tier === 1) score += 200000;
+        else if (tier === 2) score += 100000;
+        score += getAudioRichnessScore(label);
         if (label.includes('web-dl') || label.includes('bluray') || label.includes('remux') || label.includes('ds4k')) score += 50000;
         if (label.includes('ddp') || label.includes('atmos') || label.includes('5.1') || label.includes('7.1')) score += 30000;
         return score;

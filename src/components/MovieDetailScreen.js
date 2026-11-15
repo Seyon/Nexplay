@@ -1276,6 +1276,10 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     setPlaybackError(null);
     setResolvedQualities(null);
 
+    // CRITICAL: Immediately clear stream URI & headers on server switch to prevent link mixing
+    setCurrentSourceUri(null);
+    setCurrentSourceHeaders(null);
+
     // 1. Safely pause previous playback
     if (player) {
       try {
@@ -1402,7 +1406,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
           episodeNumber: targetEpisodeNum,
           originalLanguage: origLang,
           isIndianRegion: isIndianContent,
-          allowCrossProviderFallback: true,
+          allowCrossProviderFallback: false,
           tmdbId: details?.id || movie?.id,
           movie,
           details
