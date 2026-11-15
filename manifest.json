@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.6",
-  "updatedAt": "2026-11-14T13:20:00.000Z",
-  "commitSha": "fa8baf4",
+  "version": "1.1.7",
+  "updatedAt": "2026-11-15T12:40:00.000Z",
+  "commitSha": "96f0c4c",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
   "providers": {
@@ -11,10 +11,9 @@
       "name": "Server 1 (HDHub4u)",
       "enabled": true,
       "priority": 1,
-      "baseUrl": "https://new14.hdhub4u.cl",
+      "baseUrl": "https://new15.hdhub4u.cl",
       "mirrors": [
-        "https://new14.hdhub4u.cl",
-        "https://new10.hdhub4u.cl",
+        "https://new15.hdhub4u.cl",
         "https://vfilm.pro",
         "https://hdhub4u.skin",
         "https://hdhub4u.pro"
@@ -59,8 +58,6 @@
       "baseUrl": "https://new8.movies4u.garden",
       "mirrors": [
         "https://new8.movies4u.garden",
-        "https://new5.movies4u.garden",
-        "https://new3.movies4u.garden",
         "https://movies4u.foo"
       ],
       "headers": {
@@ -154,6 +151,7 @@
     ]
   },
   "changeLog": [
+    "Removed dead mirrors (new14.hdhub4u.cl, new5.movies4u.garden, new3.movies4u.garden); set Server 1 active mirror to https://new15.hdhub4u.cl/ and Server 3 active mirror to https://new8.movies4u.garden/",
     "Updated Server 1 (HDHub4u) baseUrl to https://new14.hdhub4u.cl/ and Server 3 (Movies4u) baseUrl to https://new8.movies4u.garden/ with active mirrors",
     "Updated Server 3 (Movies4u) domain to https://new5.movies4u.garden/ with active mirrors",
     "Updated Server 1 (HDHub4u) domain to https://new10.hdhub4u.cl/ and Server 3 (Movies4u) domain to https://new4.movies4u.garden/",

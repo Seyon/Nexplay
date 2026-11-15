@@ -309,7 +309,7 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
  */
 export class Movies4uClient {
     liveBaseUrl = 'https://new8.movies4u.garden';
-    mirrors = ['https://new8.movies4u.garden', 'https://new5.movies4u.garden', 'https://new3.movies4u.garden', 'https://movies4u.foo'];
+    mirrors = ['https://new8.movies4u.garden', 'https://movies4u.foo'];
     domainResolved = false;
     constructor(customBaseUrl) {
         if (customBaseUrl) {
@@ -424,9 +424,7 @@ export class Movies4uClient {
             baseUrl,
             this.liveBaseUrl,
             ...this.mirrors,
-            'https://new8.movies4u.garden',
-            'https://new5.movies4u.garden',
-            'https://new3.movies4u.garden'
+            'https://new8.movies4u.garden'
         ])).map(m => (m || '').replace(/\/+$/, '')).filter(m => m && !m.includes('new4.movies4u.garden'));
 
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
