@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.5",
-  "updatedAt": "2026-11-07T18:00:00.000Z",
-  "commitSha": "dbccf5d",
+  "version": "1.1.6",
+  "updatedAt": "2026-11-14T13:20:00.000Z",
+  "commitSha": "fa8baf4",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
   "providers": {
@@ -11,8 +11,9 @@
       "name": "Server 1 (HDHub4u)",
       "enabled": true,
       "priority": 1,
-      "baseUrl": "https://new10.hdhub4u.cl",
+      "baseUrl": "https://new14.hdhub4u.cl",
       "mirrors": [
+        "https://new14.hdhub4u.cl",
         "https://new10.hdhub4u.cl",
         "https://vfilm.pro",
         "https://hdhub4u.skin",
@@ -55,15 +56,16 @@
       "name": "Server 3 (Movies4u)",
       "enabled": true,
       "priority": 3,
-      "baseUrl": "https://new5.movies4u.garden",
+      "baseUrl": "https://new8.movies4u.garden",
       "mirrors": [
+        "https://new8.movies4u.garden",
         "https://new5.movies4u.garden",
         "https://new3.movies4u.garden",
         "https://movies4u.foo"
       ],
       "headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://new5.movies4u.garden/"
+        "Referer": "https://new8.movies4u.garden/"
       },
       "features": {
         "movieResolution": true,
@@ -152,6 +154,7 @@
     ]
   },
   "changeLog": [
+    "Updated Server 1 (HDHub4u) baseUrl to https://new14.hdhub4u.cl/ and Server 3 (Movies4u) baseUrl to https://new8.movies4u.garden/ with active mirrors",
     "Updated Server 3 (Movies4u) domain to https://new5.movies4u.garden/ with active mirrors",
     "Updated Server 1 (HDHub4u) domain to https://new10.hdhub4u.cl/ and Server 3 (Movies4u) domain to https://new4.movies4u.garden/",
     "Updated Server 1 (HDHub4u) baseUrl to new3.hdhub4u.free with active mirrors (hdhub4u.pro, hdhub4u.bi, hdhub4u.tv)",
