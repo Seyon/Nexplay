@@ -1,3 +1,6 @@
+import { NativeModules } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+
 /**
  * DNS-over-HTTPS (DoH) Resolver & ISP Bypass Engine
  * 
@@ -81,29 +84,101 @@ let activeConfig = {
   customUrl: 'https://dns.google/resolve'
 };
 
-// Sync with native Android SharedPreferences on startup if running inside native app
-let DnsPreference = null;
-try {
-  if (typeof globalThis !== 'undefined' && globalThis.NativeModules?.DnsPreferenceModule) {
-    DnsPreference = globalThis.NativeModules.DnsPreferenceModule;
-  }
-} catch (e) {}
+const dnsListeners = new Set();
 
-if (DnsPreference && typeof DnsPreference.getDnsConfig === 'function') {
-  DnsPreference.getDnsConfig()
-    .then((cfg) => {
-      if (cfg && cfg.providerId) {
-        activeConfig = {
-          ...activeConfig,
-          providerId: cfg.providerId.toLowerCase(),
-          customUrl: cfg.customUrl || activeConfig.customUrl,
-          enabled: typeof cfg.enabled === 'boolean' ? cfg.enabled : true
-        };
-        console.log(`[DnsResolver] Initialized DNS Config from Android SharedPreferences: ${activeConfig.providerId}`);
+export const subscribeDnsConfig = (listener) => {
+  if (typeof listener === 'function') {
+    dnsListeners.add(listener);
+    return () => dnsListeners.delete(listener);
+  }
+  return () => {};
+};
+
+const notifyDnsListeners = (cfg) => {
+  dnsListeners.forEach((fn) => {
+    try { fn({ ...cfg }); } catch (_) {}
+  });
+};
+
+const applyDnsConfigInternal = (cfg) => {
+  if (!cfg || !cfg.providerId) return;
+  const pId = cfg.providerId.toLowerCase();
+  const changed = activeConfig.providerId !== pId || activeConfig.enabled !== cfg.enabled;
+  activeConfig = {
+    ...activeConfig,
+    ...cfg,
+    providerId: pId
+  };
+  if (changed) {
+    dnsCache.clear();
+    console.log(`[DnsResolver] Active DNS Provider updated to: ${activeConfig.providerId}`);
+  }
+  notifyDnsListeners(activeConfig);
+};
+
+const getDnsFilePath = () => {
+  try {
+    if (FileSystem && FileSystem.documentDirectory) {
+      return `${FileSystem.documentDirectory}nexplay_dns.json`;
+    }
+  } catch (_) {}
+  return null;
+};
+
+// 1. Synchronous check: read from NativeModules constants (instant on cold start)
+try {
+  const DnsPref = NativeModules?.DnsPreferenceModule;
+  const consts = typeof DnsPref?.getConstants === 'function' ? DnsPref.getConstants() : DnsPref;
+  if (consts && consts.providerId) {
+    activeConfig.providerId = String(consts.providerId).toLowerCase();
+    if (consts.customUrl) activeConfig.customUrl = String(consts.customUrl);
+    if (typeof consts.enabled === 'boolean') activeConfig.enabled = consts.enabled;
+    console.log(`[DnsResolver] Synchronously loaded DNS Config from NativeModules: ${activeConfig.providerId}`);
+  }
+} catch (_) {}
+
+// 2. Asynchronous check: read from native Android SharedPreferences
+try {
+  const DnsPref = NativeModules?.DnsPreferenceModule;
+  if (DnsPref && typeof DnsPref.getDnsConfig === 'function') {
+    DnsPref.getDnsConfig()
+      .then((cfg) => {
+        if (cfg && cfg.providerId) {
+          applyDnsConfigInternal({
+            providerId: cfg.providerId.toLowerCase(),
+            customUrl: cfg.customUrl || activeConfig.customUrl,
+            enabled: typeof cfg.enabled === 'boolean' ? cfg.enabled : true
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('[DnsResolver] Native getDnsConfig error:', err);
+      });
+  }
+} catch (_) {}
+
+// 3. Asynchronously read saved DNS file from disk on startup
+(async () => {
+  try {
+    const filePath = getDnsFilePath();
+    if (filePath && FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
+      const exists = await FileSystem.getInfoAsync(filePath);
+      if (exists?.exists) {
+        const content = await FileSystem.readAsStringAsync(filePath);
+        if (content) {
+          const parsed = JSON.parse(content);
+          if (parsed && parsed.providerId) {
+            applyDnsConfigInternal({
+              providerId: parsed.providerId.toLowerCase(),
+              customUrl: parsed.customUrl || activeConfig.customUrl,
+              enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : true
+            });
+          }
+        }
       }
-    })
-    .catch(() => {});
-}
+    }
+  } catch (_) {}
+})();
 
 // In-memory DNS cache: hostname -> { ip: string, expiry: number }
 const dnsCache = new Map();
@@ -114,26 +189,44 @@ const dnsCache = new Map();
 export const getDnsConfig = () => ({ ...activeConfig });
 
 /**
- * Set DNS configuration and persist across app restarts (via native bridge)
+ * Set DNS configuration and persist across app restarts (via native bridge and disk)
  */
 export const setDnsConfig = (newConfig) => {
+  if (!newConfig) return;
+  const pId = (newConfig.providerId || activeConfig.providerId || 'google').toLowerCase();
   activeConfig = {
     ...activeConfig,
-    ...newConfig
+    ...newConfig,
+    providerId: pId
   };
   dnsCache.clear();
   console.log(`[DnsResolver] Active DNS Provider set to: ${activeConfig.providerId} (DoH Enabled: ${activeConfig.enabled})`);
 
-  // Persist to Android SharedPreferences / OkHttp native layer
-  if (DnsPreference && typeof DnsPreference.setDnsConfig === 'function') {
-    DnsPreference.setDnsConfig(
-      activeConfig.providerId || 'google',
-      activeConfig.customUrl || 'https://dns.google/resolve',
-      activeConfig.enabled !== false
-    ).catch((err) => {
-      console.warn('[DnsResolver] Failed to sync DNS config to NativeModule:', err?.message || err);
-    });
+  // 1. Persist to Android SharedPreferences / OkHttp native layer
+  try {
+    const DnsPref = NativeModules?.DnsPreferenceModule;
+    if (DnsPref && typeof DnsPref.setDnsConfig === 'function') {
+      DnsPref.setDnsConfig(
+        activeConfig.providerId,
+        activeConfig.customUrl || 'https://dns.google/resolve',
+        activeConfig.enabled !== false
+      ).catch((err) => {
+        console.warn('[DnsResolver] Failed to sync DNS config to NativeModule:', err?.message || err);
+      });
+    }
+  } catch (err) {
+    console.warn('[DnsResolver] Native setDnsConfig invoke error:', err);
   }
+
+  // 2. Persist to local disk file nexplay_dns.json
+  try {
+    const filePath = getDnsFilePath();
+    if (filePath && FileSystem && typeof FileSystem.writeAsStringAsync === 'function') {
+      FileSystem.writeAsStringAsync(filePath, JSON.stringify(activeConfig)).catch(() => {});
+    }
+  } catch (_) {}
+
+  notifyDnsListeners(activeConfig);
 };
 
 /**
@@ -305,7 +398,7 @@ export async function querySingleDohEndpoint(endpointUrl, hostname, timeoutMs = 
  * Prioritizes the user's active selected provider and uses Promise.any race
  * to prevent carrier-blocked endpoints from causing resolution failures.
  * 
- * @param {string} domain - e.g. "api.themoviedb.org" or "new5.hdhub4u.cl"
+ * @param {string} domain - e.g. "api.themoviedb.org" or "new15.hdhub4u.cl"
  * @returns {Promise<string>} - IPv4 string or original hostname if unresolvable
  */
 export const resolveDomain = async (domain) => {

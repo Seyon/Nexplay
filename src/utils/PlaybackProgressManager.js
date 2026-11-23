@@ -15,7 +15,7 @@ import animeDatabase from '../services/AnimeDatabase';
 const COMPLETION_PERCENTAGE_THRESHOLD = 92;
 const COMPLETION_TIME_REMAINING_SECS = 25;
 const MIN_TIME_TO_SAVE_SECS = 3;
-const MAX_WATCH_HISTORY_ITEMS = 25;
+const MAX_WATCH_HISTORY_ITEMS = 100;
 
 let _memoryPlaybackProgress = {};
 let _isManagerInitialized = false;
@@ -178,46 +178,100 @@ export const initPlaybackProgressManager = async () => {
       // cache file optional fallback
     }
 
-    // 3. Seed any in-progress records from watchHistory if missing
-    const history = getAppSettingsWatchHistory();
-    if (Array.isArray(history)) {
-      history.forEach((item) => {
-        if (!item || !item.id) return;
-        const cleanId = String(item.id).replace(/^(movie-|tv-)/, '');
-        const isTV = item.media_type === 'tv' || Boolean(item.season || item.episode || item.last_season || item.last_episode);
-        const sNum = isTV ? (Number(item.season || item.last_season) || 1) : null;
-        const eNum = isTV ? (Number(item.episode) || 1) : null;
-        const key = getProgressKey({ mediaId: cleanId, mediaType: isTV ? 'tv' : 'movie', season: sNum, episode: eNum });
-        const savedTime = Number(item.currentTime || item.position) || 0;
-        if (key && !_memoryPlaybackProgress[key] && savedTime >= MIN_TIME_TO_SAVE_SECS) {
-          _memoryPlaybackProgress[key] = {
-            mediaId: cleanId,
-            mediaType: isTV ? 'tv' : 'movie',
-            title: item.title || item.name || '',
-            poster_path: item.poster_path || null,
-            backdrop_path: item.backdrop_path || null,
-            image: item.image || null,
-            season: sNum,
-            episode: eNum,
-            episodeTitle: item.last_episode || (isTV ? `Episode ${eNum}` : null),
-            currentTime: savedTime,
-            duration: Number(item.duration) || 0,
-            progress: Number(item.progress) || 0,
-            completed: Boolean(item.completed),
-            quality: item.quality || 'HD',
-            lastUpdated: item.last_watched || Date.now(),
-          };
+    // 3. Bidirectional Reconciliation:
+    // A. Seed any in-progress records from watchHistory into memory cache
+    const rawHistory = getAppSettingsWatchHistory();
+    const historyList = Array.isArray(rawHistory) ? [...rawHistory] : [];
+    const historyIdSet = new Set(historyList.map(h => String(h.id).replace(/^(movie-|tv-)/, '')));
+
+    historyList.forEach((item) => {
+      if (!item || !item.id) return;
+      const cleanId = String(item.id).replace(/^(movie-|tv-)/, '');
+      const isTV = item.media_type === 'tv' || Boolean(item.season || item.episode || item.last_season || item.last_episode);
+      const sNum = isTV ? (Number(item.season || item.last_season) || 1) : null;
+      const eNum = isTV ? (Number(item.episode) || 1) : null;
+      const key = getProgressKey({ mediaId: cleanId, mediaType: isTV ? 'tv' : 'movie', season: sNum, episode: eNum });
+      const savedTime = Number(item.currentTime || item.position) || 0;
+      if (key && !_memoryPlaybackProgress[key] && savedTime >= MIN_TIME_TO_SAVE_SECS) {
+        _memoryPlaybackProgress[key] = {
+          mediaId: cleanId,
+          mediaType: isTV ? 'tv' : 'movie',
+          title: item.title || item.name || '',
+          poster_path: item.poster_path || null,
+          backdrop_path: item.backdrop_path || null,
+          image: item.image || null,
+          season: sNum,
+          episode: eNum,
+          episodeTitle: item.last_episode || (isTV ? `Episode ${eNum}` : null),
+          currentTime: savedTime,
+          duration: Number(item.duration) || 0,
+          progress: Number(item.progress) || 0,
+          completed: Boolean(item.completed),
+          quality: item.quality || 'HD',
+          lastUpdated: item.last_watched || Date.now(),
+        };
+      }
+      if (isTV) {
+        const lKey = getSeriesLatestKey(cleanId);
+        if (lKey && !_memoryPlaybackProgress[lKey] && _memoryPlaybackProgress[key]) {
+          _memoryPlaybackProgress[lKey] = { ..._memoryPlaybackProgress[key] };
         }
-        if (isTV) {
-          const lKey = getSeriesLatestKey(cleanId);
-          if (lKey && !_memoryPlaybackProgress[lKey] && _memoryPlaybackProgress[key]) {
-            _memoryPlaybackProgress[lKey] = { ..._memoryPlaybackProgress[key] };
-          }
-        }
-      });
+      }
+    });
+
+    // B. Reconstruct any missing continue watching items from _memoryPlaybackProgress cache.
+    // Guarantees continue watching items NEVER disappear even after days or restarts!
+    let historyModified = false;
+    Object.values(_memoryPlaybackProgress).forEach((rec) => {
+      if (!rec || !rec.mediaId || rec.completed || rec.removedFromContinueWatching) return;
+      if ((rec.currentTime || 0) < MIN_TIME_TO_SAVE_SECS) return;
+
+      const cleanId = String(rec.mediaId).replace(/^(movie-|tv-)/, '');
+      if (!historyIdSet.has(cleanId)) {
+        const isAnime = rec.mediaType === 'anime' || cleanId.startsWith('np_anime_');
+        const isTV = !isAnime && (rec.mediaType === 'tv' || Boolean(rec.season || rec.episode));
+        const remSecs = (rec.duration || 0) > (rec.currentTime || 0) ? (rec.duration - rec.currentTime) : 0;
+        const timeLeftStr = formatRemainingTime(remSecs);
+        const sNum = rec.season || 1;
+        const eNum = rec.episode || 1;
+        const subtitleStr = isAnime
+          ? `Ep ${eNum}${timeLeftStr ? `  •  ${timeLeftStr}` : ''}`
+          : (isTV ? `S${sNum} E${eNum}${timeLeftStr ? `  •  ${timeLeftStr}` : ''}` : (timeLeftStr || 'In Progress'));
+
+        historyList.push({
+          id: cleanId,
+          media_type: isAnime ? 'anime' : (isTV ? 'tv' : 'movie'),
+          isAnime,
+          title: rec.title || 'In Progress',
+          name: rec.title || 'In Progress',
+          poster_path: rec.poster_path || null,
+          backdrop_path: rec.backdrop_path || null,
+          image: rec.image || (rec.poster_path ? getPosterUrl(rec.poster_path) : (rec.backdrop_path ? getBackdropUrl(rec.backdrop_path) : null)),
+          progress: rec.progress || 10,
+          position: rec.currentTime || 0,
+          currentTime: rec.currentTime || 0,
+          duration: rec.duration || 0,
+          season: sNum,
+          episode: eNum,
+          last_season: sNum,
+          last_episode: isAnime ? `Ep ${eNum}` : (isTV ? `S${sNum} E${eNum}` : null),
+          subtitle: subtitleStr,
+          time_left: timeLeftStr,
+          quality: rec.quality || 'HD',
+          last_watched: rec.lastUpdated || Date.now(),
+        });
+        historyIdSet.add(cleanId);
+        historyModified = true;
+      }
+    });
+
+    if (historyModified) {
+      historyList.sort((a, b) => (b.last_watched || 0) - (a.last_watched || 0));
+      await setWatchHistory(historyList.slice(0, MAX_WATCH_HISTORY_ITEMS));
     }
 
     _isManagerInitialized = true;
+    notifyProgressListeners('WATCH_HISTORY_UPDATED', { watchHistory: getAppSettingsWatchHistory() });
   } catch (e) {
     console.warn('[PlaybackProgressManager] Initialization error:', e);
   }
@@ -369,10 +423,49 @@ export const savePlaybackProgress = async ({
   const existingIdx = history.findIndex(h => String(h.id) === String(cleanId) || String(h.id) === String(mediaId));
 
   if (isCompleted) {
-    // Content fully watched -> Remove from Continue Watching row!
-    if (existingIdx >= 0) {
-      history.splice(existingIdx, 1);
-      await setWatchHistory(history);
+    if (isTV || isAnime) {
+      // For TV Series and Anime: Do NOT delete the entire show when an episode ends!
+      // Keep the show visible in Continue Watching so the user can easily continue watching the series.
+      const subtitleStr = isAnime
+        ? `Ep ${eNum} Completed`
+        : `S${sNum} E${eNum} Completed`;
+
+      const completedEntry = {
+        ...(existingIdx >= 0 ? history[existingIdx] : media),
+        id: cleanId,
+        media_type: resolvedMediaType,
+        isAnime,
+        title,
+        name: title,
+        poster_path: posterPath,
+        backdrop_path: backdropPath,
+        image: episodeImage || (posterPath ? getPosterUrl(posterPath) : (backdropPath ? getBackdropUrl(backdropPath) : null)) || image,
+        progress: 100,
+        position: dur,
+        currentTime: 0,
+        duration: dur,
+        season: sNum,
+        episode: eNum,
+        last_season: sNum,
+        last_episode: isAnime ? `Ep ${eNum}` : (isTV ? `S${sNum} E${eNum}` : null),
+        subtitle: subtitleStr,
+        time_left: 'Completed',
+        quality,
+        last_watched: Date.now(),
+      };
+
+      if (existingIdx >= 0) {
+        history[existingIdx] = completedEntry;
+      } else {
+        history.unshift(completedEntry);
+      }
+      await setWatchHistory(history.slice(0, MAX_WATCH_HISTORY_ITEMS));
+    } else {
+      // Standalone movie completed: remove from continue watching
+      if (existingIdx >= 0) {
+        history.splice(existingIdx, 1);
+        await setWatchHistory(history);
+      }
     }
   } else if (curTime >= MIN_TIME_TO_SAVE_SECS) {
     // Unfinished content -> Add or update in Continue Watching row!
@@ -512,6 +605,22 @@ export const removeFromContinueWatching = async (mediaId) => {
   const filtered = history.filter(h => String(h.id) !== String(cleanId) && String(h.id) !== String(mediaId));
 
   await setWatchHistory(filtered);
+
+  // Also remove from dedicated AnimeDatabase if applicable
+  if (animeDatabase && typeof animeDatabase.removeFromContinueWatching === 'function') {
+    try {
+      animeDatabase.removeFromContinueWatching(cleanId);
+    } catch (_) {}
+  }
+
+  // Mark in _memoryPlaybackProgress as removed so reconciliation won't resurrect it
+  Object.keys(_memoryPlaybackProgress).forEach((k) => {
+    if (k.includes(cleanId)) {
+      _memoryPlaybackProgress[k].completed = true;
+      _memoryPlaybackProgress[k].removedFromContinueWatching = true;
+    }
+  });
+
   await Promise.all([
     persistProgressCacheToDisk(),
     updatePlaybackProgressSettings(_memoryPlaybackProgress),

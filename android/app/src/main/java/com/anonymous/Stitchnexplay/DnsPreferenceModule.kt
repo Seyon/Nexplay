@@ -1,5 +1,5 @@
 package com.anonymous.Stitchnexplay
-
+/
 import android.content.Context
 import android.content.SharedPreferences
 import com.facebook.react.bridge.Arguments
@@ -63,6 +63,14 @@ class DnsPreferenceModule(reactContext: ReactApplicationContext) : ReactContextB
   }
 
   override fun getName(): String = MODULE_NAME
+
+  override fun getConstants(): MutableMap<String, Any>? {
+    return mutableMapOf(
+      "providerId" to activeProviderId,
+      "customUrl" to activeCustomUrl,
+      "enabled" to activeEnabled
+    )
+  }
 
   @ReactMethod
   fun getDnsConfig(promise: Promise) {

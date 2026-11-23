@@ -16,6 +16,9 @@ const getDocumentDir = () => {
 
 const getSettingsFilePath = () => `${getDocumentDir()}nexplay_settings.json`;
 const getBackupKeyFilePath = () => `${getDocumentDir()}tmdb_key.txt`;
+const getWatchHistoryFilePath = () => `${getDocumentDir()}nexplay_watch_history.json`;
+
+const MAX_WATCH_HISTORY_LIMIT = 100;
 
 let _settings = {
   tmdbApiKey: '',
@@ -100,13 +103,43 @@ export const initSettings = async () => {
             ? (parsed.universalQuality === '4k' ? '4K' : parsed.universalQuality)
             : '1080p',
           userName: (parsed.userName || '').trim(),
+          watchHistory: Array.isArray(parsed.watchHistory) ? parsed.watchHistory : (_settings.watchHistory || []),
         };
       } catch (err) {
         console.warn('[AppSettings] Corrupted settings JSON:', err);
       }
     }
 
-    // 3. Fallback: check backup key file if no key was found in JSON
+    // 3. Fail-safe Continue Watching recovery: Check standalone backup if watchHistory is empty
+    if (!Array.isArray(_settings.watchHistory) || _settings.watchHistory.length === 0) {
+      try {
+        const historyPath = getWatchHistoryFilePath();
+        let backupHistoryContent = null;
+        if (FileSystem && typeof FileSystem.getInfoAsync === 'function') {
+          const hInfo = await FileSystem.getInfoAsync(historyPath);
+          if (hInfo && hInfo.exists) {
+            backupHistoryContent = await FileSystem.readAsStringAsync(historyPath);
+          }
+        }
+        if (!backupHistoryContent && Paths && Paths.document && typeof File === 'function') {
+          const hFile = new File(Paths.document, 'nexplay_watch_history.json');
+          if (hFile && hFile.exists) {
+            backupHistoryContent = await hFile.text();
+          }
+        }
+        if (backupHistoryContent) {
+          const parsedBackup = JSON.parse(backupHistoryContent);
+          if (Array.isArray(parsedBackup) && parsedBackup.length > 0) {
+            _settings.watchHistory = parsedBackup;
+            console.log(`[AppSettings] Recovered ${_settings.watchHistory.length} continue watching items from standalone backup file.`);
+          }
+        }
+      } catch (hErr) {
+        console.warn('[AppSettings] Standalone watch history backup recovery error:', hErr?.message || hErr);
+      }
+    }
+
+    // 4. Fallback: check backup key file if no key was found in JSON
     if (!_settings.tmdbApiKey) {
       try {
         const backupPath = getBackupKeyFilePath();
@@ -126,12 +159,15 @@ export const initSettings = async () => {
       }
     }
 
-    // 4. Ensure initial random username from built-in list (first time install or legacy 'Aji')
+    // 5. Ensure initial random username from built-in list (first time install or legacy 'Aji')
     let needsInitialSave = false;
     if (!_settings.userName || _settings.userName.toLowerCase() === 'aji') {
       _settings.userName = getRandomDefaultUsername();
       needsInitialSave = true;
     }
+
+    _isInitialized = true;
+    _initPromise = null;
 
     if (needsInitialSave) {
       try {
@@ -141,8 +177,9 @@ export const initSettings = async () => {
       }
     }
 
-    _isInitialized = true;
-    _initPromise = null;
+    // Broadcast initialization so all screens (Home, Movies, TV, Anime) immediately hydrate Continue Watching
+    notifyListeners('SETTINGS_INITIALIZED', { settings: { ..._settings } });
+    notifyListeners('WATCH_HISTORY_UPDATED', { watchHistory: _settings.watchHistory });
     return { ..._settings };
   })();
 
@@ -153,6 +190,13 @@ export const initSettings = async () => {
  * Persist in-memory settings to local disk using dual-strategy
  */
 const persistSettings = async () => {
+  // Prevent wiping disk with empty defaults if called while initialization is running
+  if (!_isInitialized && _initPromise) {
+    try {
+      await _initPromise;
+    } catch (_) {}
+  }
+
   const data = JSON.stringify(_settings, null, 2);
   const settingsPath = getSettingsFilePath();
   let writeSuccess = false;
@@ -178,7 +222,23 @@ const persistSettings = async () => {
     // silent fallback
   }
 
-  // 3. Persist backup key file
+  // 3. Persist dedicated standalone watch history file so items NEVER disappear across days/restarts
+  if (Array.isArray(_settings.watchHistory) && _settings.watchHistory.length > 0) {
+    try {
+      const historyPath = getWatchHistoryFilePath();
+      const hData = JSON.stringify(_settings.watchHistory, null, 2);
+      if (FileSystem && typeof FileSystem.writeAsStringAsync === 'function') {
+        await FileSystem.writeAsStringAsync(historyPath, hData);
+      } else if (Paths && Paths.document && typeof File === 'function') {
+        const hFile = new File(Paths.document, 'nexplay_watch_history.json');
+        await hFile.write(hData);
+      }
+    } catch (e) {
+      // silent
+    }
+  }
+
+  // 4. Persist backup key file
   if (_settings.tmdbApiKey) {
     try {
       const backupPath = getBackupKeyFilePath();
@@ -281,25 +341,28 @@ export const getWatchHistory = () => {
 export const saveWatchProgress = async (item, progress = 45, episodeInfo = null) => {
   if (!item || !item.id) return;
   const history = Array.isArray(_settings.watchHistory) ? [..._settings.watchHistory] : [];
-  const existingIdx = history.findIndex(h => h.id === item.id);
+  const cleanId = String(item.id).replace(/^(movie-|tv-)/, '');
+  const existingIdx = history.findIndex(h => String(h.id) === String(cleanId) || String(h.id) === String(item.id));
   const entry = {
     ...item,
+    id: cleanId,
     progress: Math.min(100, Math.max(5, Math.round(progress))),
-    subtitle: episodeInfo || item.subtitle || (item.media_type === 'tv' ? 'Episode In Progress' : '45m left'),
+    subtitle: episodeInfo || item.subtitle || (item.media_type === 'tv' ? 'Episode In Progress' : 'In Progress'),
     last_watched: Date.now(),
   };
   if (existingIdx >= 0) {
     history.splice(existingIdx, 1);
   }
   history.unshift(entry);
-  _settings.watchHistory = history.slice(0, 15);
+  _settings.watchHistory = history.slice(0, MAX_WATCH_HISTORY_LIMIT);
   await persistSettings();
   notifyListeners('WATCH_HISTORY_UPDATED', { watchHistory: _settings.watchHistory });
   return _settings.watchHistory;
 };
 
 export const setWatchHistory = async (newHistory) => {
-  _settings.watchHistory = Array.isArray(newHistory) ? newHistory : [];
+  const sanitized = Array.isArray(newHistory) ? newHistory.slice(0, MAX_WATCH_HISTORY_LIMIT) : [];
+  _settings.watchHistory = sanitized;
   await persistSettings();
   notifyListeners('WATCH_HISTORY_UPDATED', { watchHistory: _settings.watchHistory });
   return _settings.watchHistory;

@@ -413,13 +413,17 @@ export class Movies4uClient {
                 });
                 if (res.url && !res.url.includes('tinyurl.com') && !res.url.includes('google.com')) {
                     const resolvedOrigin = new URL(res.url).origin;
-                    this.liveBaseUrl = resolvedOrigin;
-                    this.domainResolved = true;
-                    if (!this.mirrors.includes(resolvedOrigin)) {
-                        this.mirrors.unshift(resolvedOrigin);
+                    const lowerOrigin = resolvedOrigin.toLowerCase();
+                    const isDead = lowerOrigin.includes('new3.movies4u') || lowerOrigin.includes('new4.movies4u') || lowerOrigin.includes('new5.movies4u') || lowerOrigin.includes('.clinic');
+                    if (!isDead) {
+                        this.liveBaseUrl = resolvedOrigin;
+                        this.domainResolved = true;
+                        if (!this.mirrors.includes(resolvedOrigin)) {
+                            this.mirrors.unshift(resolvedOrigin);
+                        }
+                        console.log(`[Movies4u] 🔄 Live mirror auto-resolved from movies4u.foo: ${this.liveBaseUrl}`);
+                        return this.liveBaseUrl;
                     }
-                    console.log(`[Movies4u] 🔄 Live mirror auto-resolved from movies4u.foo: ${this.liveBaseUrl}`);
-                    return this.liveBaseUrl;
                 }
             }
         }
@@ -449,7 +453,11 @@ export class Movies4uClient {
             this.liveBaseUrl,
             ...this.mirrors,
             'https://new8.movies4u.garden'
-        ])).map(m => (m || '').replace(/\/+$/, '')).filter(m => m && !m.includes('new4.movies4u.garden'));
+        ])).map(m => (m || '').replace(/\/+$/, '')).filter(m => {
+            if (!m) return false;
+            const lower = m.toLowerCase();
+            return !lower.includes('new3.movies4u') && !lower.includes('new4.movies4u') && !lower.includes('new5.movies4u') && !lower.includes('.clinic');
+        });
 
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
 
@@ -470,8 +478,15 @@ export class Movies4uClient {
                         continue;
                     }
 
-                    // Sort hits so newly updated and higher print quality (WEB-DL/BluRay) appear first
+                    // Sort hits so exact title matches, higher print quality, and audio richness appear first
+                    const cleanBase = this.cleanTitle(baseTitle || cleanQuery).toLowerCase();
                     hits.sort((a, b) => {
+                        const aClean = this.cleanTitle(a.post_title || '').toLowerCase();
+                        const bClean = this.cleanTitle(b.post_title || '').toLowerCase();
+                        const aExact = Boolean(cleanBase && aClean === cleanBase);
+                        const bExact = Boolean(cleanBase && bClean === cleanBase);
+                        if (aExact !== bExact) return aExact ? -1 : 1;
+
                         const aPrint = getPrintQualityScore(a.post_title || '');
                         const bPrint = getPrintQualityScore(b.post_title || '');
                         const aIsCam = aPrint <= 100;
@@ -500,7 +515,7 @@ export class Movies4uClient {
                         const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
                         const isSeries = /\b(?:season|s\d+|series|episodes?)\b/i.test(rawTitle);
                         const permalink = hit.permalink?.startsWith('http')
-                            ? hit.permalink.replace(/new[1-9]\.movies4u\.(clinic|garden)/g, 'new8.movies4u.garden')
+                            ? hit.permalink.replace(/new\d+\.movies4u\.(clinic|garden)/g, 'new8.movies4u.garden')
                             : `${mirror}${hit.permalink?.startsWith('/') ? '' : '/'}${hit.permalink || ''}`;
                         return {
                             id: String(hit.id || ''),
@@ -529,7 +544,7 @@ export class Movies4uClient {
      */
     async extractDetails(pageUrl, targetSeason = 1, customHttpGet) {
         const baseUrl = await this.resolveLiveDomain(customHttpGet);
-        let cleanPageUrl = (pageUrl || '').replace(/new[1-9]\.movies4u\.(clinic|garden)/g, 'new8.movies4u.garden');
+        let cleanPageUrl = (pageUrl || '').replace(/new\d+\.movies4u\.(clinic|garden)/g, 'new8.movies4u.garden');
         const targetUrl = cleanPageUrl.startsWith('http') ? cleanPageUrl : `${baseUrl}/${cleanPageUrl.replace(/^\/+/, '')}`;
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
         const html = await fetcher(targetUrl, {
@@ -591,6 +606,11 @@ export class Movies4uClient {
         }
         if (!isSeries) {
             // Group bridge items by bridgeUrl and compute accurate audio fidelity tier & richness score
+            const pageLangMatch = html.match(/(?:language|languages|audio)\s*:\s*([^<\n]+)/i);
+            const pageLangMeta = pageLangMatch ? pageLangMatch[1].trim() : '';
+            const pageAudioContext = `${rawTitle} ${pageLangMeta}`.trim();
+            const pageAudioTier = getAudioTier(pageAudioContext);
+
             const bridgesByUrl = new Map();
             for (const b of bridgeList) {
                 if (!bridgesByUrl.has(b.bridgeUrl)) {
@@ -607,8 +627,9 @@ export class Movies4uClient {
                 let hasImaxDual = false;
 
                 for (const item of items) {
-                    const score = getAudioRichnessScore(item.label || '');
-                    const tier = getAudioTier(item.label || '');
+                    const itemCombined = `${item.label || ''} ${pageAudioContext}`.trim();
+                    const score = Math.max(getAudioRichnessScore(item.label || ''), getAudioRichnessScore(itemCombined));
+                    const tier = getAudioTier(item.label || '') !== 3 ? getAudioTier(item.label || '') : getAudioTier(itemCombined);
                     totalScore += score;
                     if (tier === 1) multiAudioCount++;
                     const lLower = (item.label || '').toLowerCase();
@@ -630,13 +651,13 @@ export class Movies4uClient {
                 const multiRatio = multiAudioCount / items.length;
 
                 // Priority:
-                // Tier 1: True Multi Audio bridge (majority of items are Multi Audio OR 1080p is Multi Audio)
+                // Tier 1: True Multi Audio bridge (majority of items are Multi Audio OR 1080p is Multi Audio OR page context is Multi Audio)
                 // Tier 2: Dual Audio / IMAX fallback bridge
                 // Tier 3: Single audio / other
                 let overallTier = 3;
-                if (multiRatio >= 0.5 || has1080pMulti) {
+                if (multiRatio >= 0.5 || has1080pMulti || pageAudioTier === 1) {
                     overallTier = 1;
-                } else if (hasImaxDual || items.some(i => getAudioTier(i.label) === 2)) {
+                } else if (hasImaxDual || items.some(i => getAudioTier(i.label) === 2) || pageAudioTier === 2) {
                     overallTier = 2;
                 }
 
@@ -1681,11 +1702,18 @@ export class Movies4uClient {
     /*                               HELPER METHODS                               */
     /* -------------------------------------------------------------------------- */
     cleanTitle(title) {
+        if (!title) return '';
         return title
-            .replace(/\b(480p|720p|1080p|2160p|4k|uhd|hdtc|bluray|web-dl|webrip|hdrip|hevc|x264|x265|10bit)\b/gi, ' ')
-            .replace(/\b(hindi|english|tamil|telugu|korean|malayalam|kannada|dual audio|multi audio|org|dubbed|line)\b/gi, ' ')
+            .replace(/\[[^\]]*\b\d+(?:\.\d+)?\s*(?:gb|mb)\b[^\]]*\]/gi, ' ')
+            .replace(/\([^)]*\b\d+(?:\.\d+)?\s*(?:gb|mb)\b[^)]*\)/gi, ' ')
+            .replace(/\b\d+(?:\.\d+)?\s*(?:gb|mb)\b/gi, ' ')
+            .replace(/\[[^\]]*\]/g, ' ')
+            .replace(/\((?:19|20)\d{2}\)/g, ' ')
+            .replace(/\b(19\d{2}|20\d{2})\b/g, ' ')
+            .replace(/\b(480p|720p|1080p|2160p|4k|uhd|hdtc|camrip|bluray|web[-._]?dl|webrip|hdrip|hevc|x264|x265|10bit)\b/gi, ' ')
+            .replace(/\b(hindi|english|tamil|telugu|korean|malayalam|kannada|bengali|marathi|punjabi|dual audio|multi audio|org|dubbed|line|esubs|subtitles)\b/gi, ' ')
             .replace(/\b(season\s*\d+(?:-\d+)?|s\d+(?:\s*ep\d+)?|complete|all episodes|full movie|movie)\b/gi, ' ')
-            .replace(/[\[\](){}\-_+]/g, ' ')
+            .replace(/[\[\](){}\-_+|:–—]/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
     }

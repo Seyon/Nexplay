@@ -10,7 +10,8 @@ import {
   normalizeString,
   getAudioTier,
   getAudioRichnessScore,
-  getPrintQualityScore
+  getPrintQualityScore,
+  LANG_MAP
 } from './ScraperEngine.js';
 
 import { TamilDhool } from '../providers/tamildhool/index.js';
@@ -174,6 +175,26 @@ class ExtensionManagerService {
       if (rootTitle && rootTitle.length > 2 && rootTitle !== cleanTitle) {
         candidateQueries.push(rootTitle);
       }
+      // Language-specific query additions for regional titles (e.g. "Dragon 2025 Tamil", "Dragon Tamil")
+      if (originalLanguage && originalLanguage !== 'en') {
+        const langNames = {
+          'ta': 'Tamil',
+          'te': 'Telugu',
+          'hi': 'Hindi',
+          'ml': 'Malayalam',
+          'kn': 'Kannada',
+          'bn': 'Bengali',
+          'ko': 'Korean',
+          'ja': 'Japanese'
+        };
+        const targetLangName = langNames[originalLanguage.toLowerCase()] || '';
+        if (targetLangName) {
+          if (targetYear) {
+            candidateQueries.push(`${cleanTitle} ${targetYear} ${targetLangName}`);
+          }
+          candidateQueries.push(`${cleanTitle} ${targetLangName}`);
+        }
+      }
     }
 
     const uniquePrimaryQueries = Array.from(new Set(primaryQueries.filter(Boolean)));
@@ -195,7 +216,8 @@ class ExtensionManagerService {
             c.year,
             c.type || c.mediaType || (postLink.includes('-series-') ? 'series' : 'movie'),
             targetSeason,
-            postLink
+            postLink,
+            originalLanguage
           );
           if (score >= 0.55) {
             allMatches.push({
@@ -241,6 +263,61 @@ class ExtensionManagerService {
       }
     }
 
+    // 2. Exact Title Disambiguation vs Partial Substring Franchise Filtering:
+    // If target is "Dragon" and candidates matching "Dragon" exactly exist, purge unrelated franchise titles (e.g. "How to Train Your Dragon", "Dragon Ball")
+    const cleanTarget = cleanTitleKeywords(cleanTitle);
+    if (cleanTarget) {
+      const exactTitleMatches = allMatches.filter(m => {
+        const cClean = cleanTitleKeywords(m.match?.title || '');
+        return cClean === cleanTarget;
+      });
+      if (exactTitleMatches.length > 0) {
+        const beforeCount = allMatches.length;
+        allMatches = exactTitleMatches;
+        if (allMatches.length < beforeCount) {
+          console.log(`[ExtensionManager] 🎯 Stage 1 Filter: Retained ${allMatches.length} exact title candidate(s) for "${cleanTarget}" (eliminated ${beforeCount - allMatches.length} partial/franchise titles).`);
+        }
+      }
+    }
+
+    // 3. Strict Release Year Disambiguation:
+    // If targetYear is known and candidates within 1 year exist, strictly eliminate candidates with year diff >= 2 (e.g. Dragon 2011 vs Dragon 2025)
+    const tYear = parseInt(targetYear, 10);
+    if (tYear && !isNaN(tYear)) {
+      const yearMatchingCandidates = allMatches.filter(m => {
+        const cYearMatch = (m.match?.title || '').match(/\b(19\d{2}|20\d{2})\b/) || (m.match?.year ? [null, m.match.year] : null);
+        if (cYearMatch) {
+          const cY = parseInt(cYearMatch[1], 10);
+          return Math.abs(cY - tYear) <= 1;
+        }
+        return false;
+      });
+      if (yearMatchingCandidates.length > 0) {
+        const beforeCount = allMatches.length;
+        allMatches = yearMatchingCandidates;
+        if (allMatches.length < beforeCount) {
+          console.log(`[ExtensionManager] 📅 Stage 2 Filter: Retained ${allMatches.length} candidate(s) matching release year ~${tYear} (eliminated ${beforeCount - allMatches.length} candidates with year diff >= 2).`);
+        }
+      }
+    }
+
+    // 4. Original Language Disambiguation for regional cinema:
+    // When originalLanguage is non-English (e.g. Tamil 'ta', Telugu 'te'), prioritize candidates containing that language or Multi-Audio
+    if (originalLanguage && originalLanguage !== 'en') {
+      const targetLangTokens = (LANG_MAP && LANG_MAP[originalLanguage.toLowerCase()]) || [originalLanguage.toLowerCase()];
+      const langMatches = allMatches.filter(m => {
+        const text = `${m.match?.title || ''} ${m.match?.link || ''}`.toLowerCase();
+        return targetLangTokens.some(tok => new RegExp(`\\b${tok}\\b`, 'i').test(text)) || text.includes('multi audio') || text.includes('multi-audio');
+      });
+      if (langMatches.length > 0) {
+        const beforeCount = allMatches.length;
+        allMatches = langMatches;
+        if (allMatches.length < beforeCount) {
+          console.log(`[ExtensionManager] 🗣️ Stage 3 Filter: Retained ${allMatches.length} candidate(s) matching target language "${originalLanguage}" (eliminated ${beforeCount - allMatches.length} mismatched language titles).`);
+        }
+      }
+    }
+
     allMatches.sort((a, b) => {
       const aPrint = getPrintQualityScore(a.match?.title || '');
       const bPrint = getPrintQualityScore(b.match?.title || '');
@@ -256,7 +333,35 @@ class ExtensionManagerService {
         return aIsCam ? 1 : -1;
       }
 
-      // 2. Strict Audio Tier Priority for Server 1 (HDHub4u) & Server 3 (Movies4u):
+      // 2. Release Year Proximity: Closer year to targetYear wins
+      if (tYear && !isNaN(tYear)) {
+        const aYMatch = (a.match?.title || '').match(/\b(19\d{2}|20\d{2})\b/) || (a.match?.year ? [null, a.match.year] : null);
+        const bYMatch = (b.match?.title || '').match(/\b(19\d{2}|20\d{2})\b/) || (b.match?.year ? [null, b.match.year] : null);
+        const aYDiff = aYMatch ? Math.abs(parseInt(aYMatch[1], 10) - tYear) : 999;
+        const bYDiff = bYMatch ? Math.abs(parseInt(bYMatch[1], 10) - tYear) : 999;
+        if (aYDiff !== bYDiff) {
+          return aYDiff - bYDiff;
+        }
+      }
+
+      // 3. Target Language Presence (if regional language requested)
+      if (originalLanguage && originalLanguage !== 'en') {
+        const targetLangTokens = (LANG_MAP && LANG_MAP[originalLanguage.toLowerCase()]) || [originalLanguage.toLowerCase()];
+        const aText = `${a.match?.title || ''} ${a.match?.link || ''}`.toLowerCase();
+        const bText = `${b.match?.title || ''} ${b.match?.link || ''}`.toLowerCase();
+        const aHasLang = targetLangTokens.some(tok => new RegExp(`\\b${tok}\\b`, 'i').test(aText));
+        const bHasLang = targetLangTokens.some(tok => new RegExp(`\\b${tok}\\b`, 'i').test(bText));
+        if (aHasLang !== bHasLang) {
+          return aHasLang ? -1 : 1;
+        }
+      }
+
+      // 4. Significant MatchScore difference (>= 0.25) takes priority over audio tier
+      if (Math.abs(a.matchScore - b.matchScore) >= 0.25) {
+        return b.matchScore - a.matchScore;
+      }
+
+      // 5. Strict Audio Tier Priority for Server 1 (HDHub4u) & Server 3 (Movies4u):
       // First look for Multi Language Audio Track (Tier 1), then Dual Audio (Tier 2), then Single Audio (Tier 3)
       if (activeProvider === 'hdhub4u' || activeProvider === 'movies4u') {
         if (aTier !== bTier) {
@@ -266,17 +371,17 @@ class ExtensionManagerService {
           return bAudio - aAudio;
         }
       } else {
-        if (Math.abs(a.matchScore - b.matchScore) < 0.25 && aAudio !== bAudio) {
+        if (Math.abs(a.matchScore - b.matchScore) < 0.20 && aAudio !== bAudio) {
           return bAudio - aAudio;
         }
       }
 
-      // 3. Print Quality within same audio tier (BluRay > WEB-DL > WEBRip)
+      // 6. Print Quality within same audio tier (BluRay > WEB-DL > WEBRip)
       if (aPrint !== bPrint) {
         return bPrint - aPrint;
       }
 
-      // 4. Newest post priority when print quality and audio tier are equal
+      // 7. Newest post priority when print quality and audio tier are equal
       const aId = parseInt(a.match?.id || 0, 10);
       const bId = parseInt(b.match?.id || 0, 10);
       if (bId && aId && bId !== aId && Math.abs(a.matchScore - b.matchScore) < 0.20) {

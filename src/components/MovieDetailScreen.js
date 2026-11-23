@@ -766,6 +766,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   // Audio Track selection tracking (Default English for Hollywood / English titles)
   const hasUserManuallySelectedAudioTrack = useRef(false);
   const hasAutoSelectedDefaultAudio = useRef(false);
+  const hasUserManuallySelectedSubtitleTrack = useRef(false);
+  const allAnimeEpisodesRef = useRef([]);
 
   const applyDefaultAudioTrack = (tracks) => {
     if (!tracks || !Array.isArray(tracks) || tracks.length === 0) return;
@@ -818,15 +820,81 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
 
             if (isTVShow) {
               const totalEps = animeData.episodes || animeData.number_of_episodes || 12;
-              const animeSeasons = [{
-                id: 1,
-                name: 'Season 1',
-                season_number: 1,
-                episode_count: totalEps
-              }];
+
+              // Helper to generate anime seasons configuration
+              const getAnimeSeasonsConfig = (title = '', totalCount = 1) => {
+                const clean = (title || '').trim().toLowerCase();
+                // Original Naruto (220 eps across 5 official seasons: S1: 1-57, S2: 58-100, S3: 101-141, S4: 142-183, S5: 184-220)
+                if (clean.includes('naruto') && !clean.includes('shippu') && !clean.includes('boruto')) {
+                  return [
+                    { id: 1, season_number: 1, name: 'Season 1', startEp: 1, endEp: 57, episode_count: 57 },
+                    { id: 2, season_number: 2, name: 'Season 2', startEp: 58, endEp: 100, episode_count: 43 },
+                    { id: 3, season_number: 3, name: 'Season 3', startEp: 101, endEp: 141, episode_count: 41 },
+                    { id: 4, season_number: 4, name: 'Season 4', startEp: 142, endEp: 183, episode_count: 42 },
+                    { id: 5, season_number: 5, name: 'Season 5', startEp: 184, endEp: 220, episode_count: 37 }
+                  ];
+                }
+                // General partition for series with > 50 episodes in single MAL record
+                if (totalCount > 50) {
+                  const seasonList = [];
+                  const seasonSize = totalCount > 150 ? 50 : (totalCount > 75 ? 25 : 24);
+                  let cur = 1;
+                  let sNum = 1;
+                  while (cur <= totalCount) {
+                    const end = Math.min(cur + seasonSize - 1, totalCount);
+                    seasonList.push({
+                      id: sNum,
+                      season_number: sNum,
+                      name: `Season ${sNum}`,
+                      startEp: cur,
+                      endEp: end,
+                      episode_count: end - cur + 1
+                    });
+                    cur = end + 1;
+                    sNum++;
+                  }
+                  return seasonList;
+                }
+                return [{
+                  id: 1,
+                  season_number: 1,
+                  name: 'Season 1',
+                  startEp: 1,
+                  endEp: totalCount,
+                  episode_count: totalCount
+                }];
+              };
+
+              let animeSeasons = getAnimeSeasonsConfig(animeData.title || movie.title || '', totalEps);
+
+              // Try discovering seasons dynamically from AnimeSalt provider if possible
+              try {
+                const animeSalt = ExtensionManager.getProvider('animesalt');
+                if (animeSalt && typeof animeSalt.extractDetails === 'function') {
+                  const searchResults = await animeSalt.search(animeData.title || movie.title);
+                  if (searchResults && searchResults.length > 0) {
+                    const firstSeries = searchResults.find(r => r.type === 'series' || r.link?.includes('/series/')) || searchResults[0];
+                    if (firstSeries && firstSeries.link) {
+                      const saltDet = await animeSalt.extractDetails(firstSeries.link);
+                      if (Array.isArray(saltDet?.seasons) && saltDet.seasons.length > 1) {
+                        const parsed = saltDet.seasons.filter(s => s.startEpisode != null && s.endEpisode != null).map(s => ({
+                          id: s.seasonNumber,
+                          season_number: s.seasonNumber,
+                          name: s.title || `Season ${s.seasonNumber}`,
+                          startEp: s.startEpisode,
+                          endEp: s.endEpisode,
+                          episode_count: s.episode_count || (s.endEpisode - s.startEpisode + 1)
+                        }));
+                        if (parsed.length > 1) {
+                          animeSeasons = parsed;
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch (_) {}
+
               setSeasons(animeSeasons);
-              setSelectedSeason(1);
-              selectedSeasonRef.current = 1;
 
               const epRes = await nexPlayAnimeApi.getAnimeEpisodes(movie.id, { all: true, limit: totalEps || 1000 });
               if (!isMounted) return;
@@ -839,15 +907,18 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 if (num) existingMap.set(num, ep);
               });
 
-              // Ensure full episode list up to max(totalEps, rawEps.length)
+              // Ensure full episode list partitioned into correct seasons
               const maxEpisodes = Math.max(totalEps, rawEps.length);
               const formattedEps = [];
               for (let i = 1; i <= maxEpisodes; i++) {
+                const seasonObj = animeSeasons.find(s => (s.startEp != null && s.endEp != null && i >= s.startEp && i <= s.endEp)) || animeSeasons[0];
+                const epSeasonNum = seasonObj ? seasonObj.season_number : 1;
+
                 const ep = existingMap.get(i);
                 if (ep) {
                   formattedEps.push({
-                    id: ep.id || `ep-s1-e${ep.episode_number || i}`,
-                    seasonNumber: 1,
+                    id: ep.id || `ep-s${epSeasonNum}-e${ep.episode_number || i}`,
+                    seasonNumber: epSeasonNum,
                     episodeNumber: ep.episode_number || i,
                     title: `${ep.episode_number || i}. ${ep.title || `Episode ${ep.episode_number || i}`}`,
                     name: ep.title || `Episode ${ep.episode_number || i}`,
@@ -858,8 +929,8 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                   });
                 } else {
                   formattedEps.push({
-                    id: `ep-s1-e${i}`,
-                    seasonNumber: 1,
+                    id: `ep-s${epSeasonNum}-e${i}`,
+                    seasonNumber: epSeasonNum,
                     episodeNumber: i,
                     title: `${i}. Episode ${i}`,
                     name: `Episode ${i}`,
@@ -871,16 +942,25 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 }
               }
 
-              if (formattedEps.length > 0) {
-                setEpisodesList(formattedEps);
+              allAnimeEpisodesRef.current = formattedEps;
 
+              if (formattedEps.length > 0) {
                 const latestSeriesRecord = getLatestSeriesProgress(movie.id);
                 const targetEpisode = Number(movie.episode || latestSeriesRecord?.episode) || 1;
                 const match = formattedEps.find(e => Number(e.episodeNumber) === targetEpisode) || formattedEps[0];
+                const targetSeason = match ? (match.seasonNumber || 1) : (Number(movie.season || latestSeriesRecord?.season) || 1);
+
+                setSelectedSeason(targetSeason);
+                selectedSeasonRef.current = targetSeason;
+
+                const seasonFilteredEps = formattedEps.filter(e => e.seasonNumber === targetSeason);
+                setEpisodesList(seasonFilteredEps.length > 0 ? seasonFilteredEps : formattedEps);
+
                 setCurrentEpisode(match);
                 currentEpisodeRef.current = match;
 
-                const targetPage = Math.floor((targetEpisode - 1) / 20) + 1;
+                const seasonEpIndex = seasonFilteredEps.findIndex(e => Number(e.episodeNumber) === targetEpisode);
+                const targetPage = seasonEpIndex >= 0 ? (Math.floor(seasonEpIndex / 20) + 1) : 1;
                 setEpisodePage(targetPage);
               }
             } else {
@@ -1049,7 +1129,18 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     selectedSeasonRef.current = seasonNum;
     setIsSeasonModalVisible(false);
     setEpisodePage(1);
-    loadSeasonEpisodes(movie.id, seasonNum, details, 1);
+    if (isAnimeContent) {
+      if (allAnimeEpisodesRef.current && allAnimeEpisodesRef.current.length > 0) {
+        const seasonEps = allAnimeEpisodesRef.current.filter(e => e.seasonNumber === seasonNum);
+        setEpisodesList(seasonEps);
+        if (seasonEps.length > 0) {
+          setCurrentEpisode(seasonEps[0]);
+          currentEpisodeRef.current = seasonEps[0];
+        }
+      }
+    } else {
+      loadSeasonEpisodes(movie.id, seasonNum, details, 1);
+    }
   };
 
   // Handle ABR (Adaptive Bitrate) Dynamic Downscaling
@@ -1289,10 +1380,16 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
 
     hasAutoSelectedDefaultAudio.current = false;
     hasUserManuallySelectedAudioTrack.current = false;
+    hasUserManuallySelectedSubtitleTrack.current = false;
     setSelectedAudioTrack(null);
     setSelectedSubtitleTrack(null);
+    selectedSubtitleTrackRef.current = null;
     setAvailableAudioTracks([]);
     setAvailableSubtitleTracks([]);
+    availableSubtitleTracksRef.current = [];
+    try {
+      vlcPlayerRef.current?.selectSubtitleTrack(-1);
+    } catch (_) {}
     setIsPlaying(false);
     setHasFirstFrameRendered(false);
     setHasStartedPlayback(true);
@@ -1650,10 +1747,12 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const switchSubtitleTrack = (track) => {
     try {
       if (!track) {
+        hasUserManuallySelectedSubtitleTrack.current = false;
         setSelectedSubtitleTrack(null);
         selectedSubtitleTrackRef.current = null;
         vlcPlayerRef.current?.selectSubtitleTrack(-1);
       } else {
+        hasUserManuallySelectedSubtitleTrack.current = true;
         setSelectedSubtitleTrack(track);
         selectedSubtitleTrackRef.current = track;
         const sId = typeof track.trackId === 'number'
@@ -2215,6 +2314,14 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     saveCurrentPlaybackImmediately();
     const targetSeason = episode.seasonNumber || selectedSeason || 1;
     const targetEpisodeNum = episode.episodeNumber || 1;
+    if (targetSeason !== selectedSeason) {
+      setSelectedSeason(targetSeason);
+      selectedSeasonRef.current = targetSeason;
+      if (isAnimeContent && allAnimeEpisodesRef.current && allAnimeEpisodesRef.current.length > 0) {
+        const seasonEps = allAnimeEpisodesRef.current.filter(e => e.seasonNumber === targetSeason);
+        setEpisodesList(seasonEps);
+      }
+    }
     const updatedEp = {
       ...episode,
       seasonNumber: targetSeason,
@@ -2355,10 +2462,12 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 setVolumeLevel(rounded);
                 volumeLevelRef.current = rounded;
               }
-              if (!selectedSubtitleTrackRef.current) {
+              if (!hasUserManuallySelectedSubtitleTrack.current) {
                 try {
                   vlcPlayerRef.current?.selectSubtitleTrack(-1);
                 } catch (_) {}
+                setSelectedSubtitleTrack(null);
+                selectedSubtitleTrackRef.current = null;
               }
               if (isPlayingRef.current) {
                 try {
@@ -2441,6 +2550,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               setIsPlaying(true);
               isPlayingRef.current = true;
               setHasFirstFrameRendered(true);
+              if (!hasUserManuallySelectedSubtitleTrack.current) {
+                try {
+                  vlcPlayerRef.current?.selectSubtitleTrack(-1);
+                } catch (_) {}
+                setSelectedSubtitleTrack(null);
+                selectedSubtitleTrackRef.current = null;
+              }
               if (pendingSeekTimeRef.current === null) {
                 setIsBuffering(false);
                 isBufferingRef.current = false;
@@ -2532,11 +2648,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 setAvailableSubtitleTracks(formattedSubs);
                 availableSubtitleTracksRef.current = formattedSubs;
 
-                if (!selectedSubtitleTrackRef.current) {
+                if (!hasUserManuallySelectedSubtitleTrack.current) {
                   try {
                     vlcPlayerRef.current?.selectSubtitleTrack(-1);
                   } catch (_) {}
-                } else {
+                  setSelectedSubtitleTrack(null);
+                  selectedSubtitleTrackRef.current = null;
+                } else if (selectedSubtitleTrackRef.current) {
                   try {
                     const sId = typeof selectedSubtitleTrackRef.current.trackId === 'number'
                       ? selectedSubtitleTrackRef.current.trackId
@@ -3460,11 +3578,18 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               .filter(s => s.season_number > currentSeasonNum && (s.episode_count === undefined || s.episode_count > 0))
               .sort((a, b) => a.season_number - b.season_number)[0];
             if (nextSeason) {
-              nextEpisode = {
-                seasonNumber: nextSeason.season_number,
-                episodeNumber: 1,
-                title: `1. ${displayTitle}`
-              };
+              const nextStartEp = nextSeason.startEp || 1;
+              nextEpisode = isAnimeContent
+                ? (allAnimeEpisodesRef.current?.find(e => e.seasonNumber === nextSeason.season_number && e.episodeNumber === nextStartEp) || {
+                    seasonNumber: nextSeason.season_number,
+                    episodeNumber: nextStartEp,
+                    title: `${nextStartEp}. ${displayTitle}`
+                  })
+                : {
+                    seasonNumber: nextSeason.season_number,
+                    episodeNumber: 1,
+                    title: `1. ${displayTitle}`
+                  };
             }
           }
 
@@ -4337,18 +4462,26 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                   .sort((a, b) => a.season_number - b.season_number)[0];
 
                 if (nextSeason) {
+                  const nextStartEp = nextSeason.startEp || 1;
+                  const nextEpObj = isAnimeContent
+                    ? (allAnimeEpisodesRef.current?.find(e => e.seasonNumber === nextSeason.season_number && e.episodeNumber === nextStartEp) || {
+                        seasonNumber: nextSeason.season_number,
+                        episodeNumber: nextStartEp,
+                        title: `${nextStartEp}. ${displayTitle}`,
+                        duration: '24m'
+                      })
+                    : {
+                        seasonNumber: nextSeason.season_number,
+                        episodeNumber: 1,
+                        title: `1. ${displayTitle}`,
+                        duration: '55m'
+                      };
                   return (
                     <TouchableOpacity
                       style={detailStyles.upNextCard}
                       activeOpacity={0.85}
                       onPress={() => {
                         handleSeasonSelect(nextSeason.season_number);
-                        const nextEpObj = {
-                          seasonNumber: nextSeason.season_number,
-                          episodeNumber: 1,
-                          title: `1. ${displayTitle}`,
-                          duration: '55m'
-                        };
                         selectEpisode(nextEpObj);
                       }}
                     >
@@ -4362,7 +4495,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                           Season {nextSeason.season_number} Premiere
                         </Text>
                         <Text style={detailStyles.upNextSub}>
-                          {`S${nextSeason.season_number} E1 • Next Season`}
+                          {`S${nextSeason.season_number} E${nextStartEp} • Next Season`}
                         </Text>
                       </View>
                       <View style={detailStyles.upNextPlayBtn}>
@@ -4515,8 +4648,14 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                   // Formatting as requested:
                   // Page 1: 1-20
                   // Page 2: 20-40 (or 20-35 if 35 available)
-                  const startEpisodeNum = safeEpisodePage === 1 ? 1 : ((safeEpisodePage - 1) * EPISODES_PER_PAGE);
-                  const endEpisodeNum = Math.min(safeEpisodePage * EPISODES_PER_PAGE, totalEpisodesCount);
+                  const firstEpInSeason = episodesList[0]?.episodeNumber || 1;
+                  const isRelativeSeason = firstEpInSeason <= 1;
+                  const startEpisodeNum = isRelativeSeason 
+                    ? (safeEpisodePage === 1 ? 1 : ((safeEpisodePage - 1) * EPISODES_PER_PAGE))
+                    : (visibleEpisodes[0]?.episodeNumber || (startIndex + 1));
+                  const endEpisodeNum = isRelativeSeason
+                    ? Math.min(safeEpisodePage * EPISODES_PER_PAGE, totalEpisodesCount)
+                    : (visibleEpisodes[visibleEpisodes.length - 1]?.episodeNumber || endIndex);
                   const episodeRangeText = `${startEpisodeNum}-${endEpisodeNum}`;
 
                   return (

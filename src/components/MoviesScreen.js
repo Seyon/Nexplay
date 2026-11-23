@@ -156,13 +156,13 @@ export default function MoviesScreen({ onMoviePress, onSeeMore, onBack, onSearch
     const unsub = subscribeSettings(({ eventType }) => {
       if (eventType === 'TMDB_KEY_SAVED') {
         loadAllMoviesData();
-      } else if (eventType === 'WATCH_HISTORY_UPDATED') {
+      } else if (eventType === 'WATCH_HISTORY_UPDATED' || eventType === 'SETTINGS_INITIALIZED') {
         syncContinueWatching();
       }
     });
 
     const unsubProgress = subscribePlaybackProgress(({ eventType }) => {
-      if (eventType === 'WATCH_HISTORY_UPDATED') {
+      if (eventType === 'WATCH_HISTORY_UPDATED' || eventType === 'PLAYBACK_PROGRESS_SAVED') {
         syncContinueWatching();
       }
     });

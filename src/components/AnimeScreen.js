@@ -84,8 +84,11 @@ export default function AnimeScreen({
   const isMountedRef = useRef(true);
 
   // Sync Continue Watching for Anime content
-  const refreshContinueWatching = useCallback(() => {
+  const refreshContinueWatching = useCallback(async () => {
     try {
+      if (animeDatabase && !animeDatabase.isInitialized) {
+        await animeDatabase.init();
+      }
       const cw = animeDatabase.getContinueWatchingList();
       if (isMountedRef.current) {
         setContinueWatchingAnime(cw || []);

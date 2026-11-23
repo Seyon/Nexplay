@@ -18,7 +18,7 @@ import { fetchCategoryMedia, getPosterUrl, formatYear } from '../utils/api';
 import nexPlayAnimeApi from '../services/NexPlayAnimeApi';
 import { scale, verticalScale, moderateScale } from '../utils/responsive';
 import { colors } from '../config/theme';
-import { getWatchHistory } from '../utils/AppSettings';
+import { getWatchHistory, subscribeSettings } from '../utils/AppSettings';
 import { subscribePlaybackProgress, removeFromContinueWatching } from '../utils/PlaybackProgressManager';
 
 const { width } = Dimensions.get('window');
@@ -68,7 +68,13 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
         if (categoryKey === 'continue_watching') {
           const cwItems = getWatchHistory();
           if (isMounted) {
-            setItems(cwItems || []);
+            if (Array.isArray(cwItems) && cwItems.length > 0) {
+              setItems(cwItems);
+            } else if (Array.isArray(initialData) && initialData.length > 0) {
+              setItems(initialData);
+            } else {
+              setItems([]);
+            }
             setHasMore(false);
           }
           return;
@@ -95,13 +101,26 @@ export default function CategoryDetailScreen({ category, onBack, onMoviePress })
   // Subscribe to live continue watching updates
   useEffect(() => {
     if (categoryKey !== 'continue_watching') return;
-    const unsubscribe = subscribePlaybackProgress(({ eventType }) => {
+    const updateCw = () => {
+      const updated = getWatchHistory();
+      if (Array.isArray(updated) && updated.length > 0) {
+        setItems(updated);
+      }
+    };
+    const unsubProgress = subscribePlaybackProgress(({ eventType }) => {
       if (eventType === 'WATCH_HISTORY_UPDATED' || eventType === 'PLAYBACK_PROGRESS_SAVED') {
-        const updated = getWatchHistory();
-        setItems(updated || []);
+        updateCw();
       }
     });
-    return () => unsubscribe();
+    const unsubSettings = subscribeSettings(({ eventType }) => {
+      if (eventType === 'WATCH_HISTORY_UPDATED' || eventType === 'SETTINGS_INITIALIZED') {
+        updateCw();
+      }
+    });
+    return () => {
+      if (typeof unsubProgress === 'function') unsubProgress();
+      if (typeof unsubSettings === 'function') unsubSettings();
+    };
   }, [categoryKey]);
 
   const handlePromptRemove = (item) => {

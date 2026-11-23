@@ -744,6 +744,10 @@ class AnimeDatabase {
       duration: Number(progressData.duration || 0),
       progress: Number(progressData.progress || 0),
       completed: Boolean(progressData.completed),
+      title: progressData.title || progressData.name || null,
+      poster_path: progressData.poster_path || null,
+      backdrop_path: progressData.backdrop_path || null,
+      image: progressData.image || progressData.episodeImage || null,
       last_watched_at: now
     };
 
@@ -829,6 +833,26 @@ class AnimeDatabase {
   }
 
   /**
+   * Remove Anime from user's Continue Watching list
+   */
+  removeFromContinueWatching(animeIdOrMalId) {
+    const internalId = this.generateInternalId(this.extractMalId(animeIdOrMalId));
+    let modified = false;
+    for (const [key, prog] of this.tables.user_anime_progress.entries()) {
+      if (prog.anime_id === internalId) {
+        this.tables.user_anime_progress.delete(key);
+        modified = true;
+      }
+    }
+    if (modified) {
+      this.persist();
+      this.notify('CONTINUE_WATCHING_UPDATED', { anime_id: internalId });
+      this.notify('PROGRESS_UPDATED', { anime_id: internalId });
+    }
+    return modified;
+  }
+
+  /**
    * Get user's Continue Watching list for Anime
    */
   getContinueWatchingList() {
@@ -844,24 +868,33 @@ class AnimeDatabase {
     const continueWatching = [];
     for (const [animeId, prog] of latestProgressMap.entries()) {
       const anime = this.getAnimeById(animeId);
-      if (anime) {
-        const remainingSecs = Math.max(0, (prog.duration || 0) - (prog.current_time || 0));
-        const minsLeft = Math.max(1, Math.round(remainingSecs / 60));
+      const remainingSecs = Math.max(0, (prog.duration || 0) - (prog.current_time || 0));
+      const minsLeft = Math.max(1, Math.round(remainingSecs / 60));
 
-        continueWatching.push({
-          ...anime,
-          subtitle: `Episode ${prog.episode_number} • ${minsLeft}m left`,
-          last_episode: `Ep ${prog.episode_number}`,
-          time_left: `${minsLeft}m left`,
-          currentTime: prog.current_time,
-          duration: prog.duration,
-          progress: prog.progress,
-          completed: prog.completed,
-          currentEpisodeNumber: prog.episode_number,
-          media_type: 'anime',
-          isAnime: true
-        });
-      }
+      const baseItem = anime || {
+        id: animeId,
+        mal_id: this.extractMalId(animeId),
+        title: prog.title || `Anime #${this.extractMalId(animeId)}`,
+        name: prog.title || `Anime #${this.extractMalId(animeId)}`,
+        poster_path: prog.poster_path || null,
+        backdrop_path: prog.backdrop_path || null,
+        image: prog.image || null,
+      };
+
+      continueWatching.push({
+        ...baseItem,
+        subtitle: `Episode ${prog.episode_number} • ${minsLeft}m left`,
+        last_episode: `Ep ${prog.episode_number}`,
+        time_left: `${minsLeft}m left`,
+        currentTime: prog.current_time,
+        duration: prog.duration,
+        progress: prog.progress,
+        completed: prog.completed,
+        currentEpisodeNumber: prog.episode_number,
+        media_type: 'anime',
+        isAnime: true,
+        last_watched_at: prog.last_watched_at || 0
+      });
     }
 
     continueWatching.sort((a, b) => (b.last_watched_at || 0) - (a.last_watched_at || 0));

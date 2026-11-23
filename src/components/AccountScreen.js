@@ -21,6 +21,7 @@ import {
   DNS_PROVIDERS, 
   getDnsConfig, 
   setDnsConfig, 
+  subscribeDnsConfig,
   testDnsServer 
 } from '../utils/DnsResolver';
 import AppSettings, {
@@ -54,6 +55,10 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
     setDnsConfigState(current);
     setUniversalQualityState(getUniversalQuality());
 
+    const unsubDns = subscribeDnsConfig((cfg) => {
+      setDnsConfigState(cfg);
+    });
+
     const unsubSettings = subscribeSettings(({ eventType, payload }) => {
       if (eventType === 'TMDB_KEY_SAVED') {
         setTmdbKeyState(payload.key || '');
@@ -67,6 +72,7 @@ export default function AccountScreen({ onBack, onNavigateTab }) {
     });
 
     return () => {
+      if (unsubDns) unsubDns();
       if (unsubSettings) unsubSettings();
     };
   }, []);

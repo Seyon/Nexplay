@@ -351,7 +351,7 @@ export class Movies4uClient {
             if (typeof Buffer !== 'undefined') {
                 return Buffer.from(str, 'base64').toString('utf-8');
             }
-        } catch (_) { }
+        } catch (_) {}
         return '';
     }
 
@@ -402,7 +402,7 @@ export class Movies4uClient {
                             targetTinyUrl = found[0];
                             break;
                         }
-                    } catch (_) { }
+                    } catch (_) {}
                 }
             }
             if (targetTinyUrl) {
@@ -413,13 +413,17 @@ export class Movies4uClient {
                 });
                 if (res.url && !res.url.includes('tinyurl.com') && !res.url.includes('google.com')) {
                     const resolvedOrigin = new URL(res.url).origin;
-                    this.liveBaseUrl = resolvedOrigin;
-                    this.domainResolved = true;
-                    if (!this.mirrors.includes(resolvedOrigin)) {
-                        this.mirrors.unshift(resolvedOrigin);
+                    const lowerOrigin = resolvedOrigin.toLowerCase();
+                    const isDead = lowerOrigin.includes('new3.movies4u') || lowerOrigin.includes('new4.movies4u') || lowerOrigin.includes('new5.movies4u') || lowerOrigin.includes('.clinic');
+                    if (!isDead) {
+                        this.liveBaseUrl = resolvedOrigin;
+                        this.domainResolved = true;
+                        if (!this.mirrors.includes(resolvedOrigin)) {
+                            this.mirrors.unshift(resolvedOrigin);
+                        }
+                        console.log(`[Movies4u] 🔄 Live mirror auto-resolved from movies4u.foo: ${this.liveBaseUrl}`);
+                        return this.liveBaseUrl;
                     }
-                    console.log(`[Movies4u] 🔄 Live mirror auto-resolved from movies4u.foo: ${this.liveBaseUrl}`);
-                    return this.liveBaseUrl;
                 }
             }
         }
@@ -449,7 +453,11 @@ export class Movies4uClient {
             this.liveBaseUrl,
             ...this.mirrors,
             'https://new8.movies4u.garden'
-        ])).map(m => (m || '').replace(/\/+$/, '')).filter(m => m && !m.includes('new4.movies4u.garden'));
+        ])).map(m => (m || '').replace(/\/+$/, '')).filter(m => {
+            if (!m) return false;
+            const lower = m.toLowerCase();
+            return !lower.includes('new3.movies4u') && !lower.includes('new4.movies4u') && !lower.includes('new5.movies4u') && !lower.includes('.clinic');
+        });
 
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
 
@@ -470,8 +478,15 @@ export class Movies4uClient {
                         continue;
                     }
 
-                    // Sort hits so newly updated and higher print quality (WEB-DL/BluRay) appear first
+                    // Sort hits so exact title matches, higher print quality, and audio richness appear first
+                    const cleanBase = this.cleanTitle(baseTitle || cleanQuery).toLowerCase();
                     hits.sort((a, b) => {
+                        const aClean = this.cleanTitle(a.post_title || '').toLowerCase();
+                        const bClean = this.cleanTitle(b.post_title || '').toLowerCase();
+                        const aExact = Boolean(cleanBase && aClean === cleanBase);
+                        const bExact = Boolean(cleanBase && bClean === cleanBase);
+                        if (aExact !== bExact) return aExact ? -1 : 1;
+
                         const aPrint = getPrintQualityScore(a.post_title || '');
                         const bPrint = getPrintQualityScore(b.post_title || '');
                         const aIsCam = aPrint <= 100;
@@ -500,7 +515,7 @@ export class Movies4uClient {
                         const year = yearMatch ? parseInt(yearMatch[1], 10) : undefined;
                         const isSeries = /\b(?:season|s\d+|series|episodes?)\b/i.test(rawTitle);
                         const permalink = hit.permalink?.startsWith('http')
-                            ? hit.permalink.replace(/new[1-9]\.movies4u\.(clinic|garden)/g, 'new8.movies4u.garden')
+                            ? hit.permalink.replace(/new\d+\.movies4u\.(clinic|garden)/g, 'new8.movies4u.garden')
                             : `${mirror}${hit.permalink?.startsWith('/') ? '' : '/'}${hit.permalink || ''}`;
                         return {
                             id: String(hit.id || ''),
@@ -529,7 +544,7 @@ export class Movies4uClient {
      */
     async extractDetails(pageUrl, targetSeason = 1, customHttpGet) {
         const baseUrl = await this.resolveLiveDomain(customHttpGet);
-        let cleanPageUrl = (pageUrl || '').replace(/new[1-9]\.movies4u\.(clinic|garden)/g, 'new8.movies4u.garden');
+        let cleanPageUrl = (pageUrl || '').replace(/new\d+\.movies4u\.(clinic|garden)/g, 'new8.movies4u.garden');
         const targetUrl = cleanPageUrl.startsWith('http') ? cleanPageUrl : `${baseUrl}/${cleanPageUrl.replace(/^\/+/, '')}`;
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
         const html = await fetcher(targetUrl, {
@@ -591,6 +606,11 @@ export class Movies4uClient {
         }
         if (!isSeries) {
             // Group bridge items by bridgeUrl and compute accurate audio fidelity tier & richness score
+            const pageLangMatch = html.match(/(?:language|languages|audio)\s*:\s*([^<\n]+)/i);
+            const pageLangMeta = pageLangMatch ? pageLangMatch[1].trim() : '';
+            const pageAudioContext = `${rawTitle} ${pageLangMeta}`.trim();
+            const pageAudioTier = getAudioTier(pageAudioContext);
+
             const bridgesByUrl = new Map();
             for (const b of bridgeList) {
                 if (!bridgesByUrl.has(b.bridgeUrl)) {
@@ -607,8 +627,9 @@ export class Movies4uClient {
                 let hasImaxDual = false;
 
                 for (const item of items) {
-                    const score = getAudioRichnessScore(item.label || '');
-                    const tier = getAudioTier(item.label || '');
+                    const itemCombined = `${item.label || ''} ${pageAudioContext}`.trim();
+                    const score = Math.max(getAudioRichnessScore(item.label || ''), getAudioRichnessScore(itemCombined));
+                    const tier = getAudioTier(item.label || '') !== 3 ? getAudioTier(item.label || '') : getAudioTier(itemCombined);
                     totalScore += score;
                     if (tier === 1) multiAudioCount++;
                     const lLower = (item.label || '').toLowerCase();
@@ -630,13 +651,13 @@ export class Movies4uClient {
                 const multiRatio = multiAudioCount / items.length;
 
                 // Priority:
-                // Tier 1: True Multi Audio bridge (majority of items are Multi Audio OR 1080p is Multi Audio)
+                // Tier 1: True Multi Audio bridge (majority of items are Multi Audio OR 1080p is Multi Audio OR page context is Multi Audio)
                 // Tier 2: Dual Audio / IMAX fallback bridge
                 // Tier 3: Single audio / other
                 let overallTier = 3;
-                if (multiRatio >= 0.5 || has1080pMulti) {
+                if (multiRatio >= 0.5 || has1080pMulti || pageAudioTier === 1) {
                     overallTier = 1;
-                } else if (hasImaxDual || items.some(i => getAudioTier(i.label) === 2)) {
+                } else if (hasImaxDual || items.some(i => getAudioTier(i.label) === 2) || pageAudioTier === 2) {
                     overallTier = 2;
                 }
 
@@ -676,7 +697,7 @@ export class Movies4uClient {
                         hl.bridgeUrl = bUrl;
                     }
                     streamingLinks.push(...hubLinks);
-                } catch (_) { }
+                } catch (_) {}
             }
             return {
                 title: rawTitle,
@@ -752,14 +773,14 @@ export class Movies4uClient {
         // Direct link fallback
         if (this.isDirectMediaStream(bridgeUrl)) {
             return [{
-                quality: qualityHint,
-                url: bridgeUrl,
-                originalUrl: bridgeUrl,
-                server: 'Direct Media Stream',
-                type: 'direct',
-                headers: { 'User-Agent': DEFAULT_USER_AGENT },
-                mimeType: this.detectMimeType(bridgeUrl)
-            }];
+                    quality: qualityHint,
+                    url: bridgeUrl,
+                    originalUrl: bridgeUrl,
+                    server: 'Direct Media Stream',
+                    type: 'direct',
+                    headers: { 'User-Agent': DEFAULT_USER_AGENT },
+                    mimeType: this.detectMimeType(bridgeUrl)
+                }];
         }
         return [];
     }
@@ -807,21 +828,21 @@ export class Movies4uClient {
         let controller = null;
         let timeoutId = null;
         try {
-            const isGoogleCdn = streamUrl.includes("googleusercontent.com") ||
-                streamUrl.includes("video-downloads") ||
-                streamUrl.includes("gpdl");
+            const isGoogleCdn = streamUrl.includes("googleusercontent.com") || 
+                                streamUrl.includes("video-downloads") || 
+                                streamUrl.includes("gpdl");
             const isHls = streamUrl.toLowerCase().includes('.m3u8');
             if (typeof AbortController !== "undefined") {
                 controller = new AbortController();
                 timeoutId = setTimeout(() => {
-                    try { controller.abort(); } catch (_) { }
+                    try { controller.abort(); } catch (_) {}
                 }, timeoutMs);
             }
-            const isDirectCdn = streamUrl.includes("pixeldrain") ||
-                streamUrl.includes("cloudflarestorage.com") ||
-                streamUrl.includes("r2.dev") ||
-                streamUrl.includes("fastdl") ||
-                streamUrl.includes("bunker.monster");
+            const isDirectCdn = streamUrl.includes("pixeldrain") || 
+                                streamUrl.includes("cloudflarestorage.com") || 
+                                streamUrl.includes("r2.dev") || 
+                                streamUrl.includes("fastdl") || 
+                                streamUrl.includes("bunker.monster");
             const reqHeaders = {
                 "User-Agent": headers["User-Agent"] || DEFAULT_USER_AGENT,
                 "Range": "bytes=0-1024",
@@ -865,7 +886,7 @@ export class Movies4uClient {
             return { isLive: false, supports206: false };
         } finally {
             if (timeoutId) clearTimeout(timeoutId);
-            try { if (controller) controller.abort(); } catch (_) { }
+            try { if (controller) controller.abort(); } catch (_) {}
         }
     }
 
@@ -875,7 +896,7 @@ export class Movies4uClient {
     async getPlayableStream(pageUrl, isTVShow = false, episodeNumber = 1, seasonNumber = 1, customHttpGet) {
         const fetcher = customHttpGet || this.defaultHttpGet.bind(this);
         const details = await this.extractDetails(pageUrl, seasonNumber, fetcher);
-
+        
         if (!isTVShow && details.mediaType === 'movie') {
             const qualities = {};
             const qualitySizes = {};
@@ -974,7 +995,7 @@ export class Movies4uClient {
                         if (bucketCandidates.some(c => c.audioTier === 1 && c.supports206 && c.priority === 1)) {
                             break;
                         }
-                    } catch (_) { }
+                    } catch (_) {}
                 }
                 if (bucketCandidates.length > 0) {
                     bucketCandidates.sort((a, b) => {
@@ -1107,7 +1128,7 @@ export class Movies4uClient {
                                 if (epCandidates.some(c => c.audioTier === 1 && c.supports206 && c.priority === 1)) {
                                     break;
                                 }
-                            } catch (_) { }
+                            } catch (_) {}
                         }
                         if (epCandidates.length > 0) {
                             epCandidates.sort((a, b) => {
@@ -1126,7 +1147,7 @@ export class Movies4uClient {
                             };
                         }
                     }
-                } catch (_) { }
+                } catch (_) {}
                 return null;
             });
 
@@ -1196,7 +1217,7 @@ export class Movies4uClient {
                                 }
                             }
                         }
-                    } catch (e) { }
+                    } catch (e) {}
                 }
             }
         }
@@ -1225,7 +1246,7 @@ export class Movies4uClient {
                             if (directStreams.length > 0) {
                                 return { quality: bridge.quality, streams: directStreams };
                             }
-                        } catch (e) { }
+                        } catch (e) {}
                     }
                 }
             }
@@ -1274,17 +1295,17 @@ export class Movies4uClient {
                     || unpacked.match(/https?:\/\/[^\s"'`\\]+master\.m3u8[^\s"'`\\]*/i)?.[0];
                 if (masterM3u8) {
                     return [{
-                        quality: qualityHint,
-                        url: masterM3u8,
-                        originalUrl: embedUrl,
-                        server: 'M4UPlay (Adaptive HLS Master Stream)',
-                        type: 'direct',
-                        headers: {
-                            'User-Agent': DEFAULT_USER_AGENT,
-                            'Referer': 'https://m4uplay.store/'
-                        },
-                        mimeType: 'application/vnd.apple.mpegurl'
-                    }];
+                            quality: qualityHint,
+                            url: masterM3u8,
+                            originalUrl: embedUrl,
+                            server: 'M4UPlay (Adaptive HLS Master Stream)',
+                            type: 'direct',
+                            headers: {
+                                'User-Agent': DEFAULT_USER_AGENT,
+                                'Referer': 'https://m4uplay.store/'
+                            },
+                            mimeType: 'application/vnd.apple.mpegurl'
+                        }];
                 }
             }
         }
@@ -1297,7 +1318,7 @@ export class Movies4uClient {
         if (!gpdlUrl || !gpdlUrl.startsWith('http')) return null;
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timeoutId = controller ? setTimeout(() => {
-            try { controller.abort(); } catch (_) { }
+            try { controller.abort(); } catch (_) {}
         }, 6000) : null;
         try {
             const res = await fetch(gpdlUrl, {
@@ -1322,9 +1343,9 @@ export class Movies4uClient {
                 const unwrapped = this.extractDirectCdnUrl(res.url);
                 if (unwrapped && unwrapped.startsWith('http')) return unwrapped;
             }
-        } catch { } finally {
+        } catch {} finally {
             if (timeoutId) clearTimeout(timeoutId);
-            try { if (controller) controller.abort(); } catch (_) { }
+            try { if (controller) controller.abort(); } catch (_) {}
         }
         return null;
     }
@@ -1363,7 +1384,7 @@ export class Movies4uClient {
                                 'Referer': hubUrl
                             });
                         }
-                    } catch (_) { }
+                    } catch (_) {}
                 }
             }
 
@@ -1396,7 +1417,7 @@ export class Movies4uClient {
                 const label = rawLabel.replace(/<[^>]+>/g, '').trim();
                 const lowerHref = href.toLowerCase();
                 const lowerLabel = label.toLowerCase();
-
+                
                 // Strictly ignore ZIP and compressed archive links
                 if (
                     lowerHref.includes('.zip') || lowerHref.includes('.rar') || lowerHref.includes('.7z') || lowerHref.includes('.tar') || lowerHref.includes('.gz') || lowerHref.includes('zippack') ||
@@ -1521,12 +1542,12 @@ export class Movies4uClient {
                 if (!directCdn || directCdn.includes('busycdn')) {
                     const busyController = typeof AbortController !== "undefined" ? new AbortController() : null;
                     const busyTimer = busyController ? setTimeout(() => {
-                        try { busyController.abort(); } catch (_) { }
+                        try { busyController.abort(); } catch (_) {}
                     }, 5000) : null;
                     try {
                         const res = await fetch(busyUrl, {
                             method: 'GET',
-                            headers: {
+                            headers: { 
                                 'User-Agent': DEFAULT_USER_AGENT,
                                 'Range': 'bytes=0-1024'
                             },
@@ -1536,9 +1557,9 @@ export class Movies4uClient {
                         if (res.url) {
                             directCdn = this.extractDirectCdnUrl(res.url);
                         }
-                    } catch (e) { } finally {
+                    } catch (e) {} finally {
                         if (busyTimer) clearTimeout(busyTimer);
-                        try { if (busyController) busyController.abort(); } catch (_) { }
+                        try { if (busyController) busyController.abort(); } catch (_) {}
                     }
                 }
                 const finalUrl = (directCdn && directCdn.startsWith('http')) ? directCdn : busyUrl;
@@ -1578,7 +1599,7 @@ export class Movies4uClient {
                         continue;
                     }
                     const qKey = (detectedQ === '2160p' || heading.toLowerCase().includes('4k') || heading.toLowerCase().includes('2160')) ? '4k' : detectedQ;
-
+                    
                     // TARGET HUBCLOUD & VCLOUD
                     const links = [...content.matchAll(/<a[^>]+href=["'](https?:\/\/[^"']*(?:hubcloud|vcloud|drive|hubcdn)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)];
                     for (const [_, href, rawText] of links) {
@@ -1681,11 +1702,18 @@ export class Movies4uClient {
     /*                               HELPER METHODS                               */
     /* -------------------------------------------------------------------------- */
     cleanTitle(title) {
+        if (!title) return '';
         return title
-            .replace(/\b(480p|720p|1080p|2160p|4k|uhd|hdtc|bluray|web-dl|webrip|hdrip|hevc|x264|x265|10bit)\b/gi, ' ')
-            .replace(/\b(hindi|english|tamil|telugu|korean|malayalam|kannada|dual audio|multi audio|org|dubbed|line)\b/gi, ' ')
+            .replace(/\[[^\]]*\b\d+(?:\.\d+)?\s*(?:gb|mb)\b[^\]]*\]/gi, ' ')
+            .replace(/\([^)]*\b\d+(?:\.\d+)?\s*(?:gb|mb)\b[^)]*\)/gi, ' ')
+            .replace(/\b\d+(?:\.\d+)?\s*(?:gb|mb)\b/gi, ' ')
+            .replace(/\[[^\]]*\]/g, ' ')
+            .replace(/\((?:19|20)\d{2}\)/g, ' ')
+            .replace(/\b(19\d{2}|20\d{2})\b/g, ' ')
+            .replace(/\b(480p|720p|1080p|2160p|4k|uhd|hdtc|camrip|bluray|web[-._]?dl|webrip|hdrip|hevc|x264|x265|10bit)\b/gi, ' ')
+            .replace(/\b(hindi|english|tamil|telugu|korean|malayalam|kannada|bengali|marathi|punjabi|dual audio|multi audio|org|dubbed|line|esubs|subtitles)\b/gi, ' ')
             .replace(/\b(season\s*\d+(?:-\d+)?|s\d+(?:\s*ep\d+)?|complete|all episodes|full movie|movie)\b/gi, ' ')
-            .replace(/[\[\](){}\-_+]/g, ' ')
+            .replace(/[\[\](){}\-_+|:–—]/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
     }
@@ -1750,7 +1778,7 @@ export class Movies4uClient {
     async defaultHttpGet(url, headers, timeoutMs = 10000) {
         const controller = new AbortController();
         const timer = setTimeout(() => {
-            try { controller.abort(); } catch (_) { }
+            try { controller.abort(); } catch (_) {}
         }, timeoutMs);
         try {
             const res = await fetch(url, {
@@ -1761,14 +1789,14 @@ export class Movies4uClient {
                 throw new Error(`HTTP ${res.status} fetching ${url}`);
             const contentType = (res.headers.get('content-type') || '').toLowerCase();
             if (contentType.includes('video') || contentType.includes('octet-stream') || contentType.includes('audio')) {
-                try { controller.abort(); } catch (_) { }
+                try { controller.abort(); } catch (_) {}
                 return '';
             }
             return await res.text();
         }
         finally {
             clearTimeout(timer);
-            try { controller.abort(); } catch (_) { }
+            try { controller.abort(); } catch (_) {}
         }
     }
 }

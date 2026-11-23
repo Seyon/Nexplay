@@ -208,7 +208,7 @@ export class AnimeSaltClient {
   /**
    * Extract Details & Episodes list for an anime series/movie
    */
-  async extractDetails(link, targetSeason = 1) {
+  async extractDetails(link, targetSeason = 1, targetEpisode = null) {
     const fullUrl = link.startsWith('http') ? link : new URL(link, this.baseUrl).href;
     const html = await this.httpGet(fullUrl);
 
@@ -246,10 +246,29 @@ export class AnimeSaltClient {
           const seasonNum = parseInt(sNumMatch[1], 10);
           const postId = pIdMatch ? pIdMatch[1] : '';
           const episodesAjaxUrl = `${this.baseUrl}/wp-admin/admin-ajax.php?action=action_select_season&season=${encodeURIComponent(seasonNum)}&post=${encodeURIComponent(postId)}`;
+          
+          let startEp = null;
+          let endEp = null;
+          let epCount = null;
+          const rangeMatch = sTitle.match(/(\d+)\s*[-–—]\s*(\d+)/);
+          if (rangeMatch) {
+            startEp = parseInt(rangeMatch[1], 10);
+            endEp = parseInt(rangeMatch[2], 10);
+          }
+          const countMatch = sTitle.match(/\((\d+)\)/);
+          if (countMatch) {
+            epCount = parseInt(countMatch[1], 10);
+          }
+
           seasons.push({
             id: seasonNum,
             seasonNumber: seasonNum,
+            season_number: seasonNum,
             title: sTitle || `Season ${seasonNum}`,
+            name: sTitle || `Season ${seasonNum}`,
+            startEpisode: startEp,
+            endEpisode: endEp,
+            episode_count: epCount || (startEp && endEp ? (endEp - startEp + 1) : 0),
             episodesLink: postId ? episodesAjaxUrl : fullUrl
           });
         }
@@ -259,12 +278,22 @@ export class AnimeSaltClient {
         seasons.push({
           id: 1,
           seasonNumber: 1,
+          season_number: 1,
           title: 'Season 1',
+          name: 'Season 1',
           episodesLink: fullUrl
         });
       }
 
-      const targetSeasonObj = seasons.find(s => s.seasonNumber === targetSeason) || seasons[0];
+      let effectiveTargetSeason = targetSeason;
+      if (targetEpisode != null && seasons.length > 0) {
+        const matchingByRange = seasons.find(s => s.startEpisode != null && s.endEpisode != null && targetEpisode >= s.startEpisode && targetEpisode <= s.endEpisode);
+        if (matchingByRange) {
+          effectiveTargetSeason = matchingByRange.seasonNumber;
+        }
+      }
+
+      const targetSeasonObj = seasons.find(s => s.seasonNumber === effectiveTargetSeason) || seasons[0];
       if (targetSeasonObj) {
         episodes = await this.getEpisodeList(targetSeasonObj.episodesLink || fullUrl);
       }
@@ -496,12 +525,26 @@ export class AnimeSaltClient {
     let streams = null;
 
     if (!isEpisodeUrl && (isTVShow || targetUrl.includes('/series/'))) {
+      let effectiveSeason = seasonNumber;
+      const slugMatch = targetUrl.match(/\/series\/([a-zA-Z0-9_-]+)/i);
+
+      // Smart season mapping for long-running anime (e.g. Naruto 220 episodes across 5 seasons)
+      if (slugMatch) {
+        const seriesSlug = slugMatch[1].toLowerCase();
+        if (seriesSlug.includes('naruto') && !seriesSlug.includes('shippu') && !seriesSlug.includes('boruto')) {
+          if (episodeNumber >= 1 && episodeNumber <= 57) effectiveSeason = 1;
+          else if (episodeNumber >= 58 && episodeNumber <= 100) effectiveSeason = 2;
+          else if (episodeNumber >= 101 && episodeNumber <= 141) effectiveSeason = 3;
+          else if (episodeNumber >= 142 && episodeNumber <= 183) effectiveSeason = 4;
+          else if (episodeNumber >= 184 && episodeNumber <= 220) effectiveSeason = 5;
+        }
+      }
+
       // 1. High-Speed Direct Prediction for Anime TV Episodes:
       // AnimeSalt URLs follow: https://animesalt.cx/episode/{slug}-{season}x{episode}/
-      const slugMatch = targetUrl.match(/\/series\/([a-zA-Z0-9_-]+)/i);
       if (slugMatch) {
         const seriesSlug = slugMatch[1];
-        const directEpUrl = `${this.baseUrl}/episode/${seriesSlug}-${seasonNumber}x${episodeNumber}/`;
+        const directEpUrl = `${this.baseUrl}/episode/${seriesSlug}-${effectiveSeason}x${episodeNumber}/`;
         try {
           console.log(`[AnimeSalt] ⚡ Fast predicting episode URL: ${directEpUrl}`);
           const directStreams = await this.getStreams(directEpUrl);
@@ -514,12 +557,28 @@ export class AnimeSaltClient {
 
       // 2. Fallback to full details & episode list if direct prediction didn't find streams
       if (!streams || streams.length === 0) {
-        console.log(`[AnimeSalt] Fallback to full season/episode discovery for: ${targetUrl} (Season ${seasonNumber})`);
-        const details = await this.extractDetails(targetUrl, seasonNumber);
+        console.log(`[AnimeSalt] Fallback to full season/episode discovery for: ${targetUrl} (Season ${effectiveSeason}, Ep ${episodeNumber})`);
+        const details = await this.extractDetails(targetUrl, effectiveSeason, episodeNumber);
+        
+        // If details revealed the episode belongs to a different season, update effectiveSeason
+        if (details.seasons && details.seasons.length > 0) {
+          const matchSeason = details.seasons.find(s => s.startEpisode != null && s.endEpisode != null && episodeNumber >= s.startEpisode && episodeNumber <= s.endEpisode);
+          if (matchSeason && matchSeason.seasonNumber !== effectiveSeason) {
+            effectiveSeason = matchSeason.seasonNumber;
+            if (matchSeason.episodesLink) {
+              details.episodes = await this.getEpisodeList(matchSeason.episodesLink);
+            }
+          }
+        }
+
         if (details.episodes && details.episodes.length > 0) {
-          const ep = details.episodes.find(e => e.episodeNumber === episodeNumber) || details.episodes[episodeNumber - 1] || details.episodes[0];
+          const ep = details.episodes.find(e => e.episodeNumber === episodeNumber);
           if (ep && ep.link) {
             targetUrl = ep.link;
+          } else if (slugMatch) {
+            targetUrl = `${this.baseUrl}/episode/${slugMatch[1]}-${effectiveSeason}x${episodeNumber}/`;
+          } else if (details.episodes[0]?.link) {
+            targetUrl = details.episodes[0].link;
           }
         }
       }

@@ -349,6 +349,9 @@ export default function App() {
         initSettings(),
         initPlaybackProgressManager(),
       ]);
+      // Immediately hydrate Continue Watching from persistent storage on boot
+      setContinueWatching(getWatchHistory());
+
       const keySet = hasTmdbApiKey();
       setHasTmdbKey(keySet);
 
@@ -371,7 +374,7 @@ export default function App() {
     }, 5000);
 
     const unsub = subscribeSettings(({ eventType }) => {
-      if (eventType === 'WATCH_HISTORY_UPDATED') {
+      if (eventType === 'WATCH_HISTORY_UPDATED' || eventType === 'SETTINGS_INITIALIZED') {
         setContinueWatching(getWatchHistory());
       } else if (eventType === 'TMDB_KEY_SAVED') {
         setHasTmdbKey(true);

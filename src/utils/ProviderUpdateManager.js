@@ -136,6 +136,15 @@ class ProviderUpdateManagerService {
         try {
           const cached = JSON.parse(cachedManifestStr);
           if (cached && cached.version) {
+            // Guard: sanitize dead mirrors if cached from earlier builds
+            if (cached.providers) {
+              if (cached.providers.hdhub4u?.baseUrl && (!cached.providers.hdhub4u.baseUrl.includes('new15.hdhub4u') || cached.providers.hdhub4u.baseUrl.includes('new14') || cached.providers.hdhub4u.baseUrl.includes('new10') || cached.providers.hdhub4u.baseUrl.includes('new5'))) {
+                cached.providers.hdhub4u.baseUrl = 'https://new15.hdhub4u.cl';
+              }
+              if (cached.providers.movies4u?.baseUrl && (cached.providers.movies4u.baseUrl.includes('new3.movies4u') || cached.providers.movies4u.baseUrl.includes('new4.movies4u') || cached.providers.movies4u.baseUrl.includes('new5.movies4u') || cached.providers.movies4u.baseUrl.includes('.clinic'))) {
+                cached.providers.movies4u.baseUrl = 'https://new8.movies4u.garden';
+              }
+            }
             this.currentVersion = cached.version;
             this.currentManifest = cached;
             this.applyConfigToEngines(cached);
@@ -303,6 +312,9 @@ class ProviderUpdateManagerService {
 
     // Server 1: HDHub4u
     if (manifest.providers.hdhub4u && HDHub4u) {
+      if (manifest.providers.hdhub4u.baseUrl && (manifest.providers.hdhub4u.baseUrl.includes('new14') || manifest.providers.hdhub4u.baseUrl.includes('new10') || manifest.providers.hdhub4u.baseUrl.includes('new5'))) {
+        manifest.providers.hdhub4u.baseUrl = 'https://new15.hdhub4u.cl';
+      }
       HDHub4u.applyRemoteConfig(manifest.providers.hdhub4u);
       console.log(`[ProviderUpdateManager] Live BaseUrl for HDHub4u set to: ${HDHub4u.baseUrl}`);
     }
@@ -315,6 +327,9 @@ class ProviderUpdateManagerService {
 
     // Server 3: Movies4u
     if (manifest.providers.movies4u && Movies4u) {
+      if (manifest.providers.movies4u.baseUrl && (manifest.providers.movies4u.baseUrl.includes('new3.movies4u') || manifest.providers.movies4u.baseUrl.includes('new4.movies4u') || manifest.providers.movies4u.baseUrl.includes('new5.movies4u') || manifest.providers.movies4u.baseUrl.includes('.clinic'))) {
+        manifest.providers.movies4u.baseUrl = 'https://new8.movies4u.garden';
+      }
       Movies4u.applyRemoteConfig(manifest.providers.movies4u);
       console.log(`[ProviderUpdateManager] Live BaseUrl for Movies4u set to: ${Movies4u.liveBaseUrl}`);
     }

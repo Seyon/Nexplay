@@ -73,15 +73,44 @@ function extractYear(str) {
   return m ? parseInt(m[1], 10) : null;
 }
 
+const LANG_MAP = {
+  'ta': ['tamil', 'tam'],
+  'te': ['telugu', 'tel'],
+  'hi': ['hindi', 'hin'],
+  'ml': ['malayalam', 'mal'],
+  'kn': ['kannada', 'kan'],
+  'bn': ['bengali', 'ben', 'bangla'],
+  'mr': ['marathi', 'mar'],
+  'pa': ['punjabi', 'pan'],
+  'gu': ['gujarati', 'guj'],
+  'ko': ['korean', 'kor'],
+  'ja': ['japanese', 'jpn'],
+  'zh': ['chinese', 'chi', 'zho'],
+  'en': ['english', 'eng']
+};
+
 function cleanTitleKeywords(raw) {
   if (!raw) return '';
   let s = raw;
-  // Remove quality tags
-  s = s.replace(/\b(4k|2160p|1080p|720p|480p|hevc|x264|x265|10bit|bluray|remux|web-dl|webrip|hdrip|dvdrip|hdtc|camrip)\b/gi, ' ');
-  // Remove audio & source & network tags
-  s = s.replace(/\b(hindi|english|tamil|telugu|malayalam|kannada|korean|dual audio|multi audio|org|dubbed|esubs|subtitles|line|nf|netflix|hotstar|zee5|sonyliv|prime video|amazon prime|amazon|prime|apple|paramount|hulu|disney|peacock|max|hbo|mgm|mgmp|marvel phase \d+)\b/gi, ' ');
-  // Remove format & completion tags
+  // 1. Remove bracketed / parenthesized file sizes and resolutions, e.g. [700MB], (1.3 GB), [4k 2.4GB]
+  s = s.replace(/\[[^\]]*\b\d+(?:\.\d+)?\s*(?:gb|mb)\b[^\]]*\]/gi, ' ');
+  s = s.replace(/\([^)]*\b\d+(?:\.\d+)?\s*(?:gb|mb)\b[^)]*\)/gi, ' ');
+  // 2. Remove bare file sizes e.g. 700mb, 1.3gb, 2.4 gb
+  s = s.replace(/\b\d+(?:\.\d+)?\s*(?:gb|mb)\b/gi, ' ');
+  // 3. Remove bracketed tags like [Hindi + Tamil], [Multi Audio], [Esubs]
+  s = s.replace(/\[[^\]]*\]/g, ' ');
+  // 4. Remove parenthesized years, e.g. (2025), (1999)
+  s = s.replace(/\((?:19|20)\d{2}\)/g, ' ');
+  // 5. Remove quality tags
+  s = s.replace(/\b(4k|2160p|1080p|720p|480p|hevc|x264|x265|10bit|bluray|remux|web[-._]?dl|webrip|hdrip|dvdrip|hdtc|camrip)\b/gi, ' ');
+  // 6. Remove audio & source & network tags
+  s = s.replace(/\b(hindi|english|tamil|telugu|malayalam|kannada|bengali|marathi|punjabi|gujarati|urdu|korean|japanese|chinese|dual audio|multi audio|org|dubbed|esubs|subtitles|line|nf|netflix|hotstar|zee5|sonyliv|prime video|amazon prime|amazon|prime|apple|paramount|hulu|disney|peacock|max|hbo|mgm|mgmp|marvel phase \d+)\b/gi, ' ');
+  // 7. Remove format & completion tags
   s = s.replace(/\b(full movie|complete|all episodes|movie|series|season \d+|season\s*\d+\s*[-–to]+\s*\d+|s\d+|ep \d+|ep-\d+|added|imax|extended|uncut|directors cut)\b/gi, ' ');
+  // 8. Remove 4-digit years from clean title
+  s = s.replace(/\b(?:19|20)\d{2}\b/g, ' ');
+  // 9. Strip separator characters
+  s = s.replace(/[|:–—\-_+&/]/g, ' ');
   return normalizeString(s);
 }
 
@@ -277,7 +306,8 @@ function calculateTitleMatchScore(
   candidateYear = '',
   candidateType = 'movie',
   targetSeason = null,
-  candidateUrl = ''
+  candidateUrl = '',
+  originalLanguage = ''
 ) {
   const normTarget = normalizeNumbers(normalizeString(targetTitle));
   const cleanTarget = normalizeNumbers(cleanTitleKeywords(targetTitle));
@@ -333,7 +363,7 @@ function calculateTitleMatchScore(
   }
 
   // Release Year Comparison & Disambiguation
-  // Extremely important when movies share the same title across different release years (e.g. Moana 2026 vs Moana 2016)
+  // Extremely important when movies share the same title across different release years (e.g. Dragon 2025 vs Dragon 2011, Moana 2026 vs Moana 2016)
   let yearMultiplier = 1.0;
   const tYear = extractYear(targetYear) || extractYear(targetTitle);
   const cYear = extractYear(candidateYear) || extractYear(candidateTitle) || extractYear(candidateUrl);
@@ -341,24 +371,47 @@ function calculateTitleMatchScore(
   if (tYear && cYear) {
     const diff = Math.abs(tYear - cYear);
     if (diff === 0) {
-      yearMultiplier = 1.5; // Exact matching release year bonus
+      yearMultiplier = 1.6; // Exact matching release year bonus
     } else if (diff === 1) {
-      yearMultiplier = 1.05; // Tolerance for late-year / early-year release rollover
+      yearMultiplier = 1.0; // Tolerance for late-year / early-year release rollover
     } else if (diff === 2) {
-      yearMultiplier = 0.35; // 2-year difference penalty
+      yearMultiplier = 0.2; // 2-year difference penalty
     } else {
-      // 3+ years difference: e.g. 2016 vs 2026 (diff = 10)
-      // Severe disqualifying penalty to prevent returning wrong generation / older / newer movie
-      yearMultiplier = 0.05;
+      // 3+ years difference: e.g. 2011 vs 2025 (diff = 14)
+      // Disqualifying penalty to prevent returning wrong generation / older / newer movie
+      yearMultiplier = 0.01;
     }
   } else if (tYear && !cYear) {
     // Target year known but candidate year missing
-    yearMultiplier = 0.9;
+    yearMultiplier = 0.85;
+  }
+
+  // Target Original Language Matching & Disambiguation
+  let langMultiplier = 1.0;
+  if (originalLanguage && originalLanguage !== 'en') {
+    const candCombined = `${candidateTitle} ${candidateUrl || ''}`.toLowerCase();
+    const targetLangTokens = LANG_MAP[originalLanguage.toLowerCase()] || [originalLanguage.toLowerCase()];
+    const hasTargetLang = targetLangTokens.some(tok => new RegExp(`\\b${tok}\\b`, 'i').test(candCombined));
+    const isMultiAudio = candCombined.includes('multi audio') || candCombined.includes('multi-audio') || /\bmulti\b/i.test(candCombined);
+
+    if (hasTargetLang || isMultiAudio) {
+      langMultiplier = 1.4; // 40% boost for verified original language or Multi-Audio track
+    } else {
+      // Check if candidate explicitly lists other languages (e.g. Hindi, English) without the target language
+      const allKnownLangs = ['hindi', 'english', 'telugu', 'tamil', 'malayalam', 'kannada', 'bengali', 'marathi', 'punjabi', 'korean', 'japanese', 'chinese'];
+      const otherLangs = allKnownLangs.filter(l => !targetLangTokens.includes(l));
+      const mentionsOtherLang = otherLangs.some(l => new RegExp(`\\b${l}\\b`, 'i').test(candCombined));
+      if (mentionsOtherLang) {
+        langMultiplier = 0.35; // Severe penalty: original is Tamil/Telugu but post only has Hindi/English
+      } else {
+        langMultiplier = 0.8;
+      }
+    }
   }
 
   // 1. Exact string match (strong bonus so exact titles decisively beat partials)
   if (normTarget === normCandidate || cleanTarget === cleanCandidate) {
-    return 2.0 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier;
+    return 2.5 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier * langMultiplier;
   }
 
   const targetTokens = cleanTarget.split(' ').filter(t => t.length > 0);
@@ -369,7 +422,7 @@ function calculateTitleMatchScore(
   // 2. Core candidate title matching (candidate tokens without meta/quality/season tokens or 4-digit years)
   const metaTokens = new Set([
     'season', 'series', 'complete', 'all', 'episodes', 'episode', 'pack', 'dual', 'audio', 'hindi', 'english',
-    'tamil', 'telugu', 'malayalam', 'kannada', 'korean', 'japanese', 'chinese', 'french', 'spanish', 'german',
+    'tamil', 'telugu', 'malayalam', 'kannada', 'bengali', 'marathi', 'punjabi', 'gujarati', 'korean', 'japanese', 'chinese', 'french', 'spanish', 'german',
     'org', 'web', 'dl', 'bluray', 'hdrip', 'webrip', 'webdl', 'full', 'movie', 'amzn', 'netflix', 'hbo', 'hotstar',
     'prime', 'video', 'amazon', 'disney', 'sonyliv', 'zee5', 'jio', 'hulu', 'apple', 'appletv', 'paramount',
     'peacock', 'max', 'mgm', 'mgmp', 'original', 'with', 'subtitles', 'subtitle', 'esub', 'esubs', 'uncut',
@@ -383,7 +436,7 @@ function calculateTitleMatchScore(
   const compareTargetTokens = filteredTargetTokens.length > 0 ? filteredTargetTokens : targetTokens;
 
   if (compareTargetTokens.length === filteredCandidateTokens.length && compareTargetTokens.every((t, i) => t === filteredCandidateTokens[i])) {
-    return 1.8 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier;
+    return 2.0 * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier * langMultiplier;
   }
 
   // 3. Target Token Recall: What portion of target words appear in candidate
@@ -410,10 +463,10 @@ function calculateTitleMatchScore(
     (filteredCandidateTokens.length >= compareTargetTokens.length && compareTargetTokens.every((t, i) => t === filteredCandidateTokens[i]));
 
   if (targetRecall === 1.0 && isTargetPrefix && yearMultiplier >= 1.0) {
-    return Math.min(1.85, (1.2 + candidatePrecision * 0.4) * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier);
+    return Math.min(1.85, (1.2 + candidatePrecision * 0.4) * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier * langMultiplier);
   }
 
-  // Severe penalty for single-word targets (like "From") when candidate has extra non-meta words ("The Girl From Plainville", "Agent from Above")
+  // Severe penalty for single-word targets (like "Dragon" or "From") when candidate has extra non-meta words ("The Girl From Plainville", "How to Train Your Dragon")
   let precisionWeight = 0.3;
   if (compareTargetTokens.length === 1 && filteredCandidateTokens.length > 1) {
     precisionWeight = 0.85;
@@ -424,13 +477,13 @@ function calculateTitleMatchScore(
     baseScore *= 0.4; // Strong penalty if target word appears in the middle of an unrelated title
   }
   // Cap partial matches at 0.98 so exact/core matches (>1.0) always take priority
-  return Math.min(0.98, baseScore * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier);
+  return Math.min(0.98, baseScore * yearMultiplier * typeMultiplier * seasonMultiplier * audioMultiplier * printMultiplier * langMultiplier);
 }
 
 /**
  * Filter & Rank search results with minimum confidence threshold and season verification
  */
-function findBestMatch(targetTitle, targetYear, targetType = 'movie', candidates = [], minThreshold = 0.55, targetSeason = null) {
+function findBestMatch(targetTitle, targetYear, targetType = 'movie', candidates = [], minThreshold = 0.55, targetSeason = null, originalLanguage = '') {
   if (!candidates || candidates.length === 0) return null;
 
   const scored = candidates.map(c => {
@@ -442,7 +495,8 @@ function findBestMatch(targetTitle, targetYear, targetType = 'movie', candidates
       c.year,
       c.type || c.mediaType || (c.url?.includes('-series-') ? 'series' : 'movie'),
       targetSeason,
-      c.url || c.link || ''
+      c.url || c.link || '',
+      originalLanguage
     );
     return { ...c, matchScore: score };
   });
@@ -1719,8 +1773,10 @@ function parseMediaBridges(html, pageTitle = '') {
     const resScore = quality === '4k' ? 500 : (quality === '1080p' ? 250 : (quality === '720p' ? 100 : 50));
     const tagScore = matchedTags.length * 25 + (highExtMatches > 0 ? 50 : 0);
     const sizeScore = Math.min(150, Math.round(sizeMB / 100));
-    const audioScore = getAudioRichnessScore(combined);
-    const totalScore = resScore + tagScore + sizeScore + audioScore;
+    const fullAudioContext = `${combined} ${pageTitle}`.toLowerCase();
+    const bridgeAudioTier = getAudioTier(fullAudioContext);
+    const bridgeAudioScore = getAudioRichnessScore(fullAudioContext);
+    const totalScore = resScore + tagScore + sizeScore + bridgeAudioScore;
 
     const bridgeObj = {
       seasonNumber: seasonNum,
@@ -1729,6 +1785,9 @@ function parseMediaBridges(html, pageTitle = '') {
       sizeMB,
       url: hubUrl,
       label: linkText,
+      fullContext: combined,
+      audioTier: bridgeAudioTier,
+      audioScore: bridgeAudioScore,
       tags: matchedTags,
       score: totalScore
     };
@@ -1816,7 +1875,9 @@ var HDHub4uClient = class {
 
   setBaseUrl(url) {
     if (url && typeof url === 'string') {
-      this.baseUrl = url.replace(/\/+$/, '');
+      const clean = url.replace(/\/+$/, '');
+      if (clean.includes('new14') || clean.includes('new10') || clean.includes('new5')) return;
+      this.baseUrl = clean;
       if (!this.mirrors.includes(this.baseUrl)) {
         this.mirrors.unshift(this.baseUrl);
       }
@@ -1825,7 +1886,9 @@ var HDHub4uClient = class {
 
   setMirrors(mirrors) {
     if (Array.isArray(mirrors) && mirrors.length > 0) {
-      this.mirrors = mirrors.map(m => m.replace(/\/+$/, ''));
+      this.mirrors = mirrors
+        .map(m => (m || '').replace(/\/+$/, ''))
+        .filter(m => m && !m.includes('new14') && !m.includes('new10') && !m.includes('new5'));
       if (this.mirrors.length > 0) {
         this.baseUrl = this.mirrors[0];
       }
@@ -1842,7 +1905,7 @@ var HDHub4uClient = class {
     const cleanQuery = query.replace(/[:\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
     const baseTitle = cleanQuery.replace(/\b(19\d{2}|20\d{2})\b/g, '').trim();
 
-    // 1. Direct Pingora Instant Typesense Search (used by new10.hdhub4u.cl/search.html)
+    // 1. Direct Pingora Instant Typesense Search (used by new15.hdhub4u.cl/search.html)
     try {
       const pingoraUrl = new URL("https://search.pingora.fyi/collections/post/documents/search");
       pingoraUrl.searchParams.append("q", cleanQuery);
@@ -2087,10 +2150,10 @@ var HDHub4uClient = class {
         const rankSeriesBridge = (b) => {
           let score = (b.sizeMB || 0);
           const label = ((b.label || '') + ' ' + (b.url || '')).toLowerCase();
-          const tier = getAudioTier(label);
+          const tier = b.audioTier ?? getAudioTier(label);
           if (tier === 1) score += 200000;
           else if (tier === 2) score += 100000;
-          score += getAudioRichnessScore(label);
+          score += (b.audioScore ?? getAudioRichnessScore(label));
           if (label.includes('web-dl') || label.includes('bluray') || label.includes('remux')) score += 50000;
           return score;
         };
@@ -2317,10 +2380,10 @@ var HDHub4uClient = class {
       const rankScore = (b) => {
         let score = (b.sizeMB || 0);
         const label = ((b.label || '') + ' ' + (b.url || '')).toLowerCase();
-        const tier = getAudioTier(label);
+        const tier = b.audioTier ?? getAudioTier(label);
         if (tier === 1) score += 200000;
         else if (tier === 2) score += 100000;
-        score += getAudioRichnessScore(label);
+        score += (b.audioScore ?? getAudioRichnessScore(label));
         if (label.includes('web-dl') || label.includes('bluray') || label.includes('remux') || label.includes('ds4k')) score += 50000;
         if (label.includes('ddp') || label.includes('atmos') || label.includes('5.1') || label.includes('7.1')) score += 30000;
         return score;
@@ -2718,10 +2781,10 @@ var FourKHDHubClient = class {
         const rankSeriesBridge = (b) => {
           let score = (b.sizeMB || 0);
           const label = ((b.label || '') + ' ' + (b.url || '')).toLowerCase();
-          const tier = getAudioTier(label);
+          const tier = b.audioTier ?? getAudioTier(label);
           if (tier === 1) score += 200000;
           else if (tier === 2) score += 100000;
-          score += getAudioRichnessScore(label);
+          score += (b.audioScore ?? getAudioRichnessScore(label));
           if (label.includes('web-dl') || label.includes('bluray') || label.includes('remux')) score += 50000;
           return score;
         };
@@ -2963,10 +3026,10 @@ var FourKHDHubClient = class {
       const rankScore = (b) => {
         let score = (b.sizeMB || 0);
         const label = ((b.label || '') + ' ' + (b.url || '')).toLowerCase();
-        const tier = getAudioTier(label);
+        const tier = b.audioTier ?? getAudioTier(label);
         if (tier === 1) score += 200000;
         else if (tier === 2) score += 100000;
-        score += getAudioRichnessScore(label);
+        score += (b.audioScore ?? getAudioRichnessScore(label));
         if (label.includes('web-dl') || label.includes('bluray') || label.includes('remux') || label.includes('ds4k')) score += 50000;
         if (label.includes('ddp') || label.includes('atmos') || label.includes('5.1') || label.includes('7.1')) score += 30000;
         return score;
@@ -3261,5 +3324,6 @@ export {
   cleanTitleKeywords,
   parseMediaBridges,
   getStreamPriority as getPriority,
-  selectBestStreamCandidate as selectBestCandidate
+  selectBestStreamCandidate as selectBestCandidate,
+  LANG_MAP
 };
