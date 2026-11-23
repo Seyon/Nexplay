@@ -1,5 +1,5 @@
 package com.anonymous.Stitchnexplay
-/
+
 import android.content.Context
 import android.content.SharedPreferences
 import com.facebook.react.bridge.Arguments
