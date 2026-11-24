@@ -1,5 +1,12 @@
-import { NativeModules } from 'react-native';
-import * as FileSystem from 'expo-file-system/legacy';
+let NativeModules = null;
+try {
+  NativeModules = require('react-native')?.NativeModules;
+} catch (_) {}
+
+let FileSystem = null;
+try {
+  FileSystem = require('expo-file-system/legacy');
+} catch (_) {}
 
 /**
  * DNS-over-HTTPS (DoH) Resolver & ISP Bypass Engine

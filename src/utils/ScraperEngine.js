@@ -1854,10 +1854,10 @@ export function defaultSizeForQuality(q) {
 
 var HDHub4uClient = class {
   constructor() {
-    this.baseUrl = "https://new15.hdhub4u.cl";
+    this.baseUrl = "https://new16.hdhub4u.cl";
     this.mirrors = [
+      "https://new16.hdhub4u.cl",
       "https://new15.hdhub4u.cl",
-
       "https://vfilm.pro",
       "https://hdhub4u.skin",
       "https://hdhub4u.pro"
@@ -1867,7 +1867,6 @@ var HDHub4uClient = class {
   setBaseUrl(url) {
     if (url && typeof url === 'string') {
       const clean = url.replace(/\/+$/, '');
-      if (clean.includes('new14') || clean.includes('new10') || clean.includes('new5')) return;
       this.baseUrl = clean;
       if (!this.mirrors.includes(this.baseUrl)) {
         this.mirrors.unshift(this.baseUrl);
@@ -1879,7 +1878,7 @@ var HDHub4uClient = class {
     if (Array.isArray(mirrors) && mirrors.length > 0) {
       this.mirrors = mirrors
         .map(m => (m || '').replace(/\/+$/, ''))
-        .filter(m => m && !m.includes('new14') && !m.includes('new10') && !m.includes('new5'));
+        .filter(Boolean);
       if (this.mirrors.length > 0) {
         this.baseUrl = this.mirrors[0];
       }
@@ -1887,8 +1886,16 @@ var HDHub4uClient = class {
   }
 
   applyRemoteConfig(config = {}) {
-    if (config.baseUrl) this.setBaseUrl(config.baseUrl);
+    let live = config.baseUrl;
+    if (!live && Array.isArray(config.mirrors) && config.mirrors[0]) {
+      live = config.mirrors[0];
+    }
+    if (!live && config.headers?.Referer) {
+      try { live = new URL(config.headers.Referer).origin; } catch (_) {}
+    }
+    if (live) this.setBaseUrl(live);
     if (Array.isArray(config.mirrors)) this.setMirrors(config.mirrors);
+    if (live) this.setBaseUrl(live);
   }
 
   async search(query) {

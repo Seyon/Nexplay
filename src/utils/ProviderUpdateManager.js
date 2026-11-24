@@ -4,8 +4,8 @@
  * 
  * Features:
  * - Checks GitHub repository for provider/scraper updates on app launch without freezing UI
- * - Multi-tier endpoints: GitHub Raw + jsDelivr CDN fallback with cache-busting
- * - Universal storage support: React Native AsyncStorage / Browser localStorage / In-Memory
+ * - Multi-tier endpoints: jsDelivr CDN (fast & unblocked) + Fastly + GitHub Raw fallback
+ * - Universal storage support: React Native AsyncStorage / Expo FileSystem / Browser localStorage / In-Memory
  * - Runtime hot-patching of HDHub4u, 4KHDHub, Movies4u domains, mirrors, and DoH endpoints
  * - Offline-first resilience: Seamlessly falls back to cached/bundled defaults on network failure
  */
@@ -15,12 +15,13 @@ import { Movies4u } from './Movies4uProvider.js';
 import { AnimeSalt } from '../providers/animesalt/index.js';
 import StorageAdapterService from '../services/StorageAdapter.js';
 
-// Multi-Tier GitHub Endpoints with automatic fallback across repositories and CDNs
+// Multi-Tier GitHub Endpoints with automatic fallback across CDNs and repositories
 const PRIMARY_MANIFEST_URLS = [
-  'https://raw.githubusercontent.com/Seyon/Providers-Nexplay/main/manifest.json',
   'https://raw.githubusercontent.com/ajith3211996-netizen/Providers-Nexplay/main/manifest.json',
+  'https://raw.githubusercontent.com/Seyon/Providers-Nexplay/main/manifest.json',
+  'https://cdn.jsdelivr.net/gh/ajith3211996-netizen/Providers-Nexplay@main/manifest.json',
   'https://cdn.jsdelivr.net/gh/Seyon/Providers-Nexplay@main/manifest.json',
-  'https://cdn.jsdelivr.net/gh/ajith3211996-netizen/Providers-Nexplay@main/manifest.json'
+  'https://fastly.jsdelivr.net/gh/ajith3211996-netizen/Providers-Nexplay@main/manifest.json'
 ];
 
 const MANIFEST_FILENAME = 'providers_manifest.json';
@@ -91,7 +92,7 @@ class StorageAdapter {
 class ProviderUpdateManagerService {
   constructor() {
     this.storage = new StorageAdapter();
-    this.currentVersion = '1.0.0';
+    this.currentVersion = '1.2.0';
     this.currentManifest = null;
     this.isChecking = false;
     this.lastCheckTime = 0;
@@ -123,7 +124,7 @@ class ProviderUpdateManagerService {
 
   /**
    * Initialize Provider Update Manager on App Launch
-   * Fast, non-blocking startup: Loads cached config first, then triggers async background update check.
+   * Fast, non-blocking startup: Loads cached config first, then triggers immediate background update check.
    */
   async init({ autoCheck = true, checkIntervalMs = 1000 * 60 * 15 } = {}) {
     if (this.initialized) return;
@@ -135,20 +136,11 @@ class ProviderUpdateManagerService {
       if (cachedManifestStr) {
         try {
           const cached = JSON.parse(cachedManifestStr);
-          if (cached && cached.version) {
-            // Guard: sanitize dead mirrors if cached from earlier builds
-            if (cached.providers) {
-              if (cached.providers.hdhub4u?.baseUrl && (cached.providers.hdhub4u.baseUrl.includes('new14') || cached.providers.hdhub4u.baseUrl.includes('new10') || cached.providers.hdhub4u.baseUrl.includes('new5'))) {
-                cached.providers.hdhub4u.baseUrl = 'https://new15.hdhub4u.cl';
-              }
-              if (cached.providers.movies4u?.baseUrl && (cached.providers.movies4u.baseUrl.includes('new3.movies4u') || cached.providers.movies4u.baseUrl.includes('new4.movies4u') || cached.providers.movies4u.baseUrl.includes('new5.movies4u') || cached.providers.movies4u.baseUrl.includes('.clinic'))) {
-                cached.providers.movies4u.baseUrl = 'https://new8.movies4u.garden';
-              }
-            }
-            this.currentVersion = cached.version;
+          if (cached && cached.providers) {
+            this.currentVersion = cached.version || this.currentVersion;
             this.currentManifest = cached;
             this.applyConfigToEngines(cached);
-            console.log(`[ProviderUpdateManager] Loaded cached providers (v${cached.version})`);
+            console.log(`[ProviderUpdateManager] Loaded cached providers (v${this.currentVersion})`);
           }
         } catch (e) {
           console.warn('[ProviderUpdateManager] Error parsing cached manifest:', e);
@@ -158,13 +150,11 @@ class ProviderUpdateManagerService {
       console.warn('[ProviderUpdateManager] Storage load error:', e);
     }
 
-    // 2. Trigger non-blocking update check in the background
+    // 2. Trigger non-blocking update check immediately in background (zero delay)
     if (autoCheck) {
-      setTimeout(() => {
-        this.checkForUpdates({ force: false, checkIntervalMs }).catch((err) => {
-          console.warn('[ProviderUpdateManager] Background check failed silently:', err?.message || err);
-        });
-      }, 500); // Small 500ms delay to let initial app render complete smoothly
+      this.checkForUpdates({ force: false, checkIntervalMs }).catch((err) => {
+        console.warn('[ProviderUpdateManager] Background check failed silently:', err?.message || err);
+      });
     }
   }
 
@@ -185,17 +175,15 @@ class ProviderUpdateManagerService {
   }
 
   /**
-   * Fetch manifest with dual endpoints (GitHub Raw -> jsDelivr CDN fallback)
+   * Fetch manifest with parallel racing across fast CDNs and GitHub Raw
    */
   async fetchRemoteManifest() {
     const endpoints = PRIMARY_MANIFEST_URLS.map(u => `${u}?_t=${Date.now()}`);
 
-    let lastError = null;
-    for (const url of endpoints) {
+    const fetchSingle = async (url) => {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeout = controller ? setTimeout(() => controller.abort(), 6000) : null;
       try {
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeout = controller ? setTimeout(() => controller.abort(), 7000) : null;
-        
         const res = await fetch(url, {
           method: 'GET',
           headers: {
@@ -205,22 +193,44 @@ class ProviderUpdateManagerService {
           },
           signal: controller ? controller.signal : undefined
         });
-
         if (timeout) clearTimeout(timeout);
-
-        if (res.ok) {
+        if (res && res.ok) {
           const manifest = await res.json();
-          if (manifest && manifest.providers && manifest.version) {
+          if (manifest && manifest.providers) {
             return manifest;
           }
         }
+        throw new Error(`Endpoint ${url} returned invalid status`);
       } catch (err) {
-        lastError = err;
-        console.warn(`[ProviderUpdateManager] Endpoint fetch error from ${url}:`, err?.message || err);
+        if (timeout) clearTimeout(timeout);
+        throw err;
+      }
+    };
+
+    // 1. Try fastest direct raw GitHub first (instant live commit)
+    try {
+      const rawManifest = await Promise.any([
+        fetchSingle(endpoints[0]),
+        fetchSingle(endpoints[1])
+      ]);
+      if (rawManifest && rawManifest.providers) {
+        return rawManifest;
+      }
+    } catch (_) {}
+
+    // 2. Fallback to all endpoints (CDN + proxies)
+    try {
+      return await Promise.any(endpoints.map(fetchSingle));
+    } catch (_) {
+      // Sequential fallback if parallel fetch encountered network anomalies
+      for (const url of endpoints) {
+        try {
+          return await fetchSingle(url);
+        } catch (_) {}
       }
     }
 
-    throw lastError || new Error('Failed to fetch remote providers manifest from all endpoints.');
+    throw new Error('Failed to fetch remote providers manifest from all endpoints.');
   }
 
   /**
@@ -308,15 +318,41 @@ class ProviderUpdateManagerService {
   }
 
   /**
-   * Hot-patch active engines in memory
+   * Hot-patch active engines in memory.
+   * Resilient domain extraction: Whether user edits baseUrl, mirrors[0], or Referer in GitHub,
+   * the live engine is automatically updated and synchronized!
    */
   applyConfigToEngines(manifest) {
     if (!manifest || !manifest.providers) return;
 
+    // Helper to safely extract live domain from baseUrl, mirrors, or headers
+    const extractDomain = (providerConfig) => {
+      if (!providerConfig) return null;
+      if (typeof providerConfig.baseUrl === 'string' && providerConfig.baseUrl.startsWith('http')) {
+        return providerConfig.baseUrl.replace(/\/+$/, '');
+      }
+      if (Array.isArray(providerConfig.mirrors) && providerConfig.mirrors[0] && typeof providerConfig.mirrors[0] === 'string') {
+        return providerConfig.mirrors[0].replace(/\/+$/, '');
+      }
+      if (providerConfig.headers?.Referer) {
+        try {
+          return new URL(providerConfig.headers.Referer).origin;
+        } catch (_) {}
+      }
+      return null;
+    };
+
     // Server 1: HDHub4u
     if (manifest.providers.hdhub4u && HDHub4u) {
-      if (manifest.providers.hdhub4u.baseUrl && (manifest.providers.hdhub4u.baseUrl.includes('new14') || manifest.providers.hdhub4u.baseUrl.includes('new10') || manifest.providers.hdhub4u.baseUrl.includes('new5'))) {
-        manifest.providers.hdhub4u.baseUrl = 'https://new15.hdhub4u.cl';
+      const live = extractDomain(manifest.providers.hdhub4u);
+      if (live) {
+        manifest.providers.hdhub4u.baseUrl = live;
+        if (!Array.isArray(manifest.providers.hdhub4u.mirrors)) manifest.providers.hdhub4u.mirrors = [];
+        if (!manifest.providers.hdhub4u.mirrors.includes(live)) {
+          manifest.providers.hdhub4u.mirrors.unshift(live);
+        }
+        if (!manifest.providers.hdhub4u.headers) manifest.providers.hdhub4u.headers = {};
+        manifest.providers.hdhub4u.headers.Referer = `${live}/`;
       }
       HDHub4u.applyRemoteConfig(manifest.providers.hdhub4u);
       console.log(`[ProviderUpdateManager] Live BaseUrl for HDHub4u set to: ${HDHub4u.baseUrl}`);
@@ -324,14 +360,29 @@ class ProviderUpdateManagerService {
 
     // Server 2: 4KHDHub
     if (manifest.providers['4khdhub'] && FourKHDHub) {
+      const live = extractDomain(manifest.providers['4khdhub']);
+      if (live) {
+        manifest.providers['4khdhub'].baseUrl = live;
+        if (!Array.isArray(manifest.providers['4khdhub'].mirrors)) manifest.providers['4khdhub'].mirrors = [];
+        if (!manifest.providers['4khdhub'].mirrors.includes(live)) {
+          manifest.providers['4khdhub'].mirrors.unshift(live);
+        }
+      }
       FourKHDHub.applyRemoteConfig(manifest.providers['4khdhub']);
       console.log(`[ProviderUpdateManager] Live BaseUrl for 4KHDHub set to: ${FourKHDHub.baseUrl}`);
     }
 
     // Server 3: Movies4u
     if (manifest.providers.movies4u && Movies4u) {
-      if (manifest.providers.movies4u.baseUrl && (manifest.providers.movies4u.baseUrl.includes('new3.movies4u') || manifest.providers.movies4u.baseUrl.includes('new4.movies4u') || manifest.providers.movies4u.baseUrl.includes('new5.movies4u') || manifest.providers.movies4u.baseUrl.includes('.clinic'))) {
-        manifest.providers.movies4u.baseUrl = 'https://new8.movies4u.garden';
+      const live = extractDomain(manifest.providers.movies4u);
+      if (live) {
+        manifest.providers.movies4u.baseUrl = live;
+        if (!Array.isArray(manifest.providers.movies4u.mirrors)) manifest.providers.movies4u.mirrors = [];
+        if (!manifest.providers.movies4u.mirrors.includes(live)) {
+          manifest.providers.movies4u.mirrors.unshift(live);
+        }
+        if (!manifest.providers.movies4u.headers) manifest.providers.movies4u.headers = {};
+        manifest.providers.movies4u.headers.Referer = `${live}/`;
       }
       Movies4u.applyRemoteConfig(manifest.providers.movies4u);
       console.log(`[ProviderUpdateManager] Live BaseUrl for Movies4u set to: ${Movies4u.liveBaseUrl}`);
@@ -339,6 +390,10 @@ class ProviderUpdateManagerService {
 
     // Server 4: AnimeSalt.cx (Anime Series & Movies)
     if (manifest.providers.animesalt && AnimeSalt) {
+      const live = extractDomain(manifest.providers.animesalt);
+      if (live) {
+        manifest.providers.animesalt.baseUrl = live;
+      }
       AnimeSalt.applyRemoteConfig(manifest.providers.animesalt);
       console.log(`[ProviderUpdateManager] Live BaseUrl for AnimeSalt set to: ${AnimeSalt.baseUrl}`);
     }

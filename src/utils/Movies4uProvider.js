@@ -332,8 +332,8 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
  * Optimized for Android Media3 ExoPlayer & Stitch-Nexplay Integration
  */
 export class Movies4uClient {
-    liveBaseUrl = 'https://new8.movies4u.garden';
-    mirrors = ['https://new8.movies4u.garden', 'https://movies4u.foo'];
+    liveBaseUrl = 'https://new9.movies4u.garden';
+    mirrors = ['https://new9.movies4u.garden', 'https://movies4u.foo'];
     domainResolved = false;
     constructor(customBaseUrl) {
         if (customBaseUrl) {
@@ -377,8 +377,16 @@ export class Movies4uClient {
     }
 
     applyRemoteConfig(config = {}) {
-        if (config.baseUrl) this.setBaseUrl(config.baseUrl);
+        let live = config.baseUrl;
+        if (!live && Array.isArray(config.mirrors) && config.mirrors[0]) {
+            live = config.mirrors[0];
+        }
+        if (!live && config.headers?.Referer) {
+            try { live = new URL(config.headers.Referer).origin; } catch (_) {}
+        }
+        if (live) this.setBaseUrl(live);
         if (Array.isArray(config.mirrors)) this.setMirrors(config.mirrors);
+        if (live) this.setBaseUrl(live);
     }
     /**
      * Resolves the active live mirror from the entry point https://movies4u.foo
