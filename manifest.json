@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.9",
-  "updatedAt": "2026-11-21T13:30:00.000Z",
-  "commitSha": "96f0c4c",
+  "version": "1.2.0",
+  "updatedAt": "2026-11-24T17:00:00.000Z",
+  "commitSha": "4b37980",
   "name": "NexPlay Providers Configuration",
   "description": "Dynamic Over-The-Air scraper and provider definitions for NexPlay & Stitch-Nexplay",
   "providers": {
@@ -11,8 +11,9 @@
       "name": "Server 1 (HDHub4u)",
       "enabled": true,
       "priority": 1,
-      "baseUrl": "https://new15.hdhub4u.cl",
+      "baseUrl": "https://new16.hdhub4u.cl",
       "mirrors": [
+        "https://new16.hdhub4u.cl",
         "https://new15.hdhub4u.cl",
         "https://vfilm.pro",
         "https://hdhub4u.skin",
@@ -20,6 +21,7 @@
       ],
       "headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": "https://new16.hdhub4u.cl/",
         "Accept": "*/*"
       },
       "features": {
@@ -55,14 +57,14 @@
       "name": "Server 3 (Movies4u)",
       "enabled": true,
       "priority": 3,
-      "baseUrl": "https://new8.movies4u.garden",
+      "baseUrl": "https://new9.movies4u.garden",
       "mirrors": [
-        "https://new8.movies4u.garden",
+        "https://new9.movies4u.garden",
         "https://movies4u.foo"
       ],
       "headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://new8.movies4u.garden/"
+        "Referer": "https://new9.movies4u.garden/"
       },
       "features": {
         "movieResolution": true,
