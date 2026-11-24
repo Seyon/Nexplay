@@ -24,6 +24,7 @@
     "react-native-worklets": "0.10.1"
   },
   "scripts": {
+    "postinstall": "node scripts/apply-patches.js",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

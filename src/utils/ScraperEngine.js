@@ -815,25 +815,20 @@ var ClientUtils = class {
     }
     // Preserves AWS/Cloudflare R2 presigned URLs (%2F in credentials must NOT become %252F)
     if (trimmed.includes('X-Amz-') || trimmed.includes('cloudflarestorage.com') || trimmed.includes('r2.dev')) {
-      if (trimmed.includes(' ')) {
-        trimmed = trimmed.replace(/ /g, '%20');
-      }
-      return trimmed;
+      return trimmed.replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
     }
     // If URL already contains percent-encoded sequences, do not re-encode
     if (/%[0-9a-fA-F]{2}/.test(trimmed)) {
-      if (trimmed.includes(' ')) {
-        trimmed = trimmed.replace(/ /g, '%20');
-      }
-      return trimmed;
+      return trimmed.replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
     }
     try {
       if (trimmed.includes(' ') || trimmed.includes('[') || trimmed.includes(']')) {
-        return encodeURI(decodeURI(trimmed));
+        let res = encodeURI(decodeURI(trimmed));
+        return res.replace(/\[/g, '%5B').replace(/\]/g, '%5D');
       }
       return trimmed;
     } catch (_) {
-      return trimmed.replace(/ /g, '%20');
+      return trimmed.replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
     }
   }
 
@@ -926,8 +921,6 @@ var ClientUtils = class {
     if (!streamUrl || !streamUrl.startsWith("http")) return { isLive: false, supports206: false };
     const u = streamUrl.toLowerCase();
     if (
-      u.includes('r2.dev') ||
-      u.includes('r2.cloudflarestorage.com') ||
       u.includes('pixeldrain.com/api/file/') ||
       u.includes('pixeldrain.dev/api/file/') ||
       u.includes('bunker.monster') ||
@@ -1011,8 +1004,6 @@ var ClientUtils = class {
       if (item && item.url) {
         const u = item.url.toLowerCase();
         if (
-          u.includes('r2.dev') ||
-          u.includes('r2.cloudflarestorage.com') ||
           u.includes('pixeldrain.com/api/file/') ||
           u.includes('pixeldrain.dev/api/file/') ||
           u.includes('bunker.monster') ||
@@ -1043,10 +1034,10 @@ var ClientUtils = class {
       }
     }
 
-    // Optimistic fast fallback: if top item is known direct CDN (Cloudflare R2, PixelDrain, FastDL, Google CDN)
+    // Optimistic fast fallback: if top item is known direct CDN (PixelDrain, FastDL, Google CDN)
     if (topPrimary.length > 0) {
       const topDirect = topPrimary[0];
-      if (topDirect && (topDirect.url.includes('r2.dev') || topDirect.url.includes('cloudflarestorage') || topDirect.url.includes('pixeldrain') || topDirect.url.includes('fastdl') || topDirect.url.includes('googleusercontent.com') || topDirect.url.includes('video-downloads'))) {
+      if (topDirect && (topDirect.url.includes('pixeldrain') || topDirect.url.includes('fastdl') || topDirect.url.includes('googleusercontent.com') || topDirect.url.includes('video-downloads'))) {
         const detectedQ = this.detectQualityFromUrl(topDirect.url, fallbackQuality);
         const safeUrl = this.sanitizeStreamUrl(topDirect.url);
         return { q: detectedQ, url: safeUrl, item: { ...topDirect, url: safeUrl, supports206: true } };

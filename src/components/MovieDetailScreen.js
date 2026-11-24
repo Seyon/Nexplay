@@ -44,6 +44,7 @@ import {
 } from '../utils/api';
 import { ExtensionManager } from '../utils/ExtensionManager';
 import nexPlayAnimeApi from '../services/NexPlayAnimeApi';
+import aniSkipService from '../services/AniSkipService';
 import { saveWatchProgress, getUniversalQuality, subscribeSettings } from '../utils/AppSettings';
 import {
   getPlaybackProgress,
@@ -55,7 +56,7 @@ import {
   subscribePlaybackProgress
 } from '../utils/PlaybackProgressManager';
 
-// Safe URL sanitizer for Media3 ExoPlayer:
+// Safe URL sanitizer for Media3 ExoPlayer & LibVLC:
 // Preserves AWS/Cloudflare R2 presigned URLs (%2F in credentials must NOT become %252F)
 // while properly encoding spaces and brackets in Cloudflare Worker streams
 function sanitizePlayableUrl(rawUrl) {
@@ -66,26 +67,21 @@ function sanitizePlayableUrl(rawUrl) {
     url = url.replace(/%25([0-9a-fA-F]{2})/g, '%$1');
   }
   if (url.includes('X-Amz-') || url.includes('cloudflarestorage.com') || url.includes('r2.dev')) {
-    if (url.includes(' ')) {
-      url = url.replace(/ /g, '%20');
-    }
-    return url;
+    return url.replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
   }
-  // If URL already contains percent-encoded sequences, avoid re-encoding
+  // If URL already contains percent-encoded sequences, ensure spaces and brackets are encoded
   if (/%[0-9a-fA-F]{2}/.test(url)) {
-    if (url.includes(' ')) {
-      url = url.replace(/ /g, '%20');
-    }
-    return url;
+    return url.replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
   }
   try {
     if (url.includes(' ') || url.includes('[') || url.includes(']')) {
-      url = encodeURI(decodeURI(url));
+      let res = encodeURI(decodeURI(url));
+      return res.replace(/\[/g, '%5B').replace(/\]/g, '%5D');
     }
   } catch (_) {
-    url = url.replace(/ /g, '%20');
+    return url.replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
   }
-  return url;
+  return url.replace(/\[/g, '%5B').replace(/\]/g, '%5D');
 }
 
 /**
@@ -400,9 +396,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
   const gestureIndicatorAnim = useRef(new Animated.Value(0)).current;
   const gestureTimeoutRef = useRef(null);
 
-  // TIDB - The Intro Database state (Skip Intro, Recap, Credits, Outro)
+  // TIDB - The Intro Database state (Skip Intro, Recap, Credits, Outro for Standard Content)
   const [tidbSegments, setTidbSegments] = useState(null);
   const [tidbLoading, setTidbLoading] = useState(false);
+
+  // AniSkip state - Dedicatedly for Anime Section (Community-Driven Opening, Ending, Recap Skip Times)
+  const [aniSkipData, setAniSkipData] = useState(null);
+  const [aniSkipLoading, setAniSkipLoading] = useState(false);
 
   const startTouchX = useRef(0);
   const startTouchY = useRef(0);
@@ -622,10 +622,15 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     };
   }, []);
 
-  // Fetch Intro / Outro / Recap / Credits timestamps from TIDB (The Intro Database)
+  // Fetch Intro / Outro / Recap / Credits timestamps from TIDB (The Intro Database) - Non-Anime ONLY
   useEffect(() => {
     let isCancelled = false;
     async function loadTidbSegments() {
+      // Strictly do NOT run TIDB for Anime (Anime section uses community AniSkip)
+      if (isAnimeContent) {
+        setTidbSegments(null);
+        return;
+      }
       const tmdbId = details?.id || movie?.id;
       if (!tmdbId) return;
       setTidbLoading(true);
@@ -657,7 +662,46 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     }
     loadTidbSegments();
     return () => { isCancelled = true; };
-  }, [details?.id, movie?.id, selectedSeason, currentEpisode?.episodeNumber, currentEpisode?.seasonNumber, isTVShow]);
+  }, [details?.id, movie?.id, selectedSeason, currentEpisode?.episodeNumber, currentEpisode?.seasonNumber, isTVShow, isAnimeContent]);
+
+  // Fetch Intro / Outro / Recap timestamps from AniSkip (Dedicated to Anime Section Only)
+  useEffect(() => {
+    let isCancelled = false;
+    // Strictly ONLY run for Anime content
+    if (!isAnimeContent) {
+      setAniSkipData(null);
+      return;
+    }
+
+    async function loadAniSkipSegments() {
+      const malId = details?.mal_id || movie?.mal_id || details?.id || movie?.id;
+      if (!malId) return;
+
+      const epNum = currentEpisode?.episodeNumber || 1;
+      const episodeDuration = (typeof duration === 'number' && duration > 0) ? duration : 0;
+
+      setAniSkipLoading(true);
+      try {
+        const skipInfo = await aniSkipService.getSkipTimes({
+          malId,
+          episodeNumber: epNum,
+          episodeLength: episodeDuration,
+          title: details?.title || movie?.title
+        });
+
+        if (!isCancelled) {
+          setAniSkipData(skipInfo);
+        }
+      } catch (err) {
+        if (!isCancelled) setAniSkipData(null);
+      } finally {
+        if (!isCancelled) setAniSkipLoading(false);
+      }
+    }
+
+    loadAniSkipSegments();
+    return () => { isCancelled = true; };
+  }, [isAnimeContent, details?.mal_id, movie?.mal_id, details?.id, movie?.id, currentEpisode?.episodeNumber, duration]);
 
   // WebView Client-Side Scraper state
   const [isResolving, setIsResolving] = useState(false);
@@ -1194,10 +1238,12 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     if (!currentSourceUri) return undefined;
     const mediaOptions = [
       ':sub-track=-1',
-      ':no-sub',
-      ':network-caching=2000',
-      ':file-caching=2000',
-      ':live-caching=2000',
+      ':network-caching=1000',
+      ':file-caching=1000',
+      ':live-caching=1000',
+      ':clock-synchro=0',
+      ':drop-late-frames',
+      ':skip-frames',
       ':http-reconnect=true',
       ':no-sub-autodetect-file',
       ':no-stats'
@@ -1393,7 +1439,6 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
     setIsPlaying(false);
     setHasFirstFrameRendered(false);
     setHasStartedPlayback(true);
-    setIsFullscreen(false);
     setIsBuffering(true);
     isBufferingRef.current = true;
 
@@ -3555,13 +3600,19 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
           </Animated.View>
         )}
 
-        {/* FLOATING TIDB SKIP BUTTONS (Skip Intro, Skip Recap, Skip Credits, Next Episode) */}
+        {/* FLOATING SKIP BUTTONS (Anime AniSkip Opening / Ending / Recap, or TIDB Intro / Recap / Credits, Next Episode) */}
         {hasStartedPlayback && !isResolving && (() => {
-          const curMs = ((currentTimeRef.current > 0 ? currentTimeRef.current : currentTime) || 0) * 1000;
-          const activeIntro = tidbSegments?.intro?.find(seg => curMs >= seg.start_ms && curMs <= seg.end_ms);
-          const activeRecap = tidbSegments?.recap?.find(seg => curMs >= seg.start_ms && curMs <= seg.end_ms);
-          const activeCredits = tidbSegments?.credits?.find(seg => curMs >= seg.start_ms && (seg.end_ms ? curMs <= seg.end_ms : true));
-          const isNearEnd = isTVShow && duration > 0 && currentTime >= Math.max(0, duration - 75);
+          const curSec = (currentTimeRef.current > 0 ? currentTimeRef.current : currentTime) || 0;
+          const curMs = curSec * 1000;
+
+          // Dedicated AniSkip detection for Anime Section ONLY
+          const activeAnimeSkip = isAnimeContent ? aniSkipService.getActiveSkip(aniSkipData, curSec) : null;
+
+          // TIDB detection for Non-Anime content ONLY
+          const activeIntro = !isAnimeContent ? tidbSegments?.intro?.find(seg => curMs >= seg.start_ms && curMs <= seg.end_ms) : null;
+          const activeRecap = !isAnimeContent ? tidbSegments?.recap?.find(seg => curMs >= seg.start_ms && curMs <= seg.end_ms) : null;
+          const activeCredits = !isAnimeContent ? tidbSegments?.credits?.find(seg => curMs >= seg.start_ms && (seg.end_ms ? curMs <= seg.end_ms : true)) : null;
+          const isNearEnd = isTVShow && duration > 0 && curSec >= Math.max(0, duration - 75);
 
           const currentEpNum = currentEpisode?.episodeNumber || 1;
           const currentSeasonNum = currentEpisode?.seasonNumber || selectedSeason || 1;
@@ -3593,9 +3644,13 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
             }
           }
 
-          const showIntro = !!activeIntro;
-          const showRecap = !!activeRecap && !showIntro;
-          const showCredits = !!activeCredits;
+          const isAnimeIntro = Boolean(activeAnimeSkip && activeAnimeSkip.category === 'intro');
+          const isAnimeRecap = Boolean(activeAnimeSkip && activeAnimeSkip.category === 'recap');
+          const isAnimeOutro = Boolean(activeAnimeSkip && activeAnimeSkip.category === 'outro');
+
+          const showIntro = isAnimeIntro || !!activeIntro;
+          const showRecap = isAnimeRecap || (!!activeRecap && !showIntro);
+          const showCredits = isAnimeOutro || !!activeCredits;
           const showNextEp = isTVShow && !!nextEpisode && (showCredits || isNearEnd);
 
           if (!showIntro && !showRecap && !showCredits && !showNextEp) {
@@ -3618,11 +3673,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               {showRecap && (
                 <TouchableOpacity
                   onPress={() => {
-                    if (player && activeRecap) {
+                    if (isAnimeRecap && activeAnimeSkip) {
+                      seekToTimestamp(activeAnimeSkip.targetTime);
+                    } else if (activeRecap) {
                       const targetSec = (activeRecap.end_ms / 1000) + 0.5;
-                      currentTimeRef.current = targetSec;
-                      setCurrentTime(targetSec);
-                      player.currentTime = targetSec;
+                      seekToTimestamp(targetSec);
                     }
                   }}
                   activeOpacity={0.85}
@@ -3644,7 +3699,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 >
                   <MaterialIcons name="fast-forward" size={scale(15)} color="#E50914" style={{ marginRight: scale(4) }} />
                   <Text style={{ color: '#ffffff', fontSize: moderateScale(11.5), fontWeight: '800' }}>
-                    Skip Recap
+                    {isAnimeRecap ? (activeAnimeSkip?.label || 'Skip Recap') : 'Skip Recap'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -3652,11 +3707,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               {showIntro && (
                 <TouchableOpacity
                   onPress={() => {
-                    if (player && activeIntro) {
+                    if (isAnimeIntro && activeAnimeSkip) {
+                      seekToTimestamp(activeAnimeSkip.targetTime);
+                    } else if (activeIntro) {
                       const targetSec = (activeIntro.end_ms / 1000) + 0.5;
-                      currentTimeRef.current = targetSec;
-                      setCurrentTime(targetSec);
-                      player.currentTime = targetSec;
+                      seekToTimestamp(targetSec);
                     }
                   }}
                   activeOpacity={0.85}
@@ -3678,7 +3733,7 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 >
                   <MaterialIcons name="fast-forward" size={scale(15)} color="#E50914" style={{ marginRight: scale(4) }} />
                   <Text style={{ color: '#ffffff', fontSize: moderateScale(11.5), fontWeight: '800' }}>
-                    Skip Intro
+                    {isAnimeIntro ? (activeAnimeSkip?.label || 'Skip Opening') : 'Skip Intro'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -3686,11 +3741,11 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
               {showCredits && !showNextEp && (
                 <TouchableOpacity
                   onPress={() => {
-                    if (player && activeCredits) {
-                      const targetSec = activeCredits.end_ms ? (activeCredits.end_ms / 1000) : (duration || (curMs / 1000) + 30);
-                      currentTimeRef.current = targetSec;
-                      setCurrentTime(targetSec);
-                      player.currentTime = targetSec;
+                    if (isAnimeOutro && activeAnimeSkip) {
+                      seekToTimestamp(activeAnimeSkip.targetTime);
+                    } else if (activeCredits) {
+                      const targetSec = activeCredits.end_ms ? (activeCredits.end_ms / 1000) : (duration || curSec + 30);
+                      seekToTimestamp(targetSec);
                     }
                   }}
                   activeOpacity={0.85}
@@ -3712,38 +3767,72 @@ export default function MovieDetailScreen({ movie, onBack, onNavigateMovie }) {
                 >
                   <MaterialIcons name="fast-forward" size={scale(15)} color="#ffffff" style={{ marginRight: scale(4) }} />
                   <Text style={{ color: '#ffffff', fontSize: moderateScale(11.5), fontWeight: '800' }}>
-                    Skip Credits
+                    {isAnimeOutro ? (activeAnimeSkip?.label || 'Skip Ending') : 'Skip Credits'}
                   </Text>
                 </TouchableOpacity>
               )}
 
               {showNextEp && (
-                <TouchableOpacity
-                  onPress={() => {
-                    selectEpisode(nextEpisode);
-                  }}
-                  activeOpacity={0.85}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: '#E50914',
-                    paddingHorizontal: scale(13),
-                    paddingVertical: verticalScale(7),
-                    borderRadius: scale(18),
-                    borderWidth: 1.2,
-                    borderColor: '#FF4D58',
-                    shadowColor: '#E50914',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.45,
-                    shadowRadius: 8,
-                    elevation: 8
-                  }}
-                >
-                  <Ionicons name="play-skip-forward" size={scale(14)} color="#ffffff" style={{ marginRight: scale(5) }} />
-                  <Text style={{ color: '#ffffff', fontSize: moderateScale(11.5), fontWeight: '900' }}>
-                    Next Episode
-                  </Text>
-                </TouchableOpacity>
+                <>
+                  {/* When Anime Ending/Outro is playing, show BOTH Skip Ending AND Next Episode */}
+                  {isAnimeOutro && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (activeAnimeSkip) {
+                          seekToTimestamp(activeAnimeSkip.targetTime);
+                        }
+                      }}
+                      activeOpacity={0.85}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(18, 18, 20, 0.92)',
+                        paddingHorizontal: scale(12),
+                        paddingVertical: verticalScale(7),
+                        borderRadius: scale(18),
+                        borderWidth: 1.2,
+                        borderColor: 'rgba(255, 255, 255, 0.35)',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.4,
+                        shadowRadius: 6,
+                        elevation: 8
+                      }}
+                    >
+                      <MaterialIcons name="fast-forward" size={scale(15)} color="#ffffff" style={{ marginRight: scale(4) }} />
+                      <Text style={{ color: '#ffffff', fontSize: moderateScale(11.5), fontWeight: '800' }}>
+                        {activeAnimeSkip?.label || 'Skip Ending'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      selectEpisode(nextEpisode);
+                    }}
+                    activeOpacity={0.85}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#E50914',
+                      paddingHorizontal: scale(13),
+                      paddingVertical: verticalScale(7),
+                      borderRadius: scale(18),
+                      borderWidth: 1.2,
+                      borderColor: '#FF4D58',
+                      shadowColor: '#E50914',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.45,
+                      shadowRadius: 8,
+                      elevation: 8
+                    }}
+                  >
+                    <Ionicons name="play-skip-forward" size={scale(14)} color="#ffffff" style={{ marginRight: scale(5) }} />
+                    <Text style={{ color: '#ffffff', fontSize: moderateScale(11.5), fontWeight: '900' }}>
+                      Next Episode
+                    </Text>
+                  </TouchableOpacity>
+                </>
               )}
             </View>
           );

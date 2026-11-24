@@ -794,7 +794,7 @@ export class Movies4uClient {
             return null;
         }
         try {
-            const u = new URL(clean);
+            const u = new URL(clean.replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D'));
             const linkParam = u.searchParams.get('link') || u.searchParams.get('url') || u.searchParams.get('file');
             if (linkParam && linkParam.startsWith('http')) {
                 return this.extractDirectCdnUrl(linkParam);
@@ -806,16 +806,15 @@ export class Movies4uClient {
                 if (decoded.startsWith('http')) return this.extractDirectCdnUrl(decoded);
             }
         }
-        return clean;
+        return clean.replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
     }
 
     async verifyMediaStream(streamUrl, headers = {}, timeoutMs = 2000) {
         if (!streamUrl || !streamUrl.startsWith("http")) return { isLive: false, supports206: false };
-        const u = streamUrl.toLowerCase();
-        // Instant bypass for known direct CDN streams (Cloudflare R2, PixelDrain API, Bunker, FastDL)
+        const cleanStreamUrl = streamUrl.trim().replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
+        const u = cleanStreamUrl.toLowerCase();
+        // Instant bypass for known direct CDN streams (do NOT bypass Cloudflare R2 as R2 buckets can be 403 Forbidden)
         if (
-            u.includes('r2.dev') ||
-            u.includes('r2.cloudflarestorage.com') ||
             u.includes('pixeldrain.com/api/file/') ||
             u.includes('pixeldrain.dev/api/file/') ||
             u.includes('bunker.monster') ||
@@ -828,27 +827,27 @@ export class Movies4uClient {
         let controller = null;
         let timeoutId = null;
         try {
-            const isGoogleCdn = streamUrl.includes("googleusercontent.com") || 
-                                streamUrl.includes("video-downloads") || 
-                                streamUrl.includes("gpdl");
-            const isHls = streamUrl.toLowerCase().includes('.m3u8');
+            const isGoogleCdn = cleanStreamUrl.includes("googleusercontent.com") || 
+                                cleanStreamUrl.includes("video-downloads") || 
+                                cleanStreamUrl.includes("gpdl");
+            const isHls = cleanStreamUrl.toLowerCase().includes('.m3u8');
             if (typeof AbortController !== "undefined") {
                 controller = new AbortController();
                 timeoutId = setTimeout(() => {
                     try { controller.abort(); } catch (_) {}
                 }, timeoutMs);
             }
-            const isDirectCdn = streamUrl.includes("pixeldrain") || 
-                                streamUrl.includes("cloudflarestorage.com") || 
-                                streamUrl.includes("r2.dev") || 
-                                streamUrl.includes("fastdl") || 
-                                streamUrl.includes("bunker.monster");
+            const isDirectCdn = cleanStreamUrl.includes("pixeldrain") || 
+                                cleanStreamUrl.includes("cloudflarestorage.com") || 
+                                cleanStreamUrl.includes("r2.dev") || 
+                                cleanStreamUrl.includes("fastdl") || 
+                                cleanStreamUrl.includes("bunker.monster");
             const reqHeaders = {
                 "User-Agent": headers["User-Agent"] || DEFAULT_USER_AGENT,
                 "Range": "bytes=0-1024",
                 ...(headers["Referer"] && !isDirectCdn ? { "Referer": headers["Referer"] } : {})
             };
-            const res = await fetch(streamUrl, {
+            const res = await fetch(cleanStreamUrl, {
                 method: "GET",
                 headers: reqHeaders,
                 signal: controller ? controller.signal : void 0,
@@ -862,7 +861,7 @@ export class Movies4uClient {
             if (status >= 400 || contentType.includes("zip") || contentType.includes("html") || contentType.includes("json") || contentType.includes("text")) {
                 return { isLive: false, supports206: false };
             }
-            if (streamUrl.includes("testzip.php") || streamUrl.includes("negn6f")) {
+            if (cleanStreamUrl.includes("testzip.php") || cleanStreamUrl.includes("negn6f")) {
                 return { isLive: false, supports206: false };
             }
 
@@ -1417,6 +1416,7 @@ export class Movies4uClient {
                 const label = rawLabel.replace(/<[^>]+>/g, '').trim();
                 const lowerHref = href.toLowerCase();
                 const lowerLabel = label.toLowerCase();
+                const safeHref = href.trim().replace(/ /g, '%20').replace(/\[/g, '%5B').replace(/\]/g, '%5D');
                 
                 // Strictly ignore ZIP and compressed archive links
                 if (
@@ -1430,7 +1430,7 @@ export class Movies4uClient {
                 if (href.includes('r2.cloudflarestorage.com') || href.includes('r2.dev') || lowerLabel.includes('fsl server') || lowerLabel.includes('fsl 4k') || lowerLabel.includes('fsl 1080p') || lowerLabel.includes('fsl direct')) {
                     results.push({
                         quality: qualityHint,
-                        url: href,
+                        url: safeHref,
                         originalUrl: hubUrl,
                         server: 'Download [FSL Server] (10Gbps Cloudflare R2 Direct)',
                         type: 'direct',
@@ -1443,7 +1443,7 @@ export class Movies4uClient {
                 else if (href.includes('fastdl') || href.includes('fsl.') || href.includes('bunker.monster') || href.includes('valentine.guru') || href.includes('cdn.lenin.buzz') || lowerLabel.includes('fastdl') || lowerLabel.includes('fslv2') || lowerLabel.includes('fsl v2')) {
                     results.push({
                         quality: qualityHint,
-                        url: href,
+                        url: safeHref,
                         originalUrl: hubUrl,
                         server: 'Download [FSL v2 server] (Fast CDN Direct Stream)',
                         type: 'direct',
