@@ -246,8 +246,11 @@ class ProviderUpdateManagerService {
 
       const isNewerVersion = this.compareVersions(remoteManifest.version, this.currentVersion) > 0;
       const hasNewTimestamp = remoteManifest.updatedAt && (!this.currentManifest || new Date(remoteManifest.updatedAt) > new Date(this.currentManifest.updatedAt || 0));
+      const currentProvidersStr = JSON.stringify(this.currentManifest?.providers || {});
+      const remoteProvidersStr = JSON.stringify(remoteManifest.providers || {});
+      const hasProvidersChanged = currentProvidersStr !== remoteProvidersStr;
 
-      if (isNewerVersion || hasNewTimestamp || force) {
+      if (isNewerVersion || hasNewTimestamp || hasProvidersChanged || force) {
         console.log(`[ProviderUpdateManager] 🚀 New provider configuration found (v${remoteManifest.version})! Applying updates...`);
         this.emit('update-available', {
           currentVersion: this.currentVersion,
