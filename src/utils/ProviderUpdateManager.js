@@ -138,7 +138,7 @@ class ProviderUpdateManagerService {
           if (cached && cached.version) {
             // Guard: sanitize dead mirrors if cached from earlier builds
             if (cached.providers) {
-              if (cached.providers.hdhub4u?.baseUrl && (!cached.providers.hdhub4u.baseUrl.includes('new15.hdhub4u') || cached.providers.hdhub4u.baseUrl.includes('new14') || cached.providers.hdhub4u.baseUrl.includes('new10') || cached.providers.hdhub4u.baseUrl.includes('new5'))) {
+              if (cached.providers.hdhub4u?.baseUrl && (cached.providers.hdhub4u.baseUrl.includes('new14') || cached.providers.hdhub4u.baseUrl.includes('new10') || cached.providers.hdhub4u.baseUrl.includes('new5'))) {
                 cached.providers.hdhub4u.baseUrl = 'https://new15.hdhub4u.cl';
               }
               if (cached.providers.movies4u?.baseUrl && (cached.providers.movies4u.baseUrl.includes('new3.movies4u') || cached.providers.movies4u.baseUrl.includes('new4.movies4u') || cached.providers.movies4u.baseUrl.includes('new5.movies4u') || cached.providers.movies4u.baseUrl.includes('.clinic'))) {
